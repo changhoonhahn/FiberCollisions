@@ -1,12 +1,26 @@
+'''
+
+
+Line of Sight Displacement Codes
+
+Author(s): ChangHoon Hahn 
+
+
+'''
+
+
 import numpy as np
 from scipy.optimize import curve_fit
 import sys
 import os.path
 import subprocess
 import cosmolopy as cosmos
+
+# -- Local -- 
 import fibcol_data as fc_data
 import fibcol_utility as fc_util
 import mpfit as mpfit
+import galaxy_environment as genv
 
 # ------------------------------------------------------------------------------------
 # Set up LOS displacement class
@@ -272,8 +286,7 @@ def compute_dlos_py(**cat_corr):
 # Derived quantities 
 # ------------------------------------------------------------------------------------
 def get_dlos_curvefit_sigma(fit='expon', binsize=0.1, **cat_corr): 
-    '''
-    calculate sigma of the bestfit exponential/gaussian to dLOS histogram 
+    ''' calculate sigma of the bestfit exponential/gaussian to dLOS histogram 
     dlos xrange is currently hardcoded
     '''
     catalog = cat_corr['catalog']
@@ -346,6 +359,81 @@ def average_dlos_fpeak(**cat_corr):
         raise NameError('Not yet coded') 
     return f_1sigma/np.float(n_mock) 
 
+def dlos_env(n=3, **cat_corr):
+    ''' Using kth nearest neighbor distance compare dlos distrubtion  
+    '''
+    catalog = cat_corr['catalog']
+    correction = {'name': 'upweight'} 
+   
+    # Read in dLOS data ----------------------------------------------------------------------
+    if catalog['name'].lower() == 'qpm':    # QPM --------------------------------------------
+
+        for i_mock in range(1, 11):         # loop through mocks 
+            
+            # read dLOS for each file 
+            i_catalog = catalog.copy() 
+            i_catalog['n_mock'] = i_mock 
+            i_cat_corr = {'catalog':i_catalog, 'correction': correction} 
+            print i_cat_corr
+
+            los_disp_i = dlos(**i_cat_corr)         # import DLOS values from each mock 
+            # compute nth nearest neighbor distance for upweighted galaxy  
+            NN_dist = genv.dlos_d_NN(n=n, **i_cat_corr ) 
+            
+            # combine dLOS and dNN from files 
+            try: 
+                combined_dlos
+            except NameError: 
+                combined_dlos = los_disp_i.dlos
+                combined_dNN = NN_dist
+            else: 
+                combined_dlos = np.concatenate([combined_dlos, los_disp_i.dlos])
+                combined_dNN = np.concatenate([combined_dNN, NN_dist]) 
+
+    else: 
+        raise NotImplementedError('asdfasdfasdf') 
+
+    prettyplot() 
+    pretty_colors = prettycolors() 
+    fig = plt.figure(1, figsize=(14,5))
+    sub = fig.add_subplot(1,1,1)
+
+    # loop through different dNN measurements 
+    dNN_bins = [ (0, 5), (5, 10), (10, 50) ] 
+
+    for i_bin, dNN_bin in enumerate(dNN_bins): 
+
+        bin_index = ( combined_dNN >= dNN_bin[0] ) & ( combined_dNN < dNN_bin[1] ) 
+
+        bin_dlos = combined_dlos[bin_index] 
+
+        # Create histogram for combined dLOS values  (binsize is just guessed)
+        x_min = -1000.0
+        x_max = 1000.0
+        binsize = 0.1 
+        n_bins = int((x_max-x_min)/binsize) 
+        
+        # dLOS histograms 
+        dlos_hist, mpc_binedges = np.histogram(bin_dlos, 
+                bins=n_bins, range=[x_min, x_max], normed=True)
+
+        mpc_low = mpc_binedges[:-1]
+        mpc_high = mpc_binedges[1:] 
+        mpc_mid = np.array([0.5*(mpc_low[i] + mpc_high[i]) for i in range(len(mpc_low))])
+        
+        sub.plot(mpc_mid, dlos_hist, 
+                lw=4, color=pretty_colors[i_bin+1], 
+                label='$'+str(dNN_bin[0])+' < d_'+str(n)+'NN < '+str(dNN_bin[1])+'$') 
+        
+    sub.set_xlabel(r"$d_{LOS}$ (Mpc/h)", fontsize=20) 
+    sub.set_xlim([-50.0, 50.0])
+    sub.legend(loc='upper right') 
+
+    fig.savefig(fc_util.get_fig_dir()+\
+            'dlos_env_dependence_d'+str(n)+'NN.png', bbox_inches="tight")
+    fig.clear()
+
+#---- Fitting -----
 def peak_expon(x, p): 
     '''
     Exponential function for the peak 
@@ -557,8 +645,7 @@ def combined_dlos_fit(n_mocks, fit='gauss', sanitycheck=False, **cat_corr):
     return [sigma, fpeak]
 
 def combined_dlos_angsep_fit(n_mocks, fit='gauss', sanitycheck=False, **cat_corr):
-    '''
-    Using combined dLOS values from entire catalog, we divide the dLOS values into bins of angular separation.  Then calculate appropriate binsize using Freedman-Diaconis rule, then fits the histogram
+    ''' Using combined dLOS values from entire catalog, we divide the dLOS values into bins of angular separation.  Then calculate appropriate binsize using Freedman-Diaconis rule, then fits the histogram
     Returns [sigma, fpeak]
     '''
     catalog = cat_corr['catalog']
@@ -1253,6 +1340,12 @@ def plot_fcpaper_dlos(cat_corrs):
     fig.clear() 
 
 if __name__=="__main__": 
+    cat_corr = {'catalog': {'name': 'qpm'}, 'correction': {'name': 'upweight'}} 
+    dlos_env(n=1, **cat_corr)
+    dlos_env(n=2, **cat_corr)
+    dlos_env(n=3, **cat_corr)
+    dlos_env(n=5, **cat_corr)
+
     correction = {'name': 'true'}
     cat_corrs = [{'catalog': {'name':catalog}, 'correction': correction} for catalog in ['cmass', 'lasdamasgeo', 'qpm', 'tilingmock']]
 
@@ -1269,7 +1362,7 @@ if __name__=="__main__":
     print 'QPM------------------------------------------------------'
     cat_corr = {'catalog': {'name':'qpm'}, 'correction': {'name': 'upweight'}}
     #print 'Expon ', combined_dlos_fit(10, fit='expon', sanitycheck=True,  **cat_corr) 
-    print 'Expon ', combined_dlos_angsep_fit(10, fit='expon', sanitycheck=True,  **cat_corr) 
+    #print 'Expon ', combined_dlos_angsep_fit(10, fit='expon', sanitycheck=True,  **cat_corr) 
     #print 'Gauss ', combined_dlos_fit(100, fit='gauss', sanitycheck=True,  **cat_corr) 
     #print 'Tiling Mock------------------------------------------------------'
     #cat_corr = {'catalog': {'name':'tilingmock'}, 'correction': {'name': 'upweight'}}

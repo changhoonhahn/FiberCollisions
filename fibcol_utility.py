@@ -246,3 +246,15 @@ def fibcol_file_update():
         ######
         ######
         pass
+
+def radecz_to_xyz(ra, dec, z, **cosmo):
+    ''' Given RA, Dec, redshift AND cosmology, calculate x,y,z in Mpc/h
+    '''
+    phi = ra 
+    theta = 90.0 - dec 
+    r = cosmos.distance.comoving_distance(z, **cosmo)*cosmo['h']    # Mpc/h
+
+    x = r * np.cos(np.deg2rad(phi)) * np.sin(np.deg2rad(theta)) 
+    y = r * np.sin(np.deg2rad(phi)) * np.sin(np.deg2rad(theta))
+    z = r * np.cos(np.deg2rad(theta))
+    return (x,y,z)

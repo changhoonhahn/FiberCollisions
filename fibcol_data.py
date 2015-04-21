@@ -18,7 +18,8 @@ class galaxy_data:
 
         # LasDamas Geo ---------------------------------------------------------------------------------------------------------
         if catalog['name'].lower() == 'lasdamasgeo': 
-            # Data ------------------------------------------------------------------------------------------------------------
+            omega_m = 0.25
+            # Data ---------------------------------------------------------------------------
             if DorR == 'data': 
                 catalog_columns = ['ra', 'dec', 'z', 'weight']          # columns that this catalog data will have  
                 self.columns = catalog_columns
@@ -296,6 +297,7 @@ class galaxy_data:
 
         # TILING MOCKS --------------------------------------------------------------------------------------------------- 
         elif catalog['name'].lower() == 'tilingmock':
+            omega_m = 0.274
             # MOCK --------------------------------------------------------------------------------------------------- 
             if DorR == 'data': 
                 # columns that this catalog data will have  
@@ -528,6 +530,7 @@ class galaxy_data:
                 
         # QPM ------------------------------------------------------------------------------------------------------------ 
         elif catalog['name'].lower() == 'qpm':  
+            omega_m = 0.31
             # Mock ------------------------------------------------------------------------------------------------------
             if DorR == 'data': 
                 # columns that this catalog data will have  
@@ -701,6 +704,7 @@ class galaxy_data:
         
         # CMASS --------------------------------------------------------------------------------------------------------
         elif catalog['name'].lower() == 'cmass':
+            omega_m = 0.274
             # Only coded for dr12v4 
             # NO CORRECTION IMPOSED YET
             # Data ------------------------------------------------------------------------------------------------------
@@ -734,6 +738,14 @@ class galaxy_data:
             raise NameError('not yet coded') 
 
         self.file_name = file_name          # save file name 
+
+        cosmo = {} 
+        cosmo['omega_M_0'] = omega_m 
+        cosmo['omega_lambda_0'] = 1.0 - omega_m 
+        cosmo['h'] = 0.7 
+        cosmo = cosmos.distance.set_omega_k_0(cosmo) 
+        self.cosmo = cosmo 
+
 
 # ------------------------------------------------------------------------
 # Build functions

@@ -7,6 +7,7 @@ import fibcol_nbar as fc_nbar
 import fibcol_spec as fc_spec
 import fibcol_utility as fc_util
 import fibercollisions as fc
+import galaxy_environment as genv
 from matplotlib.collections import LineCollection
 
 # Plotting -----------------------------------------------------------------
@@ -703,6 +704,66 @@ def plot_pk_chi2_comp(catalog_name, n_mock, corr_methods):
     
     fig.savefig(''.join(['/home/users/hahn/research/figures/boss/fiber_collision/', fig_name]), bbox_inches="tight")
     fig.clear()
+
+# galaxy environment 
+def plot_nearest_neighbor(n=3, **cat_corr): 
+    ''' Plot the distribution of nth nearest neighbor distances
+    '''
+
+    fig = plt.figure(1, figsize=(15, 15)) 
+    sub = fig.add_subplot(111) 
+    
+    # get nth nearest neighbor distance 
+    neigh_dist = genv.n_nearest(n = n, **cat_corr) 
+
+    env_hist, env_binedges = np.histogram(neigh_dist, range=[0.0, 50.0], bins=25) 
+    env_bin_low = env_binedges[:-1]
+    env_bin_high = env_binedges[1:]
+    env_bin_mid = [ 0.5*(env_bin_low[i] + env_bin_high[i])
+            for i in range(len(env_bin_low)) ]
+
+    sub.plot(env_bin_mid, env_hist, lw=4) 
+    fig.savefig('nearest_neighbor_dist.png', bbox_inches='tight')
+
+def plot_catalog_nearest_neighbor(n=3, cat='lasdamasgeo'):
+    ''' Plot the combined distribution of nth nearest neighbor distances for a catalog
+    '''
+    fig = plt.figure(1, figsize=(15, 15)) 
+    sub = fig.add_subplot(111) 
+
+    catalog = {} 
+    correction = {'name': 'upweight'} 
+    if cat == 'lasdamasgeo': 
+        catalog['name'] = cat
+
+        for i_mock in range(1, 11): 
+            for letter in ['a', 'b', 'c', 'd']: 
+                catalog['n_mock'] = i_mock 
+                catalog['letter'] = letter 
+
+                i_cat_corr = {
+                        'catalog': catalog, 
+                        'correction': correction} 
+
+                print catalog['name'], catalog['n_mock'], catalog['letter']
+                
+                try: 
+                    neigh_dist
+                except NameError: 
+                    neigh_dist = genv.n_nearest(n = n, **i_cat_corr)
+                else: 
+                    neigh_dist = np.concatenate((neigh_dist, genv.n_nearest(n = n, **i_cat_corr))) 
+    else: 
+        raise NameError('asdf')  
+
+    env_hist, env_binedges = np.histogram(neigh_dist, range=[0.0, 50.0], bins=25) 
+    env_bin_low = env_binedges[:-1]
+    env_bin_high = env_binedges[1:]
+    env_bin_mid = [ 0.5*(env_bin_low[i] + env_bin_high[i])
+            for i in range(len(env_bin_low)) ]
+
+    sub.plot(env_bin_mid, env_hist, lw=4) 
+    fig.savefig('combined_nearest_neighbor_dist.png', bbox_inches='tight')
 
 #--------------------------------------------------------------------------------
 # Functions used in plotting
@@ -1649,23 +1710,32 @@ def plot_chi2_fcpaper(catalogs):
     fig.savefig(''.join(['/home/users/hahn/research/figures/boss/fiber_collision/', fig_name]), bbox_inches="tight")
     fig.clear()
 
-if __name__=="__main__":
+def plot_fcpaper(): 
     # ------------------------------------------------------------
     # figures for FCPAPER
-    #plot_pk_peakonly_fcpaper(['lasdamasgeo', 'qpm', 'tilingmock'])
-    #plot_pk_shotnoiseonly_fcpaper(['lasdamasgeo', 'qpm', 'tilingmock'])
-    #plot_pk_mpfit_peakshotnoise_fcpaper(['lasdamasgeo', 'qpm', 'tilingmock'])
-    #plot_chi2_fcpaper(['lasdamasgeo', 'qpm', 'tilingmock'])
+    plot_pk_peakonly_fcpaper(['lasdamasgeo', 'qpm', 'tilingmock'])
+    plot_pk_shotnoiseonly_fcpaper(['lasdamasgeo', 'qpm', 'tilingmock'])
+    plot_pk_mpfit_peakshotnoise_fcpaper(['lasdamasgeo', 'qpm', 'tilingmock'])
+    plot_chi2_fcpaper(['lasdamasgeo', 'qpm', 'tilingmock'])
     # ---------------------------------------------------------------
+
+def chi_squared(): 
     # Chi-squared calculation 
-    #plot_pk_chi2_comp('lasdamasgeo', 40, 
-    #        [{'name': 'true'}, {'name':'upweight'}, {'name':'floriansn'}, {'name':'hectorsn'}, {'name': 'peakshot', 'sigma':6.5, 'fpeak':0.76, 'fit':'gauss'}]) 
+    plot_pk_chi2_comp('lasdamasgeo', 40, 
+            [{'name': 'true'}, {'name':'upweight'}, {'name':'floriansn'}, {'name':'hectorsn'}, {'name': 'peakshot', 'sigma':6.5, 'fpeak':0.76, 'fit':'gauss'}]) 
 
-    #plot_pk_chi2_comp('qpm', 100, 
-    #        [{'name': 'true'}, {'name':'upweight'}, {'name':'floriansn'}, {'name':'hectorsn'}, {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}]) 
+    plot_pk_chi2_comp('qpm', 100, 
+            [{'name': 'true'}, {'name':'upweight'}, {'name':'floriansn'}, {'name':'hectorsn'}, {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}]) 
 
-    #plot_pk_chi2_comp('tilingmock', 1, 
-    #        [{'name': 'true'}, {'name':'upweight'}, {'name':'floriansn'}, {'name':'hectorsn'}, {'name': 'peakshot', 'sigma':4.8, 'fpeak':0.62, 'fit':'gauss'}])
+    plot_pk_chi2_comp('tilingmock', 1, 
+            [{'name': 'true'}, {'name':'upweight'}, {'name':'floriansn'}, {'name':'hectorsn'}, {'name': 'peakshot', 'sigma':4.8, 'fpeak':0.62, 'fit':'gauss'}])
+
+if __name__=="__main__":
+    cat_corr = {'catalog': {'name': 'lasdamasgeo', 'n_mock': 1, 'letter': 'a'}, 
+            'correction': {'name': 'upweight'}} 
+
+    plot_catalog_nearest_neighbor(n=3, cat='lasdamasgeo') 
+    '''
     # --------------------------------------------------------------------------------------------------------------------------------------------
     #qpm_corr_methods = [{'name': 'true'}, {'name':'upweight'}, {'name':'shotnoise'}, {'name': 'peaknbar', 'sigma': 4.4, 'fpeak': 1.0, 'fit': 'gauss'}, {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}]#, {'name': 'vlospeakshot', 'sigma':580, 'fpeak':0.62, 'fit':'gauss'}]#, {'name': 'vlospeakshot', 'sigma':580, 'fpeak':0.65, 'fit':'gauss'}] 
     qpm_corr_methods = [{'name': 'true'}, {'name':'upweight'}, {'name': 'floriansn'}, {'name': 'hectorsn'}, {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}, {'name': 'peakshot', 'fit': 'true', 'fpeak': 0.65}]
@@ -1675,9 +1745,9 @@ if __name__=="__main__":
     #qpm_corr_methods = [{'name': 'true'}, {'name':'upweight'}, {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}, {'name': 'floriansn'}, {'name': 'hectorsn'}]
     qpm_corr_methods = [{'name': 'true'}, {'name':'upweight'}]#, {'name':'tailupw'}]#{'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'true'}]#, {'name': 'peakshot', 'fit': 'true', 'fpeak': 0.63}]
     #plot_pk_fibcol_comp('qpm', 49, qpm_corr_methods, resid='True') 
-    plot_p2k_fibcol_comp('qpm', 10, qpm_corr_methods, resid='True') 
+    #plot_p2k_fibcol_comp('qpm', 10, qpm_corr_methods, resid='True') 
     qpm_corr_methods = [{'name': 'true'}, {'name':'upweight'}, {'name': 'floriansn'}]
-    plot_pk_fibcol_comp('qpm', 49, qpm_corr_methods, resid='True') 
+    #plot_pk_fibcol_comp('qpm', 49, qpm_corr_methods, resid='True') 
 
     #plot_p2k_fibcol_comp('qpm', 100, corr_methods, resid='False') 
     ldg_corr_methods = [{'name': 'true'}, {'name':'upweight'}, {'name': 'peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}, {'name': 'floriansn'}, {'name': 'hectorsn'}]
@@ -1698,3 +1768,4 @@ if __name__=="__main__":
     #plot_pk_shotnoiseonly_fcpaper(['lasdamasgeo', 'qpm', 'tilingmock'])
     #corr_methods = [{'name': 'true'}, {'name':'upweight'}, {'name':'floriansn'}, {'name':'hectorsn'}, {'name': 'peakshot', 'sigma':5.4, 'fpeak':0.57, 'fit':'expon'}, {'name': 'vlospeakshot', 'sigma':700, 'fpeak':0.65, 'fit':'expon'}]
     #plot_pk_fibcol_comp('tilingmock', 1, corr_methods, resid='True')
+    '''
