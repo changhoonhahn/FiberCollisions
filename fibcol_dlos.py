@@ -171,117 +171,6 @@ def build_dlos(**cat_corr):
     
     print build_dlos_idl_cmd 
     os.system(build_dlos_idl_cmd) 
-
-def build_dlos_zreal(**cat_corr): 
-    '''
-    build DLOS using REAL redshift for given catalog_correction ID 
-    '''
-    catalog = cat_corr['catalog']
-    correction = cat_corr['correction']
-    
-    if catalog['name'].lower() != 'qpm': raise NameError('asdfasdfasdf') 
-
-    mock_file = ''.join(['/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/data/', 
-        'a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.rdz']) 
-    print mock_file
-    los_disp = dlos(readdata=False, **cat_corr)  
-    dlos_file = '.zreal.'.join((los_disp.file_name).rsplit('.', 1)) 
-    
-    build_dlos_idl_cmd = ''. join(['idl -e ', '"', 'build_fibcoll_dlos_zreal, ', "'", catalog['name'], "','", mock_file, "','", dlos_file, "'", '"'])
-    print build_dlos_idl_cmd 
-    os.system(build_dlos_idl_cmd) 
-
-def compute_dlos_py(**cat_corr): 
-    '''
-    compute dlos using cosmolopy and compare dLOS calculated from IDL  
-    NO SIGNIFICANT DIFFERENCE
-    '''
-    catalog = cat_corr['catalog']
-    correction = cat_corr['correction']
-
-    # cosmology *DEPENDS ON MOCK CATALOG!* ---------------------------------------------------
-    if catalog['name'].lower() == 'lasdamasgeo': 
-        omega_m = 0.25
-    elif catalog['name'].lower() == 'qpm': 
-        omega_m = 0.31
-    elif catalog['name'].lower() == 'tilingmock': 
-        omega_m = 0.274
-    else: 
-        raise NameError('not yet coded!')
-    print 'Omega_m = ', omega_m, 'Omega_L = ', 1.0-omega_m      # assumign flatness
-    cosmo = {}
-    cosmo['omega_M_0'] = omega_m 
-    cosmo['omega_lambda_0'] = 1.0 - omega_m 
-    cosmo['h'] = 0.7 
-    cosmo = cosmos.distance.set_omega_k_0(cosmo) 
-
-    #---------------------------------------------------------------------------------------
-    # import dLOS values 
-    n_mocks = 0 
-    for i_mock in range(1, 11):             # hardcoded to look at only 10 mock DLOS values 
-        catalog['n_mock'] = i_mock
-        i_cat_corr['catalog'] = catalog
-        i_cat_corr['correction'] = correction
-        
-        los_disp = dlos(readdata=True, **i_cat_corr)                 # dLOS file 
-
-        #read dLOS_IDL, targ_z, neigh_z
-        #dLOS_data = np.loadtxt(los_disp.file_name, unpack=True, usecols=[0,1,2])    
-        
-        targ_Dc = cosmos.distance.comoving_distance(los_disp.targ_z, **cosmo)*cosmo['h']
-        neigh_Dc = cosmos.distance.comoving_distance(los_disp.neigh_z, **cosmo)*cosmo['h']
-
-        dLOS_py = neigh_Dc - targ_Dc 
-        
-        # compare IDL dLOS to dLOS_py 
-        delta_dLOS = los_disp.dlos-dLOS_py
-        print 'average difference in dLOS = ', np.mean(delta_dLOS)
-        
-        try: 
-            combined_idl_dlos
-        except NameError: 
-            combined_idl_dlos = los_disp.dlos
-            combined_py_dlos = dLOS_py
-        else: 
-            combined_idl_dlos = np.concatenate([combined_idl_dlos, los_disp.dlos]) 
-            combined_py_dlos = np.concatenate([combined_py_dlos, dLOS_py])
-        
-        n_mocks = n_mocks+1
-    
-    #------------------------------------------------------------------------------------------
-    # compare the dLOS histograms
-    x_min = -1000.0
-    x_max = 1000.0
-    binsize = 0.2 
-    n_bins = int((x_max-x_min)/binsize) 
-    IDL_dlos_hist, mpc_binedges = np.histogram(combined_idl_dlos, bins=n_bins, range=[x_min, x_max])
-    IDL_xlow = mpc_binedges[:-1]
-    IDL_xhigh = mpc_binedges[1:] 
-    IDL_xmid = np.array([0.5*(IDL_xlow[i]+IDL_xhigh[i]) for i in range(len(IDL_xlow))])
-    
-    PY_dlos_hist, mpc_binedges = np.histogram(combined_py_dlos, bins=n_bins, range=[x_min, x_max])
-    PY_xlow = mpc_binedges[:-1]
-    PY_xhigh = mpc_binedges[1:] 
-    PY_xmid = np.array([0.5*(PY_xlow[i]+PY_xhigh[i]) for i in range(len(PY_xlow))])
-
-    # plot dLOS ------------------------------------------------------------------------------
-    prettyplot() 
-    pretty_colors = prettycolors() 
-    fig = plt.figure(1) 
-    sub = fig.add_subplot(111) 
-
-    sub.plot(IDL_xmid, IDL_dlos_hist, lw=4, color=pretty_colors[-1], label=r"$d_{LOS}$ IDL") 
-    sub.plot(PY_xmid, PY_dlos_hist, ls='--', lw=4, color=pretty_colors[0], label=r"$d_{LOS}$ COSMOLOPY") 
-
-    sub.set_xlabel(r"$d_{LOS}$ (Mpc/h)", fontsize=20) 
-    sub.set_xlim([-20.0, 20.0])
-    sub.set_ylim([0.0, 1.25*np.max(IDL_dlos_hist)])
-    sub.legend(loc='upper right', scatterpoints=1, prop={'size':14}) 
-
-    fig_dir = fc_util.get_fig_dir() 
-    fig.savefig(fig_dir+catalog['name'].lower()+'_'+str(n_mocks)+'mocks_combined_dlos_IDL_py_comparison.png', bbox_inches="tight")
-    fig.clear() 
-
 # ------------------------------------------------------------------------------------
 # Derived quantities 
 # ------------------------------------------------------------------------------------
@@ -359,8 +248,10 @@ def average_dlos_fpeak(**cat_corr):
         raise NameError('Not yet coded') 
     return f_1sigma/np.float(n_mock) 
 
+# dLOS environment dependence  ---------------------------------
 def dlos_env(n=3, **cat_corr):
-    ''' Using kth nearest neighbor distance compare dlos distrubtion  
+    ''' Using kth nearest neighbor distance compare dlos distrubtion for 
+    different galaxy environment 
     '''
     catalog = cat_corr['catalog']
     correction = {'name': 'upweight'} 
@@ -397,48 +288,171 @@ def dlos_env(n=3, **cat_corr):
     pretty_colors = prettycolors() 
     fig = plt.figure(1, figsize=(14,5))
     sub = fig.add_subplot(1,1,1)
-
+    
+    print 'dNN, Minimum ', min(combined_dNN), ' Maximum ', max(combined_dNN)
     # loop through different dNN measurements 
-    dNN_bins = [ (0, 5), (5, 10), (10, 50) ] 
+    dNN_bins = [
+            (0, 5), (5, 10), (10, 25), (25, 50)
+            ]
+
+    #[ (5*i, 5*(i+1)) for i in np.arange(0, 11) ] 
 
     for i_bin, dNN_bin in enumerate(dNN_bins): 
 
         bin_index = ( combined_dNN >= dNN_bin[0] ) & ( combined_dNN < dNN_bin[1] ) 
 
         bin_dlos = combined_dlos[bin_index] 
+        bin_perc = np.float( len(bin_dlos) )/np.float( len(combined_dlos) ) * 100.0
 
-        # Create histogram for combined dLOS values  (binsize is just guessed)
-        x_min = -1000.0
-        x_max = 1000.0
-        binsize = 0.1 
-        n_bins = int((x_max-x_min)/binsize) 
-        
-        # dLOS histograms 
-        dlos_hist, mpc_binedges = np.histogram(bin_dlos, 
-                bins=n_bins, range=[x_min, x_max], normed=True)
-
-        mpc_low = mpc_binedges[:-1]
-        mpc_high = mpc_binedges[1:] 
-        mpc_mid = np.array([0.5*(mpc_low[i] + mpc_high[i]) for i in range(len(mpc_low))])
+        dlos_hist, mpc_mid, peak_param  = \
+                dlos_hist_peak_fit(bin_dlos, fit='gauss', peak_range=[-15.0, 15.0])
         
         sub.plot(mpc_mid, dlos_hist, 
                 lw=4, color=pretty_colors[i_bin+1], 
-                label='$'+str(dNN_bin[0])+' < d_'+str(n)+'NN < '+str(dNN_bin[1])+'$') 
-        
+                label=r'$'+str(dNN_bin[0])+' < d_'+str(n)+'NN < '+str(dNN_bin[1])+\
+                        ',\;( '+('%.1f' % bin_perc)+'\%) $') 
+    
+        fit_label = r'$\sigma ='+('%.2f' % peak_param['sigma'])+\
+                ', f_{peak} = '+('%.2f' % peak_param['fpeak'])+'$'
+        sub.plot(mpc_mid, peak_gauss(mpc_mid, [peak_param['amp'], peak_param['sigma']]), 
+                lw=4, ls='--', color=pretty_colors[i_bin+1], label=fit_label)
+
+        try:        # save avg_dNN and fpeak values 
+            dNN_avg.append( 0.5 * np.float(dNN_bin[0] + dNN_bin[1]) ) 
+            fpeaks.append( peak_param['fpeak'] ) 
+        except NameError: 
+            dNN_avg = [0.5 * np.float(dNN_bin[0] + dNN_bin[1])]
+            fpeaks = [peak_param['fpeak']]
+
     sub.set_xlabel(r"$d_{LOS}$ (Mpc/h)", fontsize=20) 
     sub.set_xlim([-50.0, 50.0])
-    sub.legend(loc='upper right') 
+    sub.legend(loc='upper left') 
 
     fig.savefig(fc_util.get_fig_dir()+\
             'dlos_env_dependence_d'+str(n)+'NN.png', bbox_inches="tight")
     fig.clear()
+    
+    # plot fpeak over avg d_NN and best fit 
+    fig = plt.figure(1, figsize=(8,8))
+    sub = fig.add_subplot(1,1,1)
+    sub.scatter( dNN_avg, fpeaks, s=6 )       # fpeaks vs dNN-avg
+
+    # MPfit ----
+    p0 = [-0.01, 0.8]            # initial guesses for p0[0] * x + p0[1]
+    fa = {'x': np.array(dNN_avg), 'y': np.array(fpeaks)}
+    fit_param = mpfit.mpfit(mpfit_linear, p0, functkw=fa, nprint=0)
+    
+    fit_slope = fit_param.params[0]
+    fit_yint = fit_param.params[1]
+
+    sub.plot( np.array(dNN_avg), fit_linear(np.array(dNN_avg), fit_param.params), lw=4, ls='--', c='k')       # plot best line fit 
+
+    sub.set_xlabel('$\mathtt{d_{'+str(n)+'NN}}$', fontsize=20) 
+    sub.set_ylabel('$\mathtt{f_{peak}}$', fontsize=20) 
+    sub.set_xlim([0.0, 50.0]) 
+    sub.set_ylim([0.0, 1.0])
+    fig.savefig(fc_util.get_fig_dir()+\
+            'dlos_fpeak_d'+str(n)+'NN.png', bbox_inches="tight")
+    fig.clear()
+
+def build_fpeak_env(n=3, **cat_corr): 
+    ''' Build best fit for fpeak(d_NN) and save parameters
+
+    n_mock ranges hardcoded so far 
+    '''
+    catalog = cat_corr['catalog']
+    correction = {'name': 'upweight'} 
+   
+    # Read in dLOS data ----------------------------------------------------------------------
+    if catalog['name'].lower() == 'qpm':    # QPM --------------------------------------------
+
+        for i_mock in range(1, 11):         # loop through mocks 
+            
+            # read dLOS for each file 
+            i_catalog = catalog.copy() 
+            i_catalog['n_mock'] = i_mock 
+            i_cat_corr = {'catalog':i_catalog, 'correction': correction} 
+            print i_cat_corr
+
+            los_disp_i = dlos(**i_cat_corr)         # import DLOS values from each mock 
+            # compute nth nearest neighbor distance for upweighted galaxy  
+            NN_dist = genv.dlos_d_NN(n=n, **i_cat_corr ) 
+            
+            # combine dLOS and dNN from files 
+            try: 
+                combined_dlos
+            except NameError: 
+                combined_dlos = los_disp_i.dlos
+                combined_dNN = NN_dist
+            else: 
+                combined_dlos = np.concatenate([combined_dlos, los_disp_i.dlos])
+                combined_dNN = np.concatenate([combined_dNN, NN_dist]) 
+
+    else: 
+        raise NotImplementedError('asdfasdfasdf') 
+
+    # loop through different dNN measurements 
+    dNN_bins = [
+            (0, 5), (5, 10), (10, 25), (25, 50)
+            ]       # hardcoded right now 
+    
+    for i_bin, dNN_bin in enumerate(dNN_bins): 
+
+        bin_index = ( combined_dNN >= dNN_bin[0] ) & ( combined_dNN < dNN_bin[1] ) 
+
+        bin_dlos = combined_dlos[bin_index] 
+        bin_perc = np.float( len(bin_dlos) )/np.float( len(combined_dlos) ) * 100.0
+
+        dlos_hist, mpc_mid, peak_param  = \
+                dlos_hist_peak_fit(bin_dlos, fit='gauss', peak_range=[-15.0, 15.0])
+        
+        try:        # save avg_dNN and fpeak values 
+            dNN_avg.append( 0.5 * np.float(dNN_bin[0] + dNN_bin[1]) ) 
+            fpeaks.append( peak_param['fpeak'] ) 
+        except NameError: 
+            dNN_avg = [0.5 * np.float(dNN_bin[0] + dNN_bin[1])]
+            fpeaks = [peak_param['fpeak']]
+
+    # MPfit dNN_avg vs fpeak ---------
+    p0 = [-0.01, 0.8]            # initial guesses for p0[0] * x + p0[1]
+    fa = {'x': np.array(dNN_avg), 'y': np.array(fpeaks)}
+    fit_param = mpfit.mpfit(mpfit_linear, p0, functkw=fa, nprint=0)
+    
+    fit_slope = fit_param.params[0]
+    fit_yint = fit_param.params[1]
+    
+    # save fpeak(dNN) for catalogs 
+    fpeak_dnn_fit_file = ''.join([
+        '/mount/riachuelo1/hahn/data/FiberCollisions/', 
+        'fit_param_fpeak_d', str(n), 'NN_', catalog['name'].lower(), '.dat']) 
+    f = open(fpeak_dnn_fit_file, 'w')
+    f.write(str(fit_slope)+'\t'+str(fit_yint))
+    f.close() 
+
+def fpeak_dNN(dNN, n=3, **cat_corr): 
+    ''' Calculate fpeak given dNN and catalog information 
+    '''
+    catalog = cat_corr['catalog']
+    
+    # read fpeak(dNN) best fit file
+    fpeak_dnn_fit_file = ''.join([
+        '/mount/riachuelo1/hahn/data/FiberCollisions/', 
+        'fit_param_fpeak_d', str(n), 'NN_', catalog['name'].lower(), '.dat']) 
+
+    a, b = np.loadtxt(fpeak_dnn_fit_file) 
+
+    return a * dNN + b
 
 #---- Fitting -----
+def fit_linear(x, p): 
+    ''' Linear function y = a * x + b 
+    p[0] = a , p[1] = b
+    '''
+    return (p[0] * x) + p[1]
+
 def peak_expon(x, p): 
+    ''' Exponential function for the peak 
     '''
-    Exponential function for the peak 
-    '''
-    p[0]*np.exp(-np.abs(x)/p[1])
     return p[0]*np.exp(-np.abs(x)/p[1])
 
 def peak_gauss(x, p): 
@@ -446,6 +460,12 @@ def peak_gauss(x, p):
     Exponential function for the peak 
     '''
     return p[0]*np.exp(-0.5*x**2/(p[1])**2)
+
+# --- MPfit ---
+def mpfit_linear(p, fjac=None, x=None, y=None): 
+    model = fit_linear(x, p) 
+    status = 0 
+    return([status, (y-model)]) 
 
 def mpfit_peak_expon(p, fjac=None, x=None, y=None): 
     model = peak_expon(x, p) 
@@ -456,6 +476,84 @@ def mpfit_peak_gauss(p, fjac=None, x=None, y=None):
     model = peak_gauss(x, p) 
     status = 0 
     return([status, (y-model)]) 
+
+def dlos_hist_peak_fit(dlos, fit='gauss', peak_range=[-15.0, 15.0]): 
+    ''' Calculate dLOS histogram and xuUse MPfit to fit the peak of the dLOS histogram 
+    '''
+
+    # try histogram  
+    x_min = -1000.0
+    x_max = 1000.0
+    binsize = 0.1 
+    n_bins = int((x_max-x_min)/binsize) 
+        
+    dlos_hist, binedges = np.histogram(dlos, bins=n_bins, range=[x_min, x_max])
+
+    mpc_low = binedges[:-1]
+    mpc_high = binedges[1:] 
+    mpc_mid = np.array([0.5*(mpc_low[i] + mpc_high[i]) for i in range(len(mpc_low))])
+
+    # determine appropriate bin size using Freedman-Diaconis Rule 
+    # since dLOS is symmetri
+    p_range = (mpc_mid >= 0.0) & (mpc_mid < peak_range[1]) 
+    dlos_cumu = (dlos_hist[p_range]).cumsum() 
+    n_sample = dlos_cumu[-1]
+
+    iqr_index = fc_util.find_nearest(dlos_cumu, np.int(np.floor(n_sample/2.0)), index=True)
+    iqr = 2.0*(mpc_mid[p_range])[iqr_index]         #interquartile range 
+        
+    binsize = 2.0*iqr*(2.0*n_sample)**(-1.0/3.0)        # appropriate bin size 
+    print 'Freedman-Diaconis binsize = ', binsize
+    #------------------------------------------------------------------------------------
+    # recompute histogram using freedman-diaconis binsize 
+    n_bins = int((x_max-x_min)/binsize)         # new n_bin 
+
+    dlos_hist, binedges = np.histogram(dlos, bins=n_bins, range=[x_min, x_max], normed=True)
+    xlow = binedges[:-1]
+    xhigh = binedges[1:] 
+    xmid = np.array([0.5*(xlow[i]+xhigh[i]) for i in range(len(xlow))])
+
+    # MPFIT ----------------------------------------------------------------------------
+    dlos_peak = (xmid < peak_range[1]) & (xmid > peak_range[0]) 
+
+    # estimate amplitude of dLOS distribution for fitting guess 
+    dlos_amp = np.mean(dlos_hist[(xmid >= -1.0) & (xmid < 1.0)])
+      
+    p0 = [dlos_amp, 5.0]            # initial guess
+
+    fa = {'x': xmid[dlos_peak], 'y': dlos_hist[dlos_peak]}
+    if fit.lower() == 'expon': 
+        peak_pars = mpfit.mpfit(mpfit_peak_expon, p0, functkw=fa, nprint=0)
+    elif fit.lower() == 'gauss': 
+        peak_pars = mpfit.mpfit(mpfit_peak_gauss, p0, functkw=fa, nprint=0)
+    else: 
+        raise NotImplementedError("Fit not yet coded") 
+        
+    bestfit_amp = peak_pars.params[0]
+    sigma = peak_pars.params[1]
+    #print fit.lower(), ' Best FIt Sigma = ', sigma
+        
+    # compute fpeak 
+    fpeak_xmin = -3.0*sigma
+    fpeak_xmax = 3.0*sigma
+    fpeak_xrange = (xmid >= fpeak_xmin) & (xmid < fpeak_xmax) # +/- 3 sigma 
+
+    if fit.lower() == 'expon': 
+        fpeak = (np.sum(peak_expon(xmid[fpeak_xrange], peak_pars.params)))/np.float(np.sum(dlos_hist)) 
+    elif fit.lower() == 'gauss': 
+        fpeak = (np.sum(peak_gauss(xmid[fpeak_xrange], peak_pars.params)))/np.float(np.sum(dlos_hist)) 
+    else: 
+        raise NameError("Fit not yet coded") 
+        
+    fpeak_dist = np.float( len(dlos[ (dlos > fpeak_xmin) & (dlos < fpeak_xmax) ]) )\
+            /np.float(len(dlos))  # computed from the distribution
+
+    print 'fpeak from fitting = ', fpeak
+    print 'fpeak from distrib = ', fpeak_dist 
+
+    fit_dict = {'amp': bestfit_amp, 'sigma': sigma, 'fpeak': fpeak_dist} 
+
+    return dlos_hist, xmid, fit_dict
 
 def combined_dlos_fit(n_mocks, fit='gauss', sanitycheck=False, **cat_corr):
     '''
@@ -689,7 +787,7 @@ def combined_dlos_angsep_fit(n_mocks, fit='gauss', sanitycheck=False, **cat_corr
             los_disp_i = dlos(**i_cat_corr)         # import DLOS values from each mock 
             
             # calculate the angular separate between the fiber-collided pairs 
-            fc_angsep = ang_sep(los_disp_i.targ_ra, los_disp_i.targ_dec, los_disp_i.neigh_ra, los_disp_i.neigh_dec)
+            fc_angsep = fc_util.ang_sep(los_disp_i.targ_ra, los_disp_i.targ_dec, los_disp_i.neigh_ra, los_disp_i.neigh_dec)
 
             # Combine dLOS values 
             try: 
@@ -1177,27 +1275,6 @@ def qpm_dlos_zbins():
     fig_dir = fc_util.get_fig_dir() 
     fig.savefig(fig_dir+'qpm_10mocks_combined_dlos_zbin_comparison.png', bbox_inches="tight")
     fig.clear() 
-
-def ang_sep(ra1, dec1, ra2, dec2): 
-    ''' Given a pair of ra and decs in DEGREES gives angular separation in DEGREES
-    '''
-    # convert to radians 
-    ra1 = ra1*np.pi/180.
-    dec1 = dec1*np.pi/180.
-    ra2 = ra2*np.pi/180.
-    dec2 = dec2*np.pi/180.
-
-    x = np.cos(ra1)*np.cos(dec1)*np.cos(ra2)*np.cos(dec2) 
-    y = np.sin(ra1)*np.cos(dec1)*np.sin(ra2)*np.cos(dec2) 
-    z = np.sin(dec1)*np.sin(dec2)
-
-    rad = np.arccos(x+y+z)
-    
-    sep = rad
-    #sep = np.choose( rad<0.000004848 , ( np.sqrt( (np.cos(dec1)*(ra1-ra2))**2+(dec1-dec2)**2), rad))
-
-    sep = sep*180./np.pi
-    return sep
 
 # ------------------------------------------------------------------------------------
 # Plotting 

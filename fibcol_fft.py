@@ -11,6 +11,8 @@ import plot_fibcol as fc_plot
 
 class FFT: 
     def __init__(self, DorR, quad=False, **cat_corr): 
+        ''' FFT class to deal with FFT files 
+        '''
         catalog = cat_corr['catalog']
         correction = cat_corr['correction']
         spec = cat_corr['spec'] 
@@ -18,16 +20,16 @@ class FFT:
         fft_dir = fc_util.get_fibcoll_dir('fft', **cat_corr) 
 
         data = fc_data.galaxy_data(DorR, readdata=False, **cat_corr) 
-        data_file = data.file_name 
+        data_file = data.file_name      # import mock data file name 
     
         if quad == False: 
             FFT_str = 'FFT_'
         else: 
             FFT_str =  'FFT_quad_'
         
-        if catalog['name'].lower() in ('lasdamasgeo', 'tilingmock'): 
-            # For LDG and TM
-            if (correction['name'].lower() in ('floriansn', 'hectorsn')) & (DorR.lower() != 'random'):
+        if catalog['name'].lower() in ('lasdamasgeo', 'tilingmock'): # For LDG and TM
+            if (correction['name'].lower() in ('floriansn', 'hectorsn')) & \
+                    (DorR.lower() != 'random'):
                 # Florian+ and Hector+ methods require their own random FFTs
                 fft_file = ''.join([fft_dir, 
                     FFT_str, data_file.rsplit('/')[-1], '.', correction['name'].lower(), '.grid', str(spec['grid']), '.P0', str(spec['P0']), '.box', str(spec['box'])

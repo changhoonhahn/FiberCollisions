@@ -25,7 +25,7 @@ def plot_pk_fibcol_comp(catalog_name, n_mock, corr_methods, resid='False', quad=
     catalog = {'name': catalog_name}    # catalog dict
     # hardcoded default power/bispectrum box settings 
     if catalog_name.lower() in ('lasdamasgeo', 'qpm'): 
-        spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':960, 'quad': quad} 
+        spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':360, 'quad': quad} 
     elif catalog_name.lower() == 'tilingmock': 
         spec = {'P0': 20000, 'sscale':4000.0, 'Rbox':2000.0, 'box':4000, 'grid':960} 
     else: 
@@ -1731,10 +1731,19 @@ def chi_squared():
             [{'name': 'true'}, {'name':'upweight'}, {'name':'floriansn'}, {'name':'hectorsn'}, {'name': 'peakshot', 'sigma':4.8, 'fpeak':0.62, 'fit':'gauss'}])
 
 if __name__=="__main__":
-    cat_corr = {'catalog': {'name': 'lasdamasgeo', 'n_mock': 1, 'letter': 'a'}, 
-            'correction': {'name': 'upweight'}} 
+    #cat_corr = {'catalog': {'name': 'lasdamasgeo', 'n_mock': 1, 'letter': 'a'}, 
+    #        'correction': {'name': 'upweight'}} 
 
-    plot_catalog_nearest_neighbor(n=3, cat='lasdamasgeo') 
+    #plot_catalog_nearest_neighbor(n=3, cat='lasdamasgeo') 
+    
+    qpm_corr_methods = [
+            {'name': 'true'}, {'name':'upweight'}, 
+            {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}, 
+            {'name': 'peakshot_dnn', 'sigma':4.4, 'NN': 3, 'fit': 'gauss'}
+            ]
+    plot_pk_fibcol_comp('qpm', 10, qpm_corr_methods, resid='True') 
+    plot_p2k_fibcol_comp('qpm', 10, qpm_corr_methods, resid='True') 
+
     '''
     # --------------------------------------------------------------------------------------------------------------------------------------------
     #qpm_corr_methods = [{'name': 'true'}, {'name':'upweight'}, {'name':'shotnoise'}, {'name': 'peaknbar', 'sigma': 4.4, 'fpeak': 1.0, 'fit': 'gauss'}, {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}]#, {'name': 'vlospeakshot', 'sigma':580, 'fpeak':0.62, 'fit':'gauss'}]#, {'name': 'vlospeakshot', 'sigma':580, 'fpeak':0.65, 'fit':'gauss'}] 
@@ -1745,7 +1754,6 @@ if __name__=="__main__":
     #qpm_corr_methods = [{'name': 'true'}, {'name':'upweight'}, {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}, {'name': 'floriansn'}, {'name': 'hectorsn'}]
     qpm_corr_methods = [{'name': 'true'}, {'name':'upweight'}]#, {'name':'tailupw'}]#{'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'true'}]#, {'name': 'peakshot', 'fit': 'true', 'fpeak': 0.63}]
     #plot_pk_fibcol_comp('qpm', 49, qpm_corr_methods, resid='True') 
-    #plot_p2k_fibcol_comp('qpm', 10, qpm_corr_methods, resid='True') 
     qpm_corr_methods = [{'name': 'true'}, {'name':'upweight'}, {'name': 'floriansn'}]
     #plot_pk_fibcol_comp('qpm', 49, qpm_corr_methods, resid='True') 
 

@@ -9,11 +9,14 @@ import fibcol_utility as fc_util
 # Classes ------------------------------------------------------------
 class Spec: 
     def __init__(self, spectrum, Igal_Irand=False, **cat_corr):
-        '''
-        bispectrum file 
+        ''' Class for power/bispectrum measurements 
+
+        input: 
         specify catalog, version, mock file number, file specifications (e.g. Nrandom), 
         fiber collision correction method, correction specifications (e.g. sigma, fpeak)
+
         '''
+
         catalog = cat_corr['catalog'] 
         correction = cat_corr['correction'] 
         spec = cat_corr['spec']
@@ -22,6 +25,7 @@ class Spec:
         # powerspectrum or bispectrum
         self.spectrum = spectrum
         spec_dir = '/mount/riachuelo1/hahn/'+spectrum.lower()+'/'
+
         if spectrum.lower() == 'power':                         # set flags
             spec_file_flag = 'power_'
         elif spectrum.lower() == 'bispec': 
@@ -35,7 +39,7 @@ class Spec:
         if spec['quad'] == True:                                # for Quadrupole code 
             spec_file_flag = spec_file_flag+'quad_'
 
-        # Tiling Mock ------------------------------------------------------------------------------------------------
+        # Tiling Mock ------------------------------------------------------------
         if catalog['name'].lower() == 'tilingmock':  
             # Tiling Mock directory 
             file_dir = spec_dir+'tiling_mocks/'      
@@ -66,15 +70,16 @@ class Spec:
             file_corr = ''
             file_suffix = ''
 
-        # QPM ------------------------------------------------------------------------------------------------------------
         elif catalog['name'].lower() == 'qpm': 
+            # QPM --------------------------------------------------------------------
+
             file_dir = spec_dir+'QPM/dr12d/'                       # QPM directory 
 
             data = fc_data.galaxy_data('data', readdata=False, **cat_corr)
-            data_file = data.file_name 
+            data_file = data.file_name                  # import data file name 
 
             # file naem  
-            file_prefix = spec_file_flag+data_file.rsplit('/')[-1]
+            file_prefix = spec_file_flag + data_file.rsplit('/')[-1]
             
             if correction['name'].lower() == 'shotnoise': file_prefix = file_prefix+'.shotnoise'
             if correction['name'].lower() == 'floriansn': file_prefix = file_prefix+'.floriansn'
