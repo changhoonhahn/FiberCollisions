@@ -28,53 +28,59 @@ def classify_triangles(k1, k2, k3, triangle='equilateral'):
     return triangle_index
 
 def fibcoll_data_prep(DorR, silent=True, **cat_corr): 
-    ''' 
-    preps mock/random data for pk/bk with corrections (hardcoded for tiling mock only) 
+    '''  Construct mock/random data for Pk/Bk with corrections 
     checks if data file exists, if it doesn't, makes it 
+
+    Parameters
+    ----------
+    DorR : 'data' or 'random' 
+    cat_corr : catalog and correction dictionary
+    silent : print or not print 
+    
     '''
     catalog = cat_corr['catalog']
     correction = cat_corr['correction']
     
-    # QPM ------------------------------------------------------------------------------------------------
-    if (catalog['name'].lower() == 'qpm'): 
+    if catalog['name'].lower() == 'qpm': 
+        # QPM -------------------------------------------------------------------
         # QPM does not have nbar(z) correction so there's no need to append corrected nbar(z) 
         # Instead we just use the given nbar(z) 
-        # Mock ----------------------------------------------------------------------------------------
-        if DorR.lower() == 'data':
+        if DorR.lower() == 'data':      # Mock -----------------------------------
             # check that the mock file exists 
-            mock = fc_data.galaxy_data('data', readdata=False, **cat_corr)
+            mock_file = fc_data.get_galaxy_data_file('data', **cat_corr)
 
             if silent == False: 
-                print mock.file_name
+                print mock_file 
 
-            if os.path.isfile(mock.file_name) == False:  
-                print 'Constructing ', mock.file_name 
-                mock = fc_data.galaxy_data('data', readdata=True, **cat_corr) 
+            if os.path.isfile(mock_file) == False:  
+                print 'Constructing ', mock_file
+                mock = fc_data.galaxy_data('data', **cat_corr) 
 
-        # Random ----------------------------------------------------------------------------------------
         elif DorR.lower() == 'random': 
+            # Random --------------------------------------------
+
             # corrected random file 
-            corr_rand = fc_data.galaxy_data('random', readdata=False, **cat_corr) 
+            corr_rand_file = fc_data.get_galaxy_data_file('random', **cat_corr) 
             
             if silent == False: 
-                print corr_rand.file_name
+                print corr_rand_file
 
-            if os.path.isfile(corr_rand.file_name) == False:                         # if there is no corrected random file
-                print "Constructing ", corr_rand.file_name, ' (Will take a while!)'
-                corr_rand = fc_data.galaxy_data('random', readdata=True, **cat_corr) 
+            if os.path.isfile(corr_rand_file) == False: 
+                print "Constructing ", corr_rand_file, ' (Will take a while!)'
+                corr_rand = fc_data.galaxy_data('random', **cat_corr) 
 
-    else:                                   # upweight, peak, peaktest
-        # Mock ----------------------------------------------------------------------------------------
+    else:       # upweight, peak, peaktest
         if DorR.lower() == 'data':
-            # check that the mock file exists 
-            mock = fc_data.galaxy_data('data', readdata=False, **cat_corr)
+            # Mock ---------------------------------------------
+
+            mock_file = fc_data.get_galaxy_data_file('data', **cat_corr)    # file name 
 
             if silent == False: 
-                print mock.file_name
+                print mock_file
 
-            if os.path.isfile(mock.file_name) == False:  
-                print 'Constructing ', mock.file_name 
-                mock = fc_data.galaxy_data('data', readdata=True, **cat_corr) 
+            #if os.path.isfile(mock_file) == False:      # check if it exists 
+            print 'Constructing ', mock_file
+            mock = fc_data.galaxy_data('data', clobber=True, **cat_corr) 
             
             if catalog['name'].lower() == 'tilingmock': 
                 # check if corrected nbar is appended
@@ -84,17 +90,18 @@ def fibcoll_data_prep(DorR, silent=True, **cat_corr):
                     print "appending corrected nbar to mock ", mock.file_name 
                     fc_nbar.append_corr_nbar('data', sanitycheck=False, **cat_corr)
 
-        # Random ----------------------------------------------------------------------------------------
         elif DorR.lower() == 'random': 
+            # Random -----------------------------------------------
             # corrected random file 
-            corr_rand = fc_data.galaxy_data('random', readdata=False, **cat_corr) 
+            corr_rand_file = fc_data.get_galaxy_data_file('random', **cat_corr) 
             
             if silent == False: 
-                print corr_rand.file_name
+                print corr_rand_file
 
-            if os.path.isfile(corr_rand.file_name) == False:                         # if there is no corrected random file
-                print "Constructing ", corr_rand.file_name, ' (Will take a while!)'
-                corr_rand = fc_data.galaxy_data('random', readdata=True, **cat_corr) 
+            if os.path.isfile(corr_rand_file) == False: # if there is no corrected random file
+
+                print "Constructing ", corr_rand_file, ' (Will take a while!)'
+                corr_rand = fc_data.galaxy_data('random', **cat_corr) 
             
             if catalog['name'].lower() == 'tilingmock': 
                 # does append corrected nbar corrected random file exist? 
@@ -331,14 +338,43 @@ def tilingmock_fibcoll_pk(corr, quad=False):
     power_file = fc_spec.build_fibcol_power(**cat_corr) 
     print 'Constructing ', power_file 
 
-# ------------------------------------------------------------------------------------------------
-# QPM 
+# QPM --------------------------------------------------------------------------------
 def qpm_fibcoll_pk(i_mock, corr, quad=False): 
     '''
     Compute fibercollision corrected P(k)
     '''
     # set catalog_correction dictionary
     catalog = {'name':'qpm'}
+    correction = corr
+    # some constants throughout the code
+    spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':360, 'quad':quad}
+
+    i_catalog = catalog.copy() 
+    i_catalog['n_mock'] = i_mock 
+
+    i_cat_corr = {'catalog': i_catalog, 'correction': correction, 'spec': spec}
+    # random data ------------------------------------------------
+    fibcoll_data_prep('random', silent=False, **i_cat_corr) 
+
+    # build random FFT  
+    rand_fft_file = fc_fft.build_fibcol_fft('random', **i_cat_corr)
+
+    # mock data ---------------------------------------------------
+    fibcoll_data_prep('data', **i_cat_corr) 
+            
+    # build mock FFT
+    fft_file = fc_fft.build_fibcol_fft('data', **i_cat_corr) 
+    print 'Constructing ', fft_file 
+    
+    power_file = fc_spec.build_fibcol_power(**i_cat_corr) 
+    print 'Constructing ', power_file 
+
+# PATCHY ----------------------------------------------------------------------------
+def patchy_fibcoll_pk(i_mock, corr, quad=False): 
+    ''' Compute fibercollision corrected P(k) for PATCHY mocks 
+    '''
+    # set catalog_correction dictionary
+    catalog = {'name':'patchy'}
     correction = corr
     # some constants throughout the code
     spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':360, 'quad':quad}
@@ -906,14 +942,14 @@ def build_qpm():
     #####        qpm_fibcoll_pk(i_mock, corr, quad=False) 
     '''
 
-if __name__=='__main__': 
-
+def build_patchy(): 
+    corrs = [{'name': 'true'}, {'name': 'upweight'}] 
     for i_mock in np.arange(1,11): 
-        cat_corr = {'catalog': {'name': 'qpm', 'n_mock': i_mock}, 
-                'correction': {'name': 'peakshot_dnn', 'fit': 'gauss', 'NN': 3, 'sigma':4.4}} 
-        corr = {'name': 'peakshot_dnn', 'fit': 'gauss', 'NN': 3, 'sigma':4.4}
-        #qpm_fibcoll_pk(i_mock, corr, quad=False) 
-        qpm_fibcoll_pk(i_mock, corr, quad=True) 
+        for corr in corrs: 
+            patchy_fibcoll_pk(i_mock, corr, quad=False) 
+
+if __name__=='__main__': 
+    build_patchy()
 
     #for i_mock in np.arange(1,2): 
     #    fc_data.galaxy_data('data', readdata=True, clobber=True, **cat_corr) 

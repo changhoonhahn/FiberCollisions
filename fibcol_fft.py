@@ -11,50 +11,34 @@ import plot_fibcol as fc_plot
 
 class FFT: 
     def __init__(self, DorR, quad=False, **cat_corr): 
-        ''' FFT class to deal with FFT files 
+        ''' FFT class to read/write FFT file 
         '''
         catalog = cat_corr['catalog']
         correction = cat_corr['correction']
         spec = cat_corr['spec'] 
 
-        fft_dir = fc_util.get_fibcoll_dir('fft', **cat_corr) 
+        fft_dir = fc_util.get_fibcoll_dir('fft', **cat_corr) # fft directory 
 
-        data = fc_data.galaxy_data(DorR, readdata=False, **cat_corr) 
-        data_file = data.file_name      # import mock data file name 
+        data_file = fc_data.get_galaxy_data_file(DorR, **cat_corr)  # data file 
     
         if quad == False: 
             FFT_str = 'FFT_'
         else: 
             FFT_str =  'FFT_quad_'
         
-        if catalog['name'].lower() in ('lasdamasgeo', 'tilingmock'): # For LDG and TM
-            if (correction['name'].lower() in ('floriansn', 'hectorsn')) & \
-                    (DorR.lower() != 'random'):
-                # Florian+ and Hector+ methods require their own random FFTs
-                fft_file = ''.join([fft_dir, 
-                    FFT_str, data_file.rsplit('/')[-1], '.', correction['name'].lower(), '.grid', str(spec['grid']), '.P0', str(spec['P0']), '.box', str(spec['box'])
-                    ])
-            else: 
-                fft_file = ''.join([fft_dir, 
-                    FFT_str, data_file.rsplit('/')[-1], '.grid', str(spec['grid']), '.P0', str(spec['P0']), '.box', str(spec['box'])
-                    ])
-
-        elif catalog['name'].lower() == 'qpm': 
-            # FOR QPM 
-
-            # no corrected nbar file 
-            if (correction['name'].lower() in ('floriansn', 'hectorsn')) & (DorR.lower() != 'random'):
-                # Florian+ and Hector+ methods require their own random FFTs
-                fft_file = ''.join([fft_dir, 
-                    FFT_str, data_file.rsplit('/')[-1], '.', correction['name'].lower(), '.grid', str(spec['grid']), '.P0', str(spec['P0']), '.box', str(spec['box'])
-                    ])
-
-            else: 
-                fft_file = ''.join([fft_dir, 
-                    FFT_str, data_file.rsplit('/')[-1], '.grid', str(spec['grid']), '.P0', str(spec['P0']), '.box', str(spec['box'])
-                    ])
+        if (correction['name'].lower() in ('floriansn', 'hectorsn')) & \
+                (DorR.lower() != 'random'):
+            # Florian+ and Hector+ methods require their own random FFTs
+            fft_file = ''.join([fft_dir, 
+                FFT_str, data_file.rsplit('/')[-1], '.', correction['name'].lower(), 
+                '.grid', str(spec['grid']), '.P0', str(spec['P0']), '.box', str(spec['box'])
+                ])
         else: 
-            raise NameError("not yet coded") 
+            # FFTs from data file 
+            fft_file = ''.join([fft_dir, 
+                FFT_str, data_file.rsplit('/')[-1], 
+                '.grid', str(spec['grid']), '.P0', str(spec['P0']), '.box', str(spec['box'])
+                ])
 
         self.file_name = fft_file 
 
@@ -64,22 +48,26 @@ def get_fibcol_fft_file(DorR, **cat_corr):
     return fft.file_name
 
 def build_fibcol_fft(DorR, **cat_corr): 
-    '''
-    Given catalog_correction dictionary, construct FFT file 
+    ''' Construct FFT files given catalog_correction dictionary
+
+    Parameters
+    ----------
+    DorR : 'data'/'random'
+    cat_corr : Catalog and Correction dictionary 
     '''
     catalog = cat_corr['catalog']
     correction = cat_corr['correction']
     spec = cat_corr['spec'] 
     
     # data file name 
-    data = fc_data.galaxy_data(DorR, readdata=False, **cat_corr) 
-    print data.file_name
+    data_file = fc_data.get_galaxy_data_file(DorR, **cat_corr) 
+    print data_file
 
-    if catalog['name'].lower() in ('lasdamasgeo', 'qpm'):   
+    if catalog['name'].lower() in ('lasdamasgeo', 'qpm', 'patchy'):   
         # Las Damas included because it's constant nbar(z)
         pass
     else: 
-        data.file_name = data.file_name+'.corrnbar'
+        data_file = data_file+'.corrnbar'
 
     try:                # if "quad" is not specified, then it's not used.
         spec['quad'] 
@@ -112,18 +100,22 @@ def build_fibcol_fft(DorR, **cat_corr):
     elif DorR.lower() == 'random': 
         DorR_number = 1
 
-    # For NOT Quadrupole code
-    if spec['quad'] == False: 
-        # LasDamas Geo & Tiling Mock & QPM ----------------------------------------------------------------------
-        if catalog['name'].lower() in ('lasdamasgeo', 'tilingmock', 'qpm'): 
+    if spec['quad'] == False:       # For NOT Quadrupole code
+        if catalog['name'].lower() in ('lasdamasgeo', 'tilingmock', 'qpm', 'patchy'): 
+            # LasDamas Geo, Tiling Mock, QPM, PATCHY ----------------------------------------
+
             # get bash command 
-            FFT_cmd = ' '.join([FFT_exe, str(spec['Rbox']), str(DorR_number), str(spec['P0']), data.file_name, fft_file]) 
+            FFT_cmd = ' '.join([
+                FFT_exe, str(spec['Rbox']), str(DorR_number), str(spec['P0']), 
+                data_file, fft_file]) 
             print FFT_cmd
     
-            if DorR.lower() == 'data':  # don't bother checking if the file exists for mocks and run the damn thing 
+            if DorR.lower() == 'data':  
+                # don't bother checking if the file exists for mocks and run the damn thing 
                 subprocess.call(FFT_cmd.split()) 
 
-            elif DorR.lower() == 'random':      # random takes longer so check to see if it exists first
+            elif DorR.lower() == 'random':      
+                # random takes longer so check to see if it exists first
                 # call FFT randomc ommand 
                 if os.path.isfile(fft_file) == False: 
                     print "Building ", fft_file 

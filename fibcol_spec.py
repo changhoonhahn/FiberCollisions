@@ -10,10 +10,14 @@ import fibcol_utility as fc_util
 class Spec: 
     def __init__(self, spectrum, Igal_Irand=False, **cat_corr):
         ''' Class for power/bispectrum measurements 
-
-        input: 
+        
         specify catalog, version, mock file number, file specifications (e.g. Nrandom), 
         fiber collision correction method, correction specifications (e.g. sigma, fpeak)
+
+        Parameters 
+        ----------
+        spectrum : 'power' or 'bispec'
+        cat_corr : catalog and correction dictionary 
 
         '''
 
@@ -24,7 +28,7 @@ class Spec:
 
         # powerspectrum or bispectrum
         self.spectrum = spectrum
-        spec_dir = '/mount/riachuelo1/hahn/'+spectrum.lower()+'/'
+        spec_dir = ''.join(['/mount/riachuelo1/hahn/', spectrum.lower(), '/']) 
 
         if spectrum.lower() == 'power':                         # set flags
             spec_file_flag = 'power_'
@@ -39,30 +43,33 @@ class Spec:
         if spec['quad'] == True:                                # for Quadrupole code 
             spec_file_flag = spec_file_flag+'quad_'
 
-        # Tiling Mock ------------------------------------------------------------
         if catalog['name'].lower() == 'tilingmock':  
-            # Tiling Mock directory 
-            file_dir = spec_dir+'tiling_mocks/'      
+            # Tiling Mock ------------------------------------------------------------
 
-            data = fc_data.galaxy_data('data', readdata=False, **cat_corr)
-            data_file = data.file_name
+            file_dir = spec_dir+'tiling_mocks/'         # file directory 
+
+            data_file = fc_data.get_galaxy_data_file('data', **cat_corr)    # data file 
+
             if correction['name'].lower() == 'shotnoise': data_file = data_file+'.shotnoise'
             if correction['name'].lower() == 'floriansn': data_file = data_file+'.floriansn'
             if correction['name'].lower() == 'hectorsn': data_file = data_file+'.hectorsn'
 
             # file naem  
-            file_prefix = spec_file_flag+data_file.rsplit('/')[-1]+'.corrnbar'
+            file_prefix = ''.join([spec_file_flag, data_file.rsplit('/')[-1], '.corrnbar']) 
 
             # file ending  
             if spectrum == 'bispec': 
                 file_suffix = '.grid360.nmax.nstep3.P020000.box3600'
             elif spectrum == 'power': 
-                file_suffix = '.grid'+str(spec['grid'])+'.P0'+str(spec['P0'])+'.box'+str(spec['box'])
+                file_suffix = ''.join([
+                    '.grid', str(spec['grid']), '.P0', str(spec['P0']), '.box', str(spec['box']) 
+                    ])
             
             # specify correction 
             file_corr = ''          # specified in file_prefix within the data file name 
 
             self.scale = spec['box']
+
         elif catalog['name'].lower() == 'cmass': 
             file_dir = spec_dir
 
@@ -75,8 +82,7 @@ class Spec:
 
             file_dir = spec_dir+'QPM/dr12d/'                       # QPM directory 
 
-            data = fc_data.galaxy_data('data', readdata=False, **cat_corr)
-            data_file = data.file_name                  # import data file name 
+            data_file = fc_data.get_galaxy_data_file('data', **cat_corr)
 
             # file naem  
             file_prefix = spec_file_flag + data_file.rsplit('/')[-1]
@@ -96,15 +102,14 @@ class Spec:
 
             self.scale = spec['box']
 
-        # LasDamas Geomtry Mocks ----------------------------------------------------------------------------------
         elif catalog['name'].lower() == "lasdamasgeo": 
-            # Las Damas Directory
+            # LasDamasGeo Mocks -------------------------------------------------------
+            
             file_dir = ''.join([spec_dir, '/LasDamas/Geo/'])
 
             # e.g. power_sdssmock_gamma_lrgFull_zm_oriana19a_no.rdcz.dat.grid360.P020000.box3600
             # file beginning
-            data = fc_data.galaxy_data('data', readdata=False, **cat_corr)
-            data_file = data.file_name
+            data_file = fc_data.get_galaxy_data_file('data', **cat_corr)
 
             file_prefix = spec_file_flag+data_file.rsplit('/')[-1]
 
@@ -123,67 +128,31 @@ class Spec:
 
             # survey scale 
             self.scale = spec['box']
-        
-            ''' 
-            # correction specifier 
-            if correction['name'].lower() in ('true'): 
-                # no correction
-                file_corr = 'dat'
-            elif correction['name'].lower() in ('shotnoise', 'hectorsn', 'floriansn'):
-                file_corr = ''
-            # upweight correction -------------------------------------------------------------------------------------
-            elif correction['name'].lower() in ('delta', 'upweight'): 
-                # correction flag
-                file_corr = 'fibcoll.dat.upweight'
 
-            # correction with peak and tail ---------------------------------------------------------------------------
-            elif correction['name'].lower() in ('peak', 'peaknbar', 'peaktest', 'peakshot', 'vlospeakshot') : 
-                
-                if correction['name'].lower() == 'peak':
-                    # Correction for poor naming convention 
-                    correction['name'] = 'peaknbar'
+        elif catalog['name'].lower() == 'patchy': 
+            # PATCHY Mocks ---------------------------------------------------------------
 
-                # specify peak correction fit (expon or gauss) 
-                if correction['fit'].lower() in ('gauss', 'expon'): 
-                    fit_str = correction['fit'].lower()
+            file_dir = ''.join([spec_dir, '/PATCHY/dr12/v6s/']) 
 
-                    # correction flag 
-                    file_corr = 'fibcoll.dat.'+fit_str+'.'+correction['name'].lower()+\
-                            '.sigma'+str(correction['sigma'])+'.fpeak'+str(correction['fpeak'])+'.corrnbar'
+            data_file = fc_data.get_galaxy_data_file('data', **cat_corr)
 
-                elif correction['fit'].lower() in ('real'): 
-                    fit_str = correction['fit'].lower()
-                    # correction flag 
-                    file_corr = 'fibcoll.dat.'+fit_str+'.'+correction['name'].lower()+'.fpeak'+str(correction['fpeak'])+'.corrnbar'
-
-                else: 
-                    raise NameError('peak fit has to be specified: gauss or expon') 
-
-
-            # correction with *only* peak --------------------------------------------------------------------------------
-            elif correction['name'].lower() in ('allpeak', 'allpeakshot'):
-
-                # specify peak correction fit (expon or gauss) 
-                if correction['fit'].lower() == 'gauss': 
-                    fit_str = 'gauss' 
-                elif correction['fit'].lower() == 'expon': 
-                    fit_str = 'expon'
-                else: 
-                    raise NameError('peak fit has to be specified: gauss or expon') 
-
-                # correction flag 
-                file_corr = 'fibcoll.dat.'+fit_str+'.'+correction['name'].lower()+\
-                        '.sigma'+str(correction['sigma'])+'.fpeak'+str(correction['fpeak'])+'.corrnbar'
+            # file naem  
+            file_prefix = spec_file_flag + data_file.rsplit('/')[-1]
             
-            # Test adjustments --------------------------------------------------------------------------------------------
-            elif (correction['name'].lower() == 'randrm'): 
+            if correction['name'].lower() == 'shotnoise': file_prefix = file_prefix+'.shotnoise'
+            if correction['name'].lower() == 'floriansn': file_prefix = file_prefix+'.floriansn'
+            if correction['name'].lower() == 'hectorsn': file_prefix = file_prefix+'.hectorsn'
 
-                # correction flag 
-                file_corr = '.dat.'+correction['name'].lower()+'.corrnbar'
+            # file ending  
+            if spectrum == 'bispec': 
+                file_suffix = '.grid360.nmax.nstep3.P020000.box3600'
+            elif spectrum == 'power': 
+                file_suffix = '.grid'+str(spec['grid'])+'.P0'+str(spec['P0'])+'.box'+str(spec['box'])
+            
+            # specify correction 
+            file_corr = ''          # specified in file_prefix within the data file name 
 
-            else: 
-                raise NameError('Correction method not supported') 
-            '''
+            self.scale = spec['box']
 
         # combine to make file
         self.file_name = ''.join([file_dir, file_prefix, file_corr, file_suffix]) # combine file parts 
@@ -278,7 +247,7 @@ def build_fibcol_power(**cat_corr):
         fc_util.compile_fortran_code(power_code) 
     
     # LasDamas Geo and Tiling Mock ----------------------------------------------------------------
-    if catalog['name'].lower() in ('lasdamasgeo', 'tilingmock', 'qpm'): 
+    if catalog['name'].lower() in ('lasdamasgeo', 'tilingmock', 'qpm', 'patchy'): 
         if spec['quad'] == True:            # for quadrupole code NOTE: ORDER OF RAND AND MOCK FILES ARE REVERSED
             power_cmd = ' '.join([power_exe, fft_rand_file, fft_file, power_file, 
                 str(spec['sscale']), str(spec['grid']/2)]) 

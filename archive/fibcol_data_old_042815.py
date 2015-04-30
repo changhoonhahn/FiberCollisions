@@ -20,7 +20,7 @@ import galaxy_environment as genv
 
 # Classes ------------------------------------------------------------
 class galaxy_data: 
-    def __init__(self, DorR, clobber=False, **cat_corr): 
+    def __init__(self, DorR, readdata=True, clobber=False, **cat_corr): 
         ''' Given cat_corr dictionary read in/ build the data or random 
         file and store all the appropriate values  
 
@@ -33,231 +33,699 @@ class galaxy_data:
         catalog = cat_corr['catalog'] 
         correction = cat_corr['correction'] 
 
-        file_name = get_galaxy_data_file(DorR, **cat_corr)              # get file name 
-        self.file_name = file_name          # save file name to class 
-
+        # LasDamas Geo -------------------------------------------------------------------------
         if catalog['name'].lower() == 'lasdamasgeo': 
-            # LasDamas Geo ----------------------------------------------
             omega_m = 0.25              # cosmology
 
-            if DorR == 'data':  
-                # Data ---------------------------------------------------------
+            if DorR == 'data':  # Data ---------------------------------------------------------
                 catalog_columns = ['ra', 'dec', 'z', 'weight']          # columns that this catalog data will have  
                 self.columns = catalog_columns
 
-                if (os.path.isfile(file_name) == False) or (clobber == True): # if file does not exists, make file  
-                    print 'Building', file_name
+                # True (No FiberCollisions) ----------------------------------------------------
+                if correction['name'].lower() == 'true': 
 
-                    if correction['name'].lower() == 'true': 
-                        # True (No FiberCollisions) 
-                        build_true(**cat_corr)
+                    if readdata == True: 
+                        if os.path.isfile(file_name) == False: # if file does not exists, make file  
+                            build_true(**cat_corr)
                 
-                    elif correction['name'].lower() in ('upweight', 'fibcol', 'shotnoise', 'hectorsn', 'floriansn'): 
-                        # Fibercollisions Corrected by Upweight correction  
-                        build_fibercollided(**cat_corr)             # ***need to rewrite so that spherematch is done in python 
                 
-                    elif correction['name'].lower() in ('peak', 'peaknbar', 'peakshot', 'peaktest'): 
-                        # Fibercollisions Corrected by peak correction 
-                        build_peakcorrected_fibcol(sanitycheck=True, **cat_corr)
+                # Fibercollisions Corrected by Upweight correction ------------------------------------------------------------ 
+                elif correction['name'].lower() in ('upweight', 'fibcol', 'shotnoise', 'hectorsn', 'floriansn'): 
+                    ''' LDG mocks with fiber collision weights 
+                    '''
+
+                    if readdata == True: 
+                        if os.path.isfile(file_name) == False:          # if file does not exists, make file  
+                            print 'Building', file_name
+                            build_fibercollided(**cat_corr)             # ***need to rewrite so that spherematch is done in python 
+                
+                # Fibercollisions Corrected by peak correction ---------------------------------------------------------------------
+                elif correction['name'].lower() in ('peak', 'peaknbar', 'peakshot', 'peaktest'): 
+
+
+                    if readdata == True:           
+                        if os.path.isfile(file_name) == False:   # if file doesn't exist create file 
+                            print 'Constructing ', file_name 
+                            build_peakcorrected_fibcol(sanitycheck=True, **cat_corr)
                         
-                    elif correction['name'].lower() in ('peakshot_dnn'): 
-                        ''' Peak Correction (with dNN env) + Shotnoise 
-                        Correction needs to specify: fit, nth NN, and sigma 
-                        '''
-                        build_peak_fpeak_dNN( NN=correction['NN'], **cat_corr) 
+                elif correction['name'].lower() in ('peakshot_dnn'): 
+                    ''' Peak Correction (with dNN env) + Shotnoise 
+                    Correction needs to specify: fit, nth NN, and sigma 
+                    '''
+                    if readdata == True:           
+                        if os.path.isfile(file_name) == False:   # if file doesn't exist create file 
+                            print 'Constructing ', file_name 
+                            build_peak_fpeak_dNN( NN=correction['NN'], **cat_corr) 
+                        
+                else: 
+                    raise NameError('Correction Name Unknown') 
+
+            # read data 
+            file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])         # ra, dec, z, weights (1.0)
+
+            for i_col, catalog_column in enumerate(catalog_columns): 
+                column_data = file_data[i_col]
+                setattr(self, catalog_column, column_data) 
+
+                    '''
+                    #file_name = '/mount/chichipio2/rs123/MOCKS/LRGFull_zm_geo/gaussian/zspace/sdssmock_gamma_lrgFull_zm_oriana'+\
+                    #        str("%02d" % catalog['n_mock'])+catalog['letter']+'_no.rdcz.dat'
+
+                    if readdata == True: 
+                        # Read data 
+                        file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2])         # ra, dec, CZ
+
+                        for i_col, catalog_column in enumerate(catalog_columns):            # assign to class
+                            if catalog_column == 'z': 
+                                column_data = file_data[i_col]/299800.0     # divide by speed of light
+                            elif catalog_column == 'weight':                    
+                                column_data = np.array([1.0 for j in range(len(file_data[0,:]))]) # no weights for true (all 1) 
+                            else: 
+                                column_data = file_data[i_col]
+                            # assign to class
+                            setattr(self, catalog_column, column_data) 
+                    '''
+
+                '''
+                elif correction['name'].lower() in ('vlospeaknbar', 'vlospeakshot'): 
+                    # specify peak correction fit (expon or gauss) 
+                    if correction['fit'].lower() in ('gauss', 'expon'): 
+                        fit_str = correction['fit'].lower()
+                        corr_str = '.'+fit_str+'.'+correction['name'].lower()+\
+                                '.sigma'+str(correction['sigma'])+'.fpeak'+str(correction['fpeak'])
+                    elif correction['fit'].lower() == 'real': 
+                        fit_str = 'real'
+                        corr_str = '.'+fit_str+'.'+correction['name'].lower()+'.fpeak'+str(correction['fpeak'])
                     else: 
-                        raise NameError('Correction Name Unknown') 
+                        raise NameError('peak fit has to be specified: gauss or expon') 
 
-                # read data 
-                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])         # ra, dec, z, weights
+                    file_name = '/mount/riachuelo1/hahn/data/LasDamas/Geo/sdssmock_gamma_lrgFull_zm_oriana'+\
+                            str("%02d" % catalog['n_mock'])+catalog['letter']+'_no.rdcz.fibcoll.dat'+corr_str
+                    
+                    if readdata == True: 
+                        # if file doesn't exist create file 
+                        if os.path.isfile(file_name) == False: 
+                            print 'Constructing ', file_name 
+                            build_vlospeak_fibcol(**cat_corr)
+                        
+                        # read file 
+                        file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])         # ra, dec, z, weights 
 
-                for i_col, catalog_column in enumerate(catalog_columns): 
-                    column_data = file_data[i_col]
-                    setattr(self, catalog_column, column_data) 
+                        # assign to class
+                        for i_col, catalog_column in enumerate(catalog_columns): 
+                            column_data = file_data[i_col]
+                            setattr(self, catalog_column, column_data) 
+
+                # Fibercollisions Corrected by all peak correction ---------------------------------------------------------------------
+                elif correction['name'].lower() in ('allpeak', 'allpeakshot'):
+
+                    # specify peak correction fit (expon or gauss) 
+                    if correction['fit'].lower() == 'gauss': 
+                        fit_str = 'gauss' 
+                    elif correction['fit'].lower() == 'expon': 
+                        fit_str = 'expon'
+                    else: 
+                        raise NameError('peak fit has to be specified: gauss or expon') 
+
+                    corr_str = '.'+fit_str+'.'+correction['name'].lower()+\
+                            '.sigma'+str(correction['sigma'])
+
+                    file_name = '/mount/riachuelo1/hahn/data/LasDamas/Geo/sdssmock_gamma_lrgFull_zm_oriana'+\
+                            str("%02d" % catalog['n_mock'])+catalog['letter']+'_no.rdcz.fibcoll.dat'+corr_str
+                    
+                    if readdata == True: 
+                        # if file doesn't exist create file 
+                        if os.path.isfile(file_name) == False: 
+                            print 'Constructing ', file_name 
+                            build_peakcorrected_fibcol(sanitycheck=True, **cat_corr)
+                        
+                        # read file 
+                        file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])         # ra, dec, z, weights 
+
+                        # assign to class
+                        for i_col, catalog_column in enumerate(catalog_columns): 
+                            column_data = file_data[i_col]
+                            setattr(self, catalog_column, column_data) 
+
+                # Tests--------------------------------------------------------------------------------
+                elif (correction['name'].lower() == 'randrm'):  
+                    # get file name 
+                    file_name = '/mount/riachuelo1/hahn/data/LasDamas/Geo/sdssmock_gamma_lrgFull_zm_oriana'+\
+                            str("%02d" % catalog['n_mock'])+catalog['letter']+'_no.rdcz.fibcoll.dat.'+correction['name'].lower() 
+                    
+                    # read data
+                    if readdata == True: 
+                        # if file doesn't exist create file 
+                        if os.path.isfile(file_name) == False: 
+                            print 'Constructing ', file_name 
+                            build_test_adjustments(sanitycheck=True, **cat_corr)
+                        
+                        # read file 
+                        file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])         # ra, dec, z, weights 
+
+                        # assign data columns to class
+                        for i_col, catalog_column in enumerate(catalog_columns): 
+                            column_data = file_data[i_col]
+                            setattr(self, catalog_column, column_data) 
+                '''
 
             # Random Catalogs ------------------------------------------------------------------------------------------------------
             elif DorR.lower() == 'random': 
-
-                catalog_columns = ['ra', 'dec', 'z']        # columns of random catalog (NOTE CZ IS CONVERTED TO Z) 
+                catalog_columns = ['ra', 'dec', 'z']        # columns that this catalog random will have (NOTE CZ IS CONVERTED TO Z) 
                 self.columns = catalog_columns
-    
-                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2])         # Read data 
-
-                for i_col, catalog_column in enumerate(catalog_columns): 
-                    if catalog_column == 'z': 
-                        column_data = file_data[i_col]/299800.0
-                    else: 
-                        column_data = file_data[i_col]
-                    # assign to class
-                    setattr(self, catalog_column, column_data)
-
-        elif catalog['name'].lower() == 'tilingmock':   
-            # TILING MOCKS ------------------------------------------------ 
-
-            omega_m = 0.274         # survey cosmology 
-
-            if DorR == 'data':              # for mocks 
-
-                catalog_columns = ['ra', 'dec', 'z', 'weight']       # columns that this catalog data will have  
-                self.columns = catalog_columns
-
-                if (os.path.isfile(file_name) == False) or (clobber == True): # if file does not exists, make file  
-                    print 'Constructing ', file_name 
-
-                    if correction['name'].lower() == 'true':    # true mocks
-                        # all weights = 1 (fibercollisions *not* imposed) 
-                        build_true(**cat_corr) 
                 
-                    elif correction['name'].lower() in ('upweight', 'fibcol', 'shotnoise', 'floriansn', 'hectorsn'):
-                        # upweighted mocks
-                        build_fibercollided(**cat_corr)         # build-in fibercollisions using spherematch idl code
-                
-                    elif correction['name'].lower() in ('peak', 'peaknbar', 'peaktest', 'peakshot'): 
+                if correction['name'].lower() in \
+                        ('true', 'upweight', 'peaknbar', 'peakshot', 'peakshot_dnn'
+                                'shotnoise', 'vlospeakshot', 'hectorsn', 'floriansn'): 
+                    # uncorrected LasDamasGeo random catalogue
+                    # Upweight and peakshot have been included because they only change nbar(z) by < 1% 
+                    
+                    # hardcoded
+                    file_name = '/mount/riachuelo1/hahn/data/LasDamas/Geo/sdssmock_gamma_lrgFull.rand_200x_no.rdcz.dat'
+
+                    # read data
+                    if readdata == True: 
+                        file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2])
+
+                        for i_col, catalog_column in enumerate(catalog_columns): 
+                            if catalog_column == 'z': 
+                                column_data = file_data[i_col]/299800.0
+                            else: 
+                                column_data = file_data[i_col]
+                            # assign to class
+                            setattr(self, catalog_column, column_data)
+
+                # Corrections ------------------------------------------------------------------------------------------------
+                else:  
+                    pass
+                    '''
+                    # corrections for random catalog
+                    #if correction['name'].lower() == 'upweight': 
+                    #    # upweight correction 
+                    #    corr_str = '.upweight'
+
+                    if correction['name'].lower() in ('peak', 'peaknbar', 'peaktest'): 
                         # Correction methods that have both peak and tail contributions   
                         # peak/peaknbar = peak + tail correction 
                         # peaktest = fpeak peak correction + remove rest 
                         # peakshot = fpeak peak correction + shot noise for rest
-                        build_peakcorrected_fibcol(sanitycheck=True, **cat_corr)
-                
-                    elif correction['name'].lower() in ('allpeak', 'allpeakshot'):
-                        # all peak corrected 
-                        build_peakcorrected_fibcol(sanitycheck=True, **cat_corr)
 
-                # Read data  
-                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])         # ra, dec, z, weight
-
-                # assign to data columns class
-                for i_col, catalog_column in enumerate(catalog_columns): 
-                    column_data = file_data[i_col]
-                    # assign to class
-                    setattr(self, catalog_column, column_data) 
-
-            elif DorR.lower() == 'random':              # Randoms -----------------------------------------------------
-
-                catalog_columns = ['ra', 'dec', 'z']        # columns of catalog 
-                self.columns = catalog_columns
-
-                if (os.path.isfile(file_name) == False) or (clobber == True): # if file does not exists, make file  
-                    print 'Constructing ', file_name
-                    build_corrected_randoms(sanitycheck=False, **cat_corr)       # impose redshift limit
-
-                print 'Reading ', file_name                     # just because it takes forever
-                t0 = time.time() 
-                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2])      # read random file
-                print 'took ', (time.time()-t0)/60.0, ' mins'       # print time 
-
-                for i_col, catalog_column in enumerate(catalog_columns): 
-                    column_data = file_data[i_col]
-                    # assign data column to class
-                    setattr(self, catalog_column, column_data)
-                
-        elif catalog['name'].lower() == 'qpm':          
-            # QPM ---------------------------------------------------------
-
-            omega_m = 0.31              # survey cosmology 
-
-            if DorR == 'data':                      # mocks ---------------------------------------------------------------------
-
-                catalog_columns = ['ra', 'dec', 'z', 'wfkp', 'wfc', 'comp']         # catalog columns 
-                self.columns = catalog_columns
-
-                if (os.path.isfile(file_name) == False) or (clobber == True):
-                    # File does not exist or Clobber = True!
-
-                    print 'Constructing ', file_name 
-                    if correction['name'].lower() == 'true':                    
-                        # true mocks 
-                        # all weights = 1 (fibercollisions *not* imposed) 
-                        build_true(**cat_corr) 
-
-                    elif correction['name'].lower() in ('upweight', 'shotnoise', 'floriansn', 'hectorsn'): 
-                        # upweighted mocks
-                        build_fibercollided(**cat_corr) 
-
-                    elif correction['name'].lower() in ('peaknbar', 'peakshot'): 
-                        # peak corrected mocks 
-                        build_peakcorrected_fibcol(**cat_corr)  # build peak corrected file 
-
-                    elif correction['name'].lower() in ('peakshot_dnn'):
-                        # peak + dLOS env correct mocks 
-                        build_peak_fpeak_dNN(NN=correction['NN'], **cat_corr) 
-
-                    elif correction['name'].lower() in ('tailupw'):         
-                        # tail upweight correction 
-                        build_tailupweight_fibcol(**cat_corr)  # build peak corrected file 
-
-                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4,5])         # ra, dec, z, wfkp, wfc, comp
-
-                # assign to data columns class
-                for i_col, catalog_column in enumerate(catalog_columns): 
-                    setattr(self, catalog_column, file_data[i_col]) 
+                        # specify peak correction fit (expon or gauss) 
+                        if correction['fit'].lower() == 'gauss': 
+                            fit_str = 'gauss' 
+                        elif correction['fit'].lower() == 'expon': 
+                            fit_str = 'expon'
+                        else: 
+                            raise NameError('peak fit has to be specified: gauss or expon') 
                         
-            
-            elif DorR == 'random':                              # Random ------------------------------------
+                        if correction['name'].lower() == 'peak': 
+                            # just for peak+nbar correction, for consistency 
+                            correction['name'] = 'peaknbar' 
 
-                catalog_columns = ['ra', 'dec', 'z', 'wfkp']    # catalog columns 
+                        corr_str = ''.join(['.', fit_str, '.', correction['name'].lower(), 
+                            '.sigma', str(correction['sigma']), '.fpeak', str(correction['fpeak'])]) 
 
-                if (os.path.isfile(file_name) == False) or (clobber == True):
-                    print 'Constructing ', file_name 
-                    build_random(**cat_corr) 
+                    elif correction['name'].lower() in ('allpeak', 'allpeakshot'):
+                        # all in the peak
+                        # allpeak = all fc galaxies in peak with weight fpeak
+                        # allpeakshot = all fc galaxies in peak with weight fpeak, (1-fpeak) weights are then shot noise corrected
 
-                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])             # ra, dec, z, wfkp
+                        # specify peak correction fit (expon or gauss) 
+                        if correction['fit'].lower() == 'gauss': 
+                            fit_str = 'gauss' 
+                        elif correction['fit'].lower() == 'expon': 
+                            fit_str = 'expon'
+                        else: 
+                            raise NameError('peak fit has to be specified: gauss or expon') 
 
-                # assign to object data columns
-                for i_col, catalog_column in enumerate(catalog_columns): 
-                    setattr(self, catalog_column, file_data[i_col])
-        
-        elif catalog['name'].lower() == 'patchy': 
-            # PATCHY Mocks --------------------------------------------------
-            omega_m = 0.31              # survey cosmology 
+                        corr_str = '.'+fit_str+'.'+correction['name'].lower()+'.sigma'+str(correction['sigma'])
 
-            if DorR == 'data':                      
-                # mocks ------------------------------------------------------
+                    # Test adjustments --------------------------------------------------------------------------------------------
+                    elif (correction['name'].lower() == 'randrm'): 
+                        corr_str = '.'+correction['name'].lower()
 
-                catalog_columns = ['ra', 'dec', 'z', 'nbar', 'wfc']         # catalog columns 
+                    else: 
+                        raise NameError("specify correction method") 
+                    
+                    # file name 
+                    file_name = ''.join(['/mount/riachuelo1/hahn/data/LasDamas/Geo/', 
+                        'sdssmock_gamma_lrgFull.rand_200x_no.rdcz.dat.allmocks', corr_str]) 
+                    
+                    if readdata == True: 
+                        # if read data is true, then read data 
+
+                        if os.path.isfile(file_name) == False:                            
+                            # if corrected random file does *not* exist
+                            print 'Constructing ', file_name
+                            build_corrected_randoms(sanitycheck=False, **cat_corr) 
+
+                        # read corrected random file
+                        print 'Reading ', file_name                     # just because it takes forever
+                        t0 = time.time() 
+                        file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2]) 
+                        print 'took ', (time.time()-t0)/60.0, ' mins'
+
+                        for i_col, catalog_column in enumerate(catalog_columns): 
+                            column_data = file_data[i_col]
+                            # assign to class
+                            setattr(self, catalog_column, column_data)
+                    '''
+
+        # TILING MOCKS --------------------------------------------------------------------------------------------------- 
+        elif catalog['name'].lower() == 'tilingmock':
+            omega_m = 0.274
+            # MOCK --------------------------------------------------------------------------------------------------- 
+            if DorR == 'data': 
+                # columns that this catalog data will have  
+                catalog_columns = ['ra', 'dec', 'z', 'weight']
                 self.columns = catalog_columns
 
-                if (os.path.isfile(file_name) == False) or (clobber == True):
-                    # File does not exist or Clobber = True!
-                    print 'Constructing ', file_name 
+                data_dir = '/mount/riachuelo1/hahn/data/tiling_mocks/'      # data directory
 
-                    if correction['name'].lower() == 'true': 
-                        # true mocks 
-                        build_true(**cat_corr) 
+                # True Original Tiling mocks ---------------------------------------------------------------------------
+                if correction['name'].lower() == 'true': 
+                    # all weights = 1 (fibercollisions *not* imposed) 
+                    file_name = data_dir+'cmass-boss5003sector-icoll012.zlim.dat'
+                        
+                    if readdata == True: 
+                        if os.path.isfile(file_name) == False: 
+                            print 'Constructing ', file_name 
+                            build_true(**cat_corr) 
 
-                    elif correction['name'].lower() in ('upweight', 'shotnoise', 
-                            'floriansn', 'hectorsn'): 
-                        # upweighted mocks
-                        build_fibercollided(**cat_corr) 
+                        file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])         # ra, dec, z, weight
 
-                    elif correction['name'].lower() in ('peaknbar', 'peakshot'): 
-                        # peak corrected mocks 
-                        build_peakcorrected_fibcol(**cat_corr)  # build peak corrected file 
+                        # assign to data columns class
+                        for i_col, catalog_column in enumerate(catalog_columns): 
+                            column_data = file_data[i_col]
+                            # assign to class
+                            setattr(self, catalog_column, column_data) 
 
-                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4])
+                # Fibercollision Upweight Correction --------------------------------------------------------------------  
+                elif correction['name'].lower() in ('upweight', 'fibcol', 'shotnoise', 'floriansn', 'hectorsn'): 
+                    file_name = data_dir+'cmass-boss5003sector-icoll012.zlim.fibcoll.dat'
 
-                # assign to data columns class
-                for i_col, catalog_column in enumerate(catalog_columns): 
-                    setattr(self, catalog_column, file_data[i_col]) 
-            
-            elif DorR == 'random':
-                # Random ---------------------------------------------------
+                    if readdata == True: 
+                        # if fibercollided file does not exist 
+                        if os.path.isfile(file_name) == False: 
+                            print 'Contructing ', file_name 
+                            build_fibercollided(**cat_corr)                 # build-in fibercollisions using spherematch idl code
 
-                catalog_columns = ['ra', 'dec', 'z', 'nbar']    # catalog columns 
+                        file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])         # ra, dec, z, weight
 
-                if (os.path.isfile(file_name) == False) or (clobber == True):
-                    print 'Constructing ', file_name 
-                    build_random(**cat_corr) 
+                        # assign to class
+                        for i_col, catalog_column in enumerate(catalog_columns): 
+                            column_data = file_data[i_col]
+                            # assign to data column class
+                            setattr(self, catalog_column, column_data) 
+    
+                # Fibercollision peak+tail correction ---------------------------------------------------------------------- 
+                elif correction['name'].lower() in ('peak', 'peaknbar', 'peaktest', 'peakshot'): 
+                    # Correction methods that have both peak and tail contributions   
+                    # peak/peaknbar = peak + tail correction 
+                    # peaktest = fpeak peak correction + remove rest 
+                    # peakshot = fpeak peak correction + shot noise for rest
 
-                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])   # ra, dec, z, nbar
+                    if correction['name'].lower() == 'peak': 
+                        # Correct for poor naming conventions 
+                        correction['name'] = 'peaknbar'
+                    
+                    # specify fit (expon or gauss) to peak 
+                    if correction['fit'].lower() in ('gauss', 'expon'): 
+                       pass 
+                    else: 
+                        raise NameError('peak fit has to be specified: gauss or expon') 
 
-                for i_col, catalog_column in enumerate(catalog_columns):    
+                    # correction string in file name 
+                    corr_str = ''.join(['.', correction['fit'].lower(), '.', correction['name'].lower(), 
+                        '.sigma', str(correction['sigma']), '.fpeak', str(correction['fpeak'])])
+
+                    file_name = data_dir+'cmass-boss5003sector-icoll012.zlim.dat'+corr_str 
+                    
+                    if readdata == True: 
+                        # if file doesn't exist create file 
+                        if os.path.isfile(file_name) == False: 
+                            print 'Constructing ', file_name 
+                            build_peakcorrected_fibcol(sanitycheck=True, **cat_corr)
+                        
+                        # read file 
+                        file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])         # ra, dec, z, weights 
+
+                        # assign to data columns class
+                        for i_col, catalog_column in enumerate(catalog_columns): 
+                            column_data = file_data[i_col]
+                            setattr(self, catalog_column, column_data) 
+                
+                # Fibercollision VLOS peak+tail correction ---------------------------------------------------------------------- 
+                elif correction['name'].lower() in ('vlospeaknbar', 'vlospeakshot'): 
+                    # specify fit (expon or gauss) to peak 
+                    if correction['fit'].lower() in ('gauss', 'expon'): 
+                       pass 
+                    else: 
+                        raise NameError('peak fit has to be specified: gauss or expon') 
+
+                    # correction string in file name 
+                    corr_str = ''.join(['.', correction['fit'].lower(), '.', correction['name'].lower(), 
+                        '.sigma', str(correction['sigma']), '.fpeak', str(correction['fpeak'])])
+
+                    file_name = data_dir+'cmass-boss5003sector-icoll012.zlim.dat'+corr_str 
+                    
+                    if readdata == True: 
+                        # if file doesn't exist create file 
+                        if os.path.isfile(file_name) == False: 
+                            print 'Constructing ', file_name 
+                            build_vlospeak_fibcol(**cat_corr)
+                        
+                        # read file 
+                        file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])         # ra, dec, z, weights 
+
+                        # assign to data columns class
+                        for i_col, catalog_column in enumerate(catalog_columns): 
+                            column_data = file_data[i_col]
+                            setattr(self, catalog_column, column_data) 
+
+                # Fibercollisions Corrected by all peak correction -----------------------------------------------------------
+                elif correction['name'].lower() in ('allpeak', 'allpeakshot'):
+
+                    # specify peak correction fit (expon or gauss) 
+                    if correction['fit'].lower() in ('gauss', 'expon'): 
+                        pass 
+                    else: 
+                        raise NameError('peak fit has to be specified: gauss or expon') 
+
+                    corr_str = ''.join(['.', correction['fit'].lower(), '.', correction['name'].lower(), 
+                        '.sigma', str(correction['sigma'])]) 
+
+                    file_name = data_dir+'cmass-boss5003sector-icoll012.zlim.dat'+corr_str 
+                    
+                    if readdata == True: 
+                        # if file doesn't exist create file 
+                        if os.path.isfile(file_name) == False: 
+                            print 'Constructing ', file_name 
+                            build_peakcorrected_fibcol(sanitycheck=True, **cat_corr)
+                        
+                        # read file 
+                        file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])         # ra, dec, z, weights 
+
+                        # assign to class
+                        for i_col, catalog_column in enumerate(catalog_columns): 
+                            column_data = file_data[i_col]
+                            setattr(self, catalog_column, column_data) 
+
+                else: 
+                    raise NameError('Correction Name Unknown') 
+
+            elif DorR.lower() == 'random': 
+                # For Randoms ------------------------------------------------------------------------------------------------------
+                # columns that this catalog random will have
+                catalog_columns = ['ra', 'dec', 'z'] 
+                self.columns = catalog_columns
+
+                random_dir = '/mount/riachuelo1/hahn/data/tiling_mocks/'
+                
+                # True Original Random Tiling Mock ----------------------------------------------------------------------  
+                if correction['name'].lower() in ('true', 'upweight', 'peaknbar', 'peakshot', 'vlospeakshot', 'shotnoise', 'floriansn', 'hectorsn'): 
+                    # uncorrected random catalog for Tiling Mocks 
+                    file_name = random_dir + 'randoms-boss5003-icoll012-vetoed.zlim.dat'
+
+                    if readdata == True: 
+                        if os.path.isfile(file_name) == False:                            
+                            print 'Constructing ', file_name
+                            build_corrected_randoms(sanitycheck=False, **cat_corr)       # impose redshift limit
+
+                        # read random file
+                        print 'Reading ', file_name                     # just because it takes forever
+                        t0 = time.time() 
+                        file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2])
+                        print 'took ', (time.time()-t0)/60.0, ' mins'
+
+                        for i_col, catalog_column in enumerate(catalog_columns): 
+                            column_data = file_data[i_col]
+                            # assign data column to class
+                            setattr(self, catalog_column, column_data)
+
+                # Corrected Random Tiling Mock ------------------------------------------------------------------------
+                else: 
+                    print "WHat are you doing here?"
+                    pass
+                    # corrected string for file name 
+                    #if correction['name'].lower() == 'upweight': 
+                    #    # random corrected for fiber collision upweight correction 
+                    #    corr_str = '.upweight'
+                    '''
+                    if correction['name'].lower() in ('peak', 'peaknbar', 'peaktest'): 
+                        # random corrected for fiber collision peak correction 
+                
+                        if correction['name'].lower() == 'peak': 
+                            # correct for poor naming convention 
+                            correction['name'] = 'peaknbar'
+
+                        # peak fit method 
+                        if correction['fit'].lower() in ('gauss', 'expon'): 
+                            pass
+                        else: 
+                            raise NameError('peak fitting has to be gaussian or exponential') 
+
+                        corr_str = ''.join(['.', correction['fit'].lower(), '.', correction['name'].lower(), 
+                            '.sigma', str(correction['sigma']), '.fpeak', str(correction['fpeak'])]) 
+
+                    elif correction['name'].lower() in ('allpeak', 'allpeakshot'):
+                        # random corrected for fiber collision peak correction 
+
+                        # check peak fit method 
+                        if correction['fit'].lower() in ('gauss', 'expon'): 
+                            pass
+                        else: 
+                            raise NameError('peak fitting has to be gaussian or exponential') 
+
+                        corr_str = ''.join(['.', correction['fit'].lower(), '.', correction['name'].lower(), 
+                            '.sigma', str(correction['sigma'])])
+                    else: 
+                        raise NameError('correction method not coded') 
+
+                    file_name = '/mount/riachuelo1/hahn/data/tiling_mocks/'+\
+                            'randoms-boss5003-icoll012-vetoed.zlim.dat'+corr_str
+
+                    if readdata == True: 
+                        # if corrected random file does *not* exist
+                        if os.path.isfile(file_name) == False:                            
+                            print 'Constructing ', file_name
+                            build_corrected_randoms(sanitycheck=False, **cat_corr) 
+
+                        # read random file
+                        print 'Reading ', file_name                     # just because it takes forever
+                        t0 = time.time() 
+                        # read corrected random file
+                        file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2]) 
+                        print 'took ', (time.time()-t0)/60.0, ' mins'
+
+                        for i_col, catalog_column in enumerate(catalog_columns): 
+                            column_data = file_data[i_col]
+                            # assign to class
+                            setattr(self, catalog_column, column_data)
+                    '''
+                
+        # QPM --------------------------------------------------------------------------
+        elif catalog['name'].lower() == 'qpm':  
+            omega_m = 0.31
+            # Mock ---------------------------------------------------------------------
+            if DorR == 'data': 
+                # columns that this catalog data will have  
+                catalog_columns = ['ra', 'dec', 'z', 'wfkp', 'wfc', 'comp']
+                self.columns = catalog_columns
+
+                data_dir = '/mount/riachuelo1/hahn/data/QPM/dr12d/'              # data directory
+
+                # True  -----------------------------------------------------------------------------------------------
+                if correction['name'].lower() == 'true': 
+                    # all weights = 1 (fibercollisions *not* imposed) 
+                    file_name = ''.join([data_dir, 'a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.vetoed.dat']) 
+                    if readdata == True: 
+                        if os.path.isfile(file_name) == False: 
+                            print 'Constructing ', file_name 
+                            build_true(**cat_corr) 
+
+                        file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4,5])         # ra, dec, z, wfkp, wfc, comp
+
+                        # assign to data columns class
+                        for i_col, catalog_column in enumerate(catalog_columns): 
+                            setattr(self, catalog_column, file_data[i_col]) 
+                
+                # Upweight ------------------------------------------------------------------------------------------------
+                elif correction['name'].lower() in ('upweight', 'shotnoise', 'floriansn', 'hectorsn'): 
+                    
+                    file_name = ''.join([data_dir, 'a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.vetoed.fibcoll.dat']) 
+                    
+                    if readdata == True: 
+                        if os.path.isfile(file_name) == False: 
+                            print 'Constructing ', file_name 
+                            build_fibercollided(**cat_corr) 
+                        
+                        file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4,5])         # ra, dec, z, wfkp, wfc, comp
+
+                        # assign to object data columns 
+                        for i_col, catalog_column in enumerate(catalog_columns): 
+                            setattr(self, catalog_column, file_data[i_col]) 
+
+                # Peak correction methods ------------------------------------------------------------------------------------------
+                elif correction['name'].lower() in ('peaknbar', 'peakshot'): 
+                    
+                    if correction['name'].lower() == 'peaknbar': 
+                        pass
+                        # should not happen 
+                        #warnings.warn('peaknbar requires corrected nbar(z) and randoms, not coded for QPM') 
+
+                    # specify fit (expon or gauss) to peak 
+                    if correction['fit'].lower() in ('gauss', 'expon'): 
+                        # correction specifier string 
+                        corr_str = ''.join(['.', correction['fit'].lower(), '.', correction['name'].lower(), 
+                            '.sigma', str(correction['sigma']), '.fpeak', str(correction['fpeak'])]) 
+                    elif correction['fit'].lower() in ('true'): 
+                        # correction specifier string 
+                        corr_str = ''.join(['.', correction['fit'].lower(), '.', correction['name'].lower(), 
+                            '.fpeak', str(correction['fpeak'])]) 
+                    else: 
+                        raise NameError('peak fit has to be specified: gauss or expon') 
+
+                    file_name = ''.join([data_dir, 'a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.vetoed.fibcoll', corr_str, '.dat']) 
+
+                    if readdata == True: 
+                        # if file doesn't exist create file 
+                        if os.path.isfile(file_name) == False: 
+                            print 'Constructing ', file_name 
+                            build_peakcorrected_fibcol(**cat_corr)  # build peak corrected file 
+                        
+                        # read file 
+                        file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4,5])         # ra, dec, z, wfkp, wfc, comp
+
+                        # assign to data columns class
+                        for i_col, catalog_column in enumerate(catalog_columns): 
+                            column_data = file_data[i_col]
+                            setattr(self, catalog_column, column_data) 
+
+                # Peak correction methods ------------------------------------------------------------------------------------------
+                elif correction['name'].lower() in ('peakshot_dnn'):
+                    
+                    # specify peak correction fit (expon, gauss) 
+                    if correction['fit'].lower() in ('gauss', 'expon'): 
+                        corr_str = ''.join([ '.', correction['fit'].lower(), '.peakshot_d', str(correction['NN']), 'NN', 
+                            '.sigma', str(correction['sigma']) ])
+                    else: 
+                        raise NameError('peak fit has to be specified: gauss, expon') 
+
+                    file_name = ''.join([data_dir, 
+                        'a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.vetoed.fibcoll', corr_str, '.dat']) 
+
+                    if readdata == True: 
+                        # if file doesn't exist create file 
+                        if (os.path.isfile(file_name) == False) or \
+                                (clobber==True): 
+                            print 'Constructing ', file_name 
+                            build_peak_fpeak_dNN(NN=correction['NN'], **cat_corr) 
+                        
+                        # read file 
+                        file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4,5])         # ra, dec, z, wfkp, wfc, comp
+
+                        # assign to data columns class
+                        for i_col, catalog_column in enumerate(catalog_columns): 
+                            column_data = file_data[i_col]
+                            setattr(self, catalog_column, column_data) 
+
+                elif correction['name'].lower() in ('tailupw'):     
+                    # only upweight uncorrelated chance alignment fc pairs 
+                    corr_str = 'tailupw' 
+                    file_name = ''.join([data_dir, 
+                        'a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.vetoed.fibcoll.', corr_str, '.dat'
+                        ]) 
+
+                    if readdata == True: 
+                        # if file doesn't exist create file 
+                        if os.path.isfile(file_name) == False: 
+                            print 'Constructing ', file_name 
+                            build_tailupweight_fibcol(**cat_corr)  # build peak corrected file 
+                        
+                        # read file 
+                        file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4,5])   # ra, dec, z, wfkp, wfc, comp
+                        # assign to data columns class
+                        for i_col, catalog_column in enumerate(catalog_columns): 
+                            column_data = file_data[i_col]
+                            setattr(self, catalog_column, column_data) 
+
+                elif correction['name'].lower() in ('vlospeaknbar', 'vlospeakshot'): 
+
+                    if correction['fit'].lower() in ('gauss', 'expon'): 
+                        # correction specifier string 
+                        corr_str = ''.join(['.', correction['fit'].lower(), '.', correction['name'].lower(), 
+                            '.sigma', str(correction['sigma']), '.fpeak', str(correction['fpeak'])]) 
+                    elif correction['fit'].lower() in ('real'): 
+                        corr_str = ''.join(['.', correction['fit'].lower(), '.', correction['name'].lower(), '.fpeak', str(correction['fpeak'])]) 
+                    else: 
+                        raise NameError('peak fit has to be specified: gauss or expon') 
+
+
+                    file_name = ''.join([data_dir, 'a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.vetoed.fibcoll', corr_str, '.dat']) 
+
+                    if readdata == True: 
+                        # if file doesn't exist create file 
+                        if os.path.isfile(file_name) == False: 
+                            print 'Constructing ', file_name 
+                            build_vlospeak_fibcol(**cat_corr)
+                        
+                        # read file 
+                        file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4,5])         # ra, dec, z, wfkp, weights, comp
+
+                        # assign to data columns class
+                        for i_col, catalog_column in enumerate(catalog_columns): 
+                            column_data = file_data[i_col]
+                            setattr(self, catalog_column, column_data) 
+                else: 
+                    raise NameError('not yet coded') 
+                
+            # Random ----------------------------------------------------------------------------------------------------------------
+            elif DorR == 'random': 
+                # data columns
+                catalog_columns = ['ra', 'dec', 'z', 'wfkp']
+
+                data_dir = '/mount/riachuelo1/hahn/data/QPM/dr12d/' 
+                
+                #if correction['name'].lower() in ('true'): 
+                file_name = ''.join([data_dir, 'a0.6452_rand50x.dr12d_cmass_ngc.vetoed.dat'])             # hardcoded to 50x so it does'nt take forever
+
+                if readdata == True: 
+                    if os.path.isfile(file_name) == False: 
+                        print 'Constructing ', file_name 
+                        build_qpm_true_random() 
+
+                    file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])             # ra, dec, z, wfkp
+
                     # assign to object data columns
-                    setattr(self, catalog_column, file_data[i_col])
+                    for i_col, catalog_column in enumerate(catalog_columns): 
+                        setattr(self, catalog_column, file_data[i_col])
+                '''
+                else: 
+                    if correction['name'].lower() in ('upweight', 'shotnoise'): 
+                        # upweight
+                        corr_str = '.upweight'
 
-        else: 
-            raise NameError('not yet coded') 
-        ''' COMMENTED OUT FOR NOW 
+                    elif correction['name'].lower() == 'peakshot': 
+                        # peakshot
+                        corr_str = ''.join(['.peakshot.sigma', str(correction['sigma']), '.fpeak', str(correction['fpeak'])])
+                    else: 
+                        raise NameError('Not Yet Codeded') 
+
+                    file_name = ''.join([data_dir, 'a0.6452_rand50x.dr12d_cmass_ngc', corr_str, '.dat'])
+                    
+                    if readdata == True: 
+                        if os.path.isfile(file_name) == False: 
+                            print 'Constructing ', file_name 
+                            build_corrected_randoms(sanitycheck=False, **cat_corr) 
+
+                        file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4])             # ra, dec, z, nbar, wveto
+
+                        # assign to object data columns
+                        for i_col, catalog_column in enumerate(catalog_columns): 
+                            setattr(self, catalog_column, file_data[i_col])
+                '''
+        
         # CMASS --------------------------------------------------------------------------------------------------------
         elif catalog['name'].lower() == 'cmass':
             omega_m = 0.274
@@ -289,9 +757,12 @@ class galaxy_data:
                     # assign to data columns class
                     for i_col, catalog_column in enumerate(catalog_columns): 
                         setattr(self, catalog_column, file_data[i_col]) 
-        '''
-        
-        # survey cosmology metadata 
+
+        else: 
+            raise NameError('not yet coded') 
+
+        self.file_name = file_name          # save file name 
+
         cosmo = {} 
         cosmo['omega_M_0'] = omega_m 
         cosmo['omega_lambda_0'] = 1.0 - omega_m 
@@ -314,248 +785,73 @@ def get_galaxy_data_file(DorR, **cat_corr):
     '''
     catalog = cat_corr['catalog'] 
     correction = cat_corr['correction'] 
-    
-    if catalog['name'].lower() == 'lasdamasgeo':    
-        # LasDamasGeo --------------------------------
-        if DorR.lower() == 'data': 
-            if correction['name'].lower() == 'true':    
-                file_name = ''.join(['/mount/riachuelo1/hahn/data/LasDamas/Geo/',
-                    'sdssmock_gamma_lrgFull_zm_oriana', 
-                    str("%02d" % catalog['n_mock']), catalog['letter'], '_no.rdcz.dat']) 
 
-            elif correction['name'].lower() in ('upweight', 'fibcol', 'shotnoise', 'hectorsn', 'floriansn'): 
-                ''' LDG mocks with fiber collision weights 
-                '''
-                file_name = ''.join(['/mount/riachuelo1/hahn/data/LasDamas/Geo/', 
-                    'sdssmock_gamma_lrgFull_zm_oriana', str("%02d" % catalog['n_mock']), 
-                    catalog['letter'], '_no.rdcz.fibcoll.dat']) 
+    if catalog['name'].lower() == 'lasdamasgeo':    # LasDamasGeo --------------------------------
+        if correction['name'].lower() == 'true':    
+            file_name = ''.join(['/mount/riachuelo1/hahn/data/LasDamas/Geo/',
+                'sdssmock_gamma_lrgFull_zm_oriana', 
+                str("%02d" % catalog['n_mock']), catalog['letter'], '_no.rdcz.dat']) 
 
-            elif correction['name'].lower() in ('peak', 'peaknbar', 'peakshot', 'peaktest'): 
+        elif correction['name'].lower() in ('upweight', 'fibcol', 'shotnoise', 'hectorsn', 'floriansn'): 
+            ''' LDG mocks with fiber collision weights 
+            '''
+            file_name = ''.join(['/mount/riachuelo1/hahn/data/LasDamas/Geo/', 
+                'sdssmock_gamma_lrgFull_zm_oriana', str("%02d" % catalog['n_mock']), 
+                catalog['letter'], '_no.rdcz.fibcoll.dat']) 
 
-                if correction['name'].lower()  == 'peak':   # to correct for poor naming convention 
-                    correction['name'] = 'peaknbar'
-                  
-                # specify peak correction fit (expon, gauss, true) 
-                if correction['fit'].lower() in ('gauss', 'expon'): 
-                    corr_str = ''.join(['.', correction['fit'].lower(), '.', correction['name'].lower(), 
-                        '.sigma', str(correction['sigma']), '.fpeak', str(correction['fpeak'])])
+        elif correction['name'].lower() in ('peak', 'peaknbar', 'peakshot', 'peaktest'): 
 
-                elif correction['fit'].lower() in ('true'):
-                    corr_str = ''.join(['.', correction['fit'].lower(), '.', correction['name'].lower(), 
-                        '.fpeak', str(correction['fpeak'])])
-                else: 
-                    raise NameError('peak fit has to be specified: gauss, expon, true') 
-                
-                file_name = ''.join(['/mount/riachuelo1/hahn/data/LasDamas/Geo/', 
-                    'sdssmock_gamma_lrgFull_zm_oriana', str("%02d" % catalog['n_mock']), 
-                    catalog['letter'], '_no.rdcz.fibcoll.dat'+corr_str]) 
-            elif correction['name'].lower() in ('peakshot_dnn'): 
-                ''' Peak Correction (with dNN env) + Shotnoise 
-                Correction needs to specify: fit, nth NN, and sigma 
-                '''
-
-                # specify peak correction fit (expon, gauss) 
-                if correction['fit'].lower() in ('gauss', 'expon'): 
-                    corr_str = ''.join([ '.', correction['fit'].lower(), '.peakshot_d', str(correction['NN']), 'NN', 
-                        '.sigma', str(correction['sigma']) ])
-                else: 
-                    raise NameError('peak fit has to be specified: gauss, expon') 
-                
-                file_name = ''.join(['/mount/riachuelo1/hahn/data/LasDamas/Geo/', 
-                    'sdssmock_gamma_lrgFull_zm_oriana', str("%02d" % catalog['n_mock']), 
-                    catalog['letter'], '_no.rdcz.fibcoll.dat'+corr_str]) 
-        if DorR.lower() == 'random': 
-            file_name = '/mount/riachuelo1/hahn/data/LasDamas/Geo/sdssmock_gamma_lrgFull.rand_200x_no.rdcz.dat'
-
-    elif catalog['name'].lower() == 'tilingmock':   
-        # Tiling Mock ---------------------------------
-        if DorR == 'data': 
-            data_dir = '/mount/riachuelo1/hahn/data/tiling_mocks/'      # data directory
-
-            if correction['name'].lower() == 'true': 
-                # all weights = 1 (fibercollisions *not* imposed) 
-                file_name = data_dir+'cmass-boss5003sector-icoll012.zlim.dat'
-                        
-            elif correction['name'].lower() in ('upweight', 'fibcol', 'shotnoise', 'floriansn', 'hectorsn'): 
-                file_name = data_dir+'cmass-boss5003sector-icoll012.zlim.fibcoll.dat'
-
-            elif correction['name'].lower() in ('peak', 'peaknbar', 'peaktest', 'peakshot'): 
-
-                if correction['name'].lower() == 'peak': 
-                    # Correct for poor naming conventions 
-                    correction['name'] = 'peaknbar'
-                
-                # specify fit (expon or gauss) to peak 
-                if correction['fit'].lower() in ('gauss', 'expon'): 
-                   pass 
-                else: 
-                    raise NameError('peak fit has to be specified: gauss or expon') 
-
-                # correction string in file name 
+            if correction['name'].lower()  == 'peak':   # to correct for poor naming convention 
+                correction['name'] = 'peaknbar'
+              
+            # specify peak correction fit (expon, gauss, true) 
+            if correction['fit'].lower() in ('gauss', 'expon'): 
                 corr_str = ''.join(['.', correction['fit'].lower(), '.', correction['name'].lower(), 
                     '.sigma', str(correction['sigma']), '.fpeak', str(correction['fpeak'])])
 
-                file_name = data_dir+'cmass-boss5003sector-icoll012.zlim.dat'+corr_str 
-                
-            # Fibercollisions Corrected by all peak correction -----------------------------------------------------------
-            elif correction['name'].lower() in ('allpeak', 'allpeakshot'):
-
-                # specify peak correction fit (expon or gauss) 
-                if correction['fit'].lower() in ('gauss', 'expon'): 
-                    pass 
-                else: 
-                    raise NameError('peak fit has to be specified: gauss or expon') 
-
+            elif correction['fit'].lower() in ('true'):
                 corr_str = ''.join(['.', correction['fit'].lower(), '.', correction['name'].lower(), 
-                    '.sigma', str(correction['sigma'])]) 
-
-                file_name = data_dir+'cmass-boss5003sector-icoll012.zlim.dat'+corr_str 
-                
+                    '.fpeak', str(correction['fpeak'])])
             else: 
-                raise NameError('Correction Name Unknown') 
+                raise NameError('peak fit has to be specified: gauss, expon, true') 
+            
+            file_name = ''.join(['/mount/riachuelo1/hahn/data/LasDamas/Geo/', 
+                'sdssmock_gamma_lrgFull_zm_oriana', str("%02d" % catalog['n_mock']), 
+                catalog['letter'], '_no.rdcz.fibcoll.dat'+corr_str]) 
+        elif correction['name'].lower() in ('peakshot_dnn'): 
+            ''' Peak Correction (with dNN env) + Shotnoise 
+            Correction needs to specify: fit, nth NN, and sigma 
+            '''
 
-        elif DorR.lower() == 'random':              # Randoms --------------------------------------------------------
-            file_name = ''.join(['/mount/riachuelo1/hahn/data/tiling_mocks/', 
-                'randoms-boss5003-icoll012-vetoed.zlim.dat']) 
-
-    elif catalog['name'].lower() == 'qpm':              
-        # QPM 
-        if DorR == 'data': 
-            data_dir = '/mount/riachuelo1/hahn/data/QPM/dr12d/'              # data directory
-
-            if correction['name'].lower() == 'true': 
-                file_name = ''.join([data_dir, 'a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.vetoed.dat']) 
-                
-            elif correction['name'].lower() in ('upweight', 'shotnoise', 'floriansn', 'hectorsn'): 
-                file_name = ''.join([data_dir, 'a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.vetoed.fibcoll.dat']) 
-                    
-            elif correction['name'].lower() in ('peaknbar', 'peakshot'): 
-                if correction['name'].lower() == 'peaknbar': 
-                    pass
-                    # should not happen 
-                    #warnings.warn('peaknbar requires corrected nbar(z) and randoms, not coded for QPM') 
-
-                # specify fit (expon or gauss) to peak 
-                if correction['fit'].lower() in ('gauss', 'expon'): 
-                    # correction specifier string 
-                    corr_str = ''.join(['.', correction['fit'].lower(), '.', correction['name'].lower(), 
-                        '.sigma', str(correction['sigma']), '.fpeak', str(correction['fpeak'])]) 
-                elif correction['fit'].lower() in ('true'): 
-                    # correction specifier string 
-                    corr_str = ''.join(['.', correction['fit'].lower(), '.', correction['name'].lower(), 
-                        '.fpeak', str(correction['fpeak'])]) 
-                else: 
-                    raise NameError('peak fit has to be specified: gauss or expon') 
-
-                file_name = ''.join([data_dir, 'a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.vetoed.fibcoll', corr_str, '.dat']) 
-
-            elif correction['name'].lower() in ('peakshot_dnn'):
-                
-                # specify peak correction fit (expon, gauss) 
-                if correction['fit'].lower() in ('gauss', 'expon'): 
-                    corr_str = ''.join([ '.', correction['fit'].lower(), '.peakshot_d', str(correction['NN']), 'NN', 
-                        '.sigma', str(correction['sigma']) ])
-                else: 
-                    raise NameError('peak fit has to be specified: gauss, expon') 
-
-                file_name = ''.join([data_dir, 
-                    'a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.vetoed.fibcoll', corr_str, '.dat']) 
-
-            elif correction['name'].lower() in ('tailupw'):     
-                # only upweight uncorrelated chance alignment fc pairs 
-                corr_str = 'tailupw' 
-                file_name = ''.join([data_dir, 
-                    'a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.vetoed.fibcoll.', corr_str, '.dat'
-                    ]) 
+            # specify peak correction fit (expon, gauss) 
+            if correction['fit'].lower() in ('gauss', 'expon'): 
+                corr_str = ''.join([ '.', correction['fit'].lower(), '.peakshot_d', str(correction['NN']), 'NN', 
+                    '.sigma', str(correction['sigma']) ])
             else: 
-                raise NameError('not yet coded') 
-                
-        elif DorR == 'random':              # Random 
-            data_dir = '/mount/riachuelo1/hahn/data/QPM/dr12d/' 
-                
-            file_name = ''.join([data_dir, 'a0.6452_rand50x.dr12d_cmass_ngc.vetoed.dat'])             # hardcoded to 50x so it does'nt take forever
+                raise NameError('peak fit has to be specified: gauss, expon') 
+            
+            file_name = ''.join(['/mount/riachuelo1/hahn/data/LasDamas/Geo/', 
+                'sdssmock_gamma_lrgFull_zm_oriana', str("%02d" % catalog['n_mock']), 
+                catalog['letter'], '_no.rdcz.fibcoll.dat'+corr_str]) 
 
-    elif catalog['name'].lower() == 'patchy': 
-        # PATHCY mocks ------------------------------------------------
-        data_dir = '/mount/riachuelo1/hahn/data/PATCHY/dr12/v6s/'   # data directory
-
-        if DorR == 'data': 
-            # mock catalogs  
-
-            if correction['name'].lower() == 'true': 
-                # true mocks
-                file_name = ''.join([data_dir, 
-                    'Patchy-Mocks-DR12CMASS-N-V6S-Portsmouth-mass_', 
-                    str("%04d" % catalog['n_mock']), '.vetoed.dat']) 
-                
-            elif correction['name'].lower() in ('upweight', 'shotnoise', 
-                    'floriansn', 'hectorsn'): 
-                # upweighted mocks 
-                file_name = ''.join([data_dir, 
-                    'Patchy-Mocks-DR12CMASS-N-V6S-Portsmouth-mass_', 
-                    str("%04d" % catalog['n_mock']), '.vetoed.fibcoll.dat']) 
-
-            elif correction['name'].lower() in ('peaknbar', 'peakshot'): 
-                # peak corrected mocks 
-                if correction['name'].lower() == 'peaknbar': 
-                    pass
-
-                # specify fit (expon or gauss) to peak 
-                if correction['fit'].lower() in ('gauss', 'expon'): 
-                    # correction specifier string 
-                    corr_str = ''.join(['.', correction['fit'].lower(), 
-                        '.', correction['name'].lower(), 
-                        '.sigma', str(correction['sigma']), 
-                        '.fpeak', str(correction['fpeak'])]) 
-
-                elif correction['fit'].lower() in ('true'): 
-                    # correction specifier string 
-                    corr_str = ''.join(['.', correction['fit'].lower(), 
-                        '.', correction['name'].lower(), 
-                        '.fpeak', str(correction['fpeak'])]) 
-                else: 
-                    raise NameError('peak fit has to be specified: gauss or expon') 
-
-                file_name = ''.join([data_dir, 
-                    'Patchy-Mocks-DR12CMASS-N-V6S-Portsmouth-mass_', 
-                    str("%04d" % catalog['n_mock']), '.vetoed.fibcoll', corr_str, '.dat'
-                    ]) 
-
-            elif correction['name'].lower() in ('tailupw'):     
-                # only upweight uncorrelated chance alignment fc pairs 
-                corr_str = 'tailupw' 
-                file_name = ''.join([data_dir, 
-                    'Patchy-Mocks-DR12CMASS-N-V6S-Portsmouth-mass_', 
-                    str("%04d" % catalog['n_mock']), '.vetoed.fibcoll', corr_str, '.dat']) 
-            else: 
-                raise NameError('not yet coded') 
-
-        elif DorR == 'random': 
-            # random catalog 
-
-            file_name = ''.join([data_dir, 'Random-DR12CMASS-N-V6S-x50.vetoed.dat'])
 
     return file_name 
-
 # ------------------------------------------------------------------------
 # Build galaxy data  
 
 def build_true(**cat_corr): 
-    ''' Adjust original data for convenience purposes: 
-    
-    * Tiling Mock : Reads in true mock catalogs and imposes predetermined redshift limits on them and attaches a flag mostly hardcoded since it's a simple procedure 
-    * QPM: Handles messy weights 
-    * PATCHY: Returns mocks with only necessary columns and w_fc = 1
-
-    Parameters
-    ----------
-    cat_corr : catalog correction dictionary 
-
+    '''
+    Adjust original data for convenience purposes: 
+    For Tiling Mock: 
+        Reads in true mock catalogs and imposes predetermined redshift limits on them and attaches a flag 
+        mostly hardcoded since it's a simple procedure 
+    For QPM:
+        Handles messy weights 
     '''
     catalog = cat_corr['catalog']
     
+    # Tiling Mock --------------------------------------------------------------------------------
     if catalog['name'].lower() == 'tilingmock': 
-        # Tiling Mock ------------------------------------------------
         # import original true data 
         orig_true_data = np.loadtxt('/mount/riachuelo1/hahn/data/tiling_mocks/cmass-boss5003sector-icoll012.dat') 
         orig_ra = orig_true_data[:,0]
@@ -569,8 +865,8 @@ def build_true(**cat_corr):
         np.savetxt(true_zlim_file.file_name, np.c_[orig_ra[zlimit], orig_dec[zlimit], orig_z[zlimit], orig_w[zlimit]], 
             fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
+    # QPM ----------------------------------------------------------------------------------------
     elif catalog['name'].lower() == 'qpm': 
-        # QPM -----------------------------------------------------
         P0 = 20000.             # hardcoded P0 value
         # import original true data 
         orig_true_file = ''.join(['/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/data/', 
@@ -603,8 +899,7 @@ def build_true(**cat_corr):
         true_comp = orig_true_info[:,1]         # completness weights
 
         # remove veto mask 
-        vetomask = (orig_true_veto == 0)            
-        # Only keep galaxies with veto = 0 (for veto values in .veto file) 
+        vetomask = (orig_true_veto == 0)            # only keep galaxies with w_veto = 1
         
         true_file = galaxy_data('data', readdata=False, **cat_corr)
         np.savetxt(true_file.file_name, np.c_[
@@ -612,8 +907,8 @@ def build_true(**cat_corr):
             true_wfkp[vetomask], true_wfc[vetomask], true_comp[vetomask]], 
             fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
     
+    # Las Damas Geo ---------------------------------------------------------------------------------------------------------
     elif catalog['name'].lower() == 'lasdamasgeo': 
-        # Las Damas Geo ------------------------------------------------------
         orig_true_file = ''.join(['/mount/chichipio2/rs123/MOCKS/LRGFull_zm_geo/gaussian/zspace/', 
             'sdssmock_gamma_lrgFull_zm_oriana', str("%02d" % catalog['n_mock']), catalog['letter'], '_no.rdcz.dat']) 
         orig_true_data = np.loadtxt(orig_true_file, unpack=True, usecols=[0,1,2])         # ra, dec, ***CZ***
@@ -630,84 +925,33 @@ def build_true(**cat_corr):
             true_ra, true_dec, true_z, true_weight],
             fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
-    elif catalog['name'].lower() == 'patchy': 
-        # PATCHY mocks ------------------------------------------ 
-        
-        # read original mock data 
-        orig_file = ''.join(['/mount/riachuelo1/hahn/data/PATCHY/dr12/v6s/', 
-            'Patchy-Mocks-DR12CMASS-N-V6S-Portsmouth-mass_', 
-            str("%04d" % catalog['n_mock']), '.dat']) 
-
-        # ra, dec, z, nbar, wfc, veto 
-        orig_ra, orig_dec, orig_z, orig_nbar, orig_veto = np.genfromtxt(orig_file, 
-                unpack=True, usecols=[0, 1, 2, 4, 6]) 
-        n_gal = len(orig_ra) 
-        
-        new_wfc = np.array([1.0 for i in range(n_gal)])     # w_fc = 1.0 for true 
-
-        vetomask = (orig_veto == 1)            # only keep galaxies with w_veto = 1
-        
-        true_file = get_galaxy_data_file('data', **cat_corr)    # file name 
-        np.savetxt(true_file, 
-                np.c_[
-                    orig_ra[vetomask], orig_dec[vetomask], orig_z[vetomask], 
-                    orig_nbar[vetomask], new_wfc[vetomask]
-                    ], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e', '%10.5f'], 
-                delimiter='\t') 
     else: 
         raise NameError('not yet coded') 
 
-def build_random(**cat_corr): 
-    ''' Build the random catalogs from original data 
-
-    Paramter
-    --------
-    cat_corr : Catalog and Correction dictionary
+def build_qpm_true_random(): 
     '''
-    catalog = cat_corr['catalog']
+    Hacked code to build the true random catalogs for convenience. 
+    '''
+    # read original random catalog  
+    orig_true_random = np.loadtxt('/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/randoms/a0.6452_rand50x.dr12d_cmass_ngc.rdz')             # ra, dec, z, wfkp
+    orig_true_random_info = np.loadtxt('/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/randoms/a0.6452_rand50x.dr12d_cmass_ngc.rdz.info')   # galid, comp?
+    orig_true_random_veto = np.loadtxt('/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/randoms/a0.6452_rand50x.dr12d_cmass_ngc.veto')       # veto  
 
-    if catalog['name'].lower() == 'qpm':    # QPM
-        # read original random catalog  
-        orig_true_random = np.loadtxt('/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/randoms/a0.6452_rand50x.dr12d_cmass_ngc.rdz')             # ra, dec, z, wfkp
-        orig_true_random_info = np.loadtxt('/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/randoms/a0.6452_rand50x.dr12d_cmass_ngc.rdz.info')   # galid, comp?
-        orig_true_random_veto = np.loadtxt('/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/randoms/a0.6452_rand50x.dr12d_cmass_ngc.veto')       # veto  
-
-        vetomask = (orig_true_random_veto == 0)
-        #true_random = galaxy_data('random', readdata=False, **{'catalog':{'name':'qpm'}, 'correction':{'name':'true'}})
-        true_random_file = get_galaxy_data_file('random', **{'catalog':{'name':'qpm'}, 'correction':{'name':'true'}})
-        
-        np.savetxt(true_random_file, np.c_[(orig_true_random[:,0])[vetomask], (orig_true_random[:,1])[vetomask], 
-            (orig_true_random[:,2])[vetomask], (orig_true_random[:,3])[vetomask], (orig_true_random_info[:,1])[vetomask]], 
-            fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
-
-    elif catalog['name'].lower() == 'patchy':       # PATCHY
-
-        orig_file = ''.join(['/mount/riachuelo1/hahn/data/PATCHY/dr12/v6s/', 
-            'Random-DR12CMASS-N-V6S-x50.dat']) 
-        orig_ra, orig_dec, orig_z, orig_nbar, orig_veto = np.genfromtxt(orig_file, 
-                unpack=True, usecols=[0, 1, 2, 3, 5]) 
-        
-        vetomask = (orig_veto == 1)     # only keep veto = 1
-        
-        vetoed_file = get_galaxy_data_file('random', **cat_corr) 
-        
-        np.savetxt(vetoed_file, 
-                np.c_[
-                    orig_ra[vetomask], orig_dec[vetomask], orig_z[vetomask], orig_nbar[vetomask]
-                    ], fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e'], delimiter='\t') 
-    else:
-        raise NotImplementedError('asdfasdfasdfasdfadf') 
+    vetomask = (orig_true_random_veto == 0)
+    true_random = galaxy_data('random', readdata=False, **{'catalog':{'name':'qpm'}, 'correction':{'name':'true'}})
+    
+    np.savetxt(true_random.file_name, np.c_[(orig_true_random[:,0])[vetomask], (orig_true_random[:,1])[vetomask], 
+        (orig_true_random[:,2])[vetomask], (orig_true_random[:,3])[vetomask], (orig_true_random_info[:,1])[vetomask]], 
+        fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
 def build_fibercollided(**cat_corr): 
-    ''' Build Fibercollided mock catalogs 
-    using specific idl routines
-
+    '''
+    build Fibercollided mock catalogs using specific idl routines
     '''
     catalog = cat_corr['catalog']
     
+    # Las Damas Geo ---------------------------------------------------------------------------------------------------------
     if catalog['name'].lower() == 'lasdamasgeo': 
-        # Las Damas Geo 
         # command is a currently bit hardcoded
         fibcollided_cmd = ' '.join(['idl', '-e', '/home/users/hahn/powercode/FiberCollision/LasDamas/Geo/ldg_fibcollmock_wcp_assign,', 
             str(catalog['n_mock']), ",'"+catalog['letter']+"'"])
@@ -719,8 +963,8 @@ def build_fibercollided(**cat_corr):
         fibcollided_cmd = ' '.join(['idl', '-e', '"', "build_wcp_assign, 'tilingmock'", '"'])
         os.system(fibcollided_cmd) 
 
+    # QPM --------------------------------------------------------------------------------------------------------------------
     elif catalog['name'].lower() == 'qpm': 
-        # QPM ------------------------------------------------------------
         orig_true_file = ''.join(['/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/data/', 
             'a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.rdz']) 
         orig_true_data = np.loadtxt(orig_true_file) 
@@ -761,50 +1005,35 @@ def build_fibercollided(**cat_corr):
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
         fibcollided_cmd = ''
-
-    elif catalog['name'].lower() == 'patchy': 
-        # PATCHY mocks ----------------------------------------
-
-        # read original mock data 
-        orig_file = ''.join(['/mount/riachuelo1/hahn/data/PATCHY/dr12/v6s/', 
-            'Patchy-Mocks-DR12CMASS-N-V6S-Portsmouth-mass_', 
-            str("%04d" % catalog['n_mock']), '.dat']) 
-
-        # ra, dec, z, nbar, wfc, veto 
-        orig_ra, orig_dec, orig_z, orig_nbar, orig_wfc, orig_veto = np.genfromtxt(orig_file, 
-                unpack=True, usecols=[0, 1, 2, 4, 7, 6]) 
-        n_gal = len(orig_ra) 
-
-        vetomask = (orig_veto == 1)            # only keep galaxies with w_veto = 1
-        
-        fc_file = get_galaxy_data_file('data', **cat_corr)    # file name 
-        np.savetxt(fc_file, 
-                np.c_[
-                    orig_ra[vetomask], orig_dec[vetomask], orig_z[vetomask], 
-                    orig_nbar[vetomask], orig_wfc[vetomask]
-                    ], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e', '%10.5f'], 
-                delimiter='\t') 
-        
-        fibcollided_cmd = ''
     else: 
         raise NameError('not yet coded') 
 
     return fibcollided_cmd 
 
 def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr): 
-    ''' Build peak corrected fibercollided mock catalogs (using cosmolopy) 
-
-    Parameters
-    ----------
-    cat_corr : Catalog + Correction dictionary
-    sanitycheck : testing flag 
-
+    '''
+    Build peak corrected fibercollided mock catalogs (using cosmolopy) 
     '''
     catalog = cat_corr['catalog']
     correction = cat_corr['correction']
 
-    # fit functions (using lambda) 
+    # cosmology *DEPENDS ON MOCK CATALOG!* ---------------------------------------------------
+    if catalog['name'].lower() == 'lasdamasgeo': 
+        omega_m = 0.25
+    elif catalog['name'].lower() == 'qpm': 
+        omega_m = 0.31
+    elif catalog['name'].lower() == 'tilingmock': 
+        omega_m = 0.274
+    else: 
+        raise NameError('not yet coded!')
+    print 'Omega_m = ', omega_m, 'Omega_L = ', 1.0-omega_m      # assumign flatness
+    cosmo = {}
+    cosmo['omega_M_0'] = omega_m 
+    cosmo['omega_lambda_0'] = 1.0 - omega_m 
+    cosmo['h'] = 0.7 
+    cosmo = cosmos.distance.set_omega_k_0(cosmo) 
+    # ---------------------------------------------------------------------------------------
+    # lambda function 
     if correction['fit'].lower() == 'gauss': 
         fit_func = lambda x, sig: np.exp(-0.5*x**2/sig**2)
     elif correction['fit'].lower() == 'expon': 
@@ -814,27 +1043,20 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
     else: 
         raise NameError('correction fit has to be specified as gauss or expon') 
 
+    # Las Damas Geo ---------------------------------------------------------------------------------------------------------------------------
     if catalog['name'].lower() == 'lasdamasgeo': 
-        # Las Damas Geo -----------------------------------------------------------
-
-        n_mocks = 160   # total number of mocks
-
-        survey_zmin, survey_zmax = 0.16, 0.44
+        # LOS comoving distance for redshift limit
+        comdis_lo = cosmos.distance.comoving_distance(0.16, **cosmo)*cosmo['h']
+        comdis_hi = cosmos.distance.comoving_distance(0.44, **cosmo)*cosmo['h'] 
+        n_mocks = 160
         
-        # only one catalog parameter is defined
-        if (isinstance(catalog['n_mock'], int) == False) or \
-                (isinstance(catalog['letter'], str) == False): 
+        # in case more than one catalog parameter is defined
+        if (isinstance(catalog['n_mock'], int) == False) or (isinstance(catalog['letter'], str) == False): 
             raise NameError('only one mock can be corrected at a time') 
         
-        # read in fiber collided mock  
+        # read in fiber collided galaxies
         fibcoll_cat_corr = {'catalog':catalog, 'correction': {'name': 'upweight'}}
         fibcoll_mock = galaxy_data('data', **fibcoll_cat_corr) 
-        cosmo = fibcoll_mock.cosmo           # survey comoslogy 
-
-        survey_comdis_min = \
-                cosmos.distance.comoving_distance( survey_zmin, **cosmo ) * cosmo['h']
-        survey_comdis_max = \
-                cosmos.distance.comoving_distance( survey_zmax, **cosmo ) * cosmo['h']
 
         # set peak fraction         
         if correction['name'].lower() in ('allpeak', 'allpeakshot'): 
@@ -842,22 +1064,24 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
         else: 
             f_peak = correction['fpeak'] 
 
-        appended_ra, appended_dec, appended_z, appended_weight = [], [], [], []
+        appended_ra = [] 
+        appended_dec = [] 
+        appended_z = [] 
+        appended_weight = [] 
         upweight_again = []
             
-        if sanitycheck == True:     # check that the peak p(r) is generated properly
+        # if we want to check that the peak p(r) is generated properly
+        if sanitycheck == True: 
             pr_test = [] 
     
         for i_mock in range(len(fibcoll_mock.weight)): 
             # go through every galaxy in fibercollided mock catalog
-
             while fibcoll_mock.weight[i_mock] > 1: 
                 # for galaxies with wcp > 1
                 fibcoll_mock.weight[i_mock] = fibcoll_mock.weight[i_mock]-1.0
 
                 # LOS comoving distance of the galaxy 
-                comdis_imock = cosmos.distance.comoving_distance(fibcoll_mock.z[i_mock], 
-                        **cosmo)*cosmo['h']
+                comdis_imock = cosmos.distance.comoving_distance(fibcoll_mock.z[i_mock], **cosmo)*cosmo['h']
                 
                 rand_num = np.random.random(1) 
                 
@@ -873,7 +1097,7 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
                         # appended galaxy has weight of 1.0 
                         appended_weight.append(1.0)
                     if correction['fit'].lower() in ('gauss', 'expon'):   
-                        # compute the displacement within peak using best-fit --------------
+                        # compute the displacement within peak using best-fit ----------------------------------
                         rand1 = np.random.random(1) 
                         rand2 = np.random.random(1) 
 
@@ -887,9 +1111,8 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
                             rand2 = (-3.0+rand2*6.0)*correction['sigma']
                             peakpofr = fit_func(rand2, correction['sigma']) 
                         #--------------------------------------------------------------------- 
-
                     elif correction['fit'].lower() == 'true': 
-                        # compute the displacement within peak using actual distribution   
+                        # compute the displacement within peak using actual distribution ------------------------  
                         dlos_comb_peak_file = ((fibcoll_mock.file_name).rsplit('/', 1))[0]+'/DLOS_norm_peak_dist_'+catalog['name'].lower()+'_'+str(n_mocks)+'mocks_combined.dat'
                         dlos_mid, dlos_dist = np.loadtxt(dlos_comb_peak_file, unpack=True, usecols=[0,1])
 
@@ -911,8 +1134,7 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
                         #--------------------------------------------------------------------- 
 
                     # in case the displacement falls out of bound (may general large scale issues)
-                    if (comdis_imock+rand2 > survey_comdis_max) or \
-                            (comdis_imock+rand2 < survey_comdis_min): 
+                    if (comdis_imock+rand2 > comdis_hi) or (comdis_imock+rand2 < comdis_lo): 
                         collided_z = comdis2z(comdis_imock-rand2, **cosmo)
                     else: 
                         collided_z = comdis2z(comdis_imock+rand2, **cosmo)
@@ -966,28 +1188,24 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
         fibcoll_mock.weight = np.concatenate([fibcoll_mock.weight, appended_weight])
         fibcoll_mock.z = np.concatenate([fibcoll_mock.z, appended_z])
 
-    elif catalog['name'].lower() in ('tilingmock', 'qpm', 'patchy'): 
-        # Tiling mock, QPM, PATCHY 
-        
-        survey_zmin, survey_zmax = 0.43, 0.7    # survey redshift limits
+    # Tiling mock -----------------------------------------------------------------------------------------------------------------------------
+    elif catalog['name'].lower() in ('tilingmock', 'qpm'): 
+        # redshift limits comoving distance  
+        comdis_lo = cosmos.distance.comoving_distance(0.43, **cosmo)*cosmo['h']         # in units of Mpc/h
+        comdis_hi = cosmos.distance.comoving_distance(0.7, **cosmo)*cosmo['h'] 
 
         if catalog['name'].lower() == 'qpm':
             n_mocks = 100
+
+        print 'D_c(z_min) = ', comdis_lo, ' Mpc/h'
+        print 'D_c(z_max) = ', comdis_hi, ' Mpc/h'
         
         # read in mock with fibercollisions imposed
         fibcoll_cat_corr = {'catalog':catalog, 'correction': {'name': 'upweight'}}
-        fibcoll_mock = galaxy_data('data', **fibcoll_cat_corr)  
-        
-        cosmo = fibcoll_mock.cosmo      # survey cosmology 
+        fibcoll_mock = galaxy_data('data', **fibcoll_cat_corr) 
 
-        survey_comdis_min = cosmos.distance.comoving_distance(survey_zmin, 
-                **cosmo)*cosmo['h']         # in units of Mpc/h
-        survey_comdis_max = cosmos.distance.comoving_distance(survey_zmax, 
-                **cosmo)*cosmo['h']         # in units of Mpc/h
-
-        if catalog['name'].lower() in ('qpm', 'patchy'): 
-            # only use fiber collision weights
-            fibcoll_mock.weight = fibcoll_mock.wfc            
+        if catalog['name'].lower() == 'qpm': 
+            fibcoll_mock.weight = fibcoll_mock.wfc            # fibercollisions weights are ultimately the weights I will be using here
                         
         # read in the true galaxies for tail portion  
         # the tail portion of the peak corrections will be generated similar to the mksample procedures for 
@@ -995,7 +1213,7 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
         true_cat_corr = {'catalog':catalog, 'correction': {'name': 'true'}}
         true_data = galaxy_data('data', **true_cat_corr)
         
-        if catalog['name'].lower() in ('qpm',  'patchy'): 
+        if catalog['name'].lower() == 'qpm': 
             true_weight = true_data.wfc
         else: 
             true_weight = true_data.weight
@@ -1007,50 +1225,52 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
 
         # set peak fraction (f_peak in correction direction reflects the correct fpeak, 
         # but for all peak correction methods this is simply used as weight 
-        if correction['name'].lower() in ('allpeakshot', 'allpeak'): 
+        if (correction['name'].lower() == 'allpeak') or (correction['name'].lower() == 'allpeakshot'): 
             f_peak = 1.0
         else: 
             f_peak = correction['fpeak'] 
     
-        append_ra, append_dec, append_z, append_dlos, append_weight = [], [], [], [], []
-
+        # list of data columns to be appended 
+        appended_ra = [] 
+        appended_dec = [] 
+        appended_z = []
+        appended_dlos = []
+        appended_weight = [] 
         if catalog['name'].lower() == 'qpm': 
-            append_wfkp, append_comp = [], [] 
-        elif catalog['name'].lower() == 'patchy': 
-            append_nbar = [] 
+            appended_wfkp = [] 
+            appended_comp = [] 
 
-        reupw = []
+        upweight_again = []
 
-        if sanitycheck == True:     # check peak p(r) 
+        if sanitycheck == True: 
+            # check that the peak p(r) is generated properly
             pr_test = [] 
     
-        for i_mock in range(len(fibcoll_mock.weight)):  # go through each galaxy 
-
-            while fibcoll_mock.weight[i_mock] > 1:      # for galaxies with wcp > 1
-
-                fibcoll_mock.weight[i_mock] -= 1.0
+        # go through each galaxy 
+        for i_mock in range(len(fibcoll_mock.weight)): 
+            # for galaxies with wcp > 1
+            while fibcoll_mock.weight[i_mock] > 1: 
+                fibcoll_mock.weight[i_mock] = fibcoll_mock.weight[i_mock]-1.0
 
                 # LOS comoving distance of the galaxy 
-                comdis_imock = cosmos.distance.comoving_distance(fibcoll_mock.z[i_mock], 
-                        **cosmo)*cosmo['h']
+                comdis_imock = cosmos.distance.comoving_distance(fibcoll_mock.z[i_mock], **cosmo)*cosmo['h']
                 
-                rand_num = np.random.random(1)  # determine whether galaxy is in the peak
+                rand_num = np.random.random(1)              # to determine whether the galaxy is in the peak or not 
                
-                if rand_num < f_peak:          # in the peak 
-
-                    append_ra.append(fibcoll_mock.ra[i_mock])    # keep ra and dec
-                    append_dec.append(fibcoll_mock.dec[i_mock])
-
+                # peak ------------------------------------------------------------------------------------------------
+                if rand_num < f_peak:          # if in the peak 
+                    # keep ra and dec
+                    appended_ra.append(fibcoll_mock.ra[i_mock])
+                    appended_dec.append(fibcoll_mock.dec[i_mock])
                     if catalog['name'].lower() == 'qpm': 
-                        append_wfkp.append(fibcoll_mock.wfkp[i_mock]) 
-                        append_comp.append(fibcoll_mock.comp[i_mock])
-                    elif catalog['name'].lower() == 'patchy': 
-                        append_nbar.append(fibcoll_mock.nbar[i_mock]) 
+                        appended_wfkp.append(fibcoll_mock.wfkp[i_mock]) 
+                        appended_comp.append(fibcoll_mock.comp[i_mock])
 
-                    append_weight.append(1.0)       # appended galaxy has weight=1.0 
+                    # appended galaxy has weight of 1.0 
+                    appended_weight.append(1.0)
                     
                     if correction['fit'].lower() in ('gauss', 'expon'): 
-                        # compute the displacement within peak ------------------                        
+                        # compute the displacement within peak ----------------------------------
                         rand1 = np.random.random(1) 
                         rand2 = np.random.random(1) 
 
@@ -1064,9 +1284,8 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
                             rand2 = (-3.0+rand2*6.0)*correction['sigma']
                             peakpofr = fit_func(rand2, correction['sigma']) 
                         #----------------------------------- --------------------------------- 
-
                     elif correction['fit'].lower() == 'true': 
-                        # compute displacements within peak using true distribution ------
+                        # compute the displacement within peak using actual distribution ------------------------  
                         dlos_comb_peak_file = ((fibcoll_mock.file_name).rsplit('/', 1))[0]+'/DLOS_norm_peak_dist_'+catalog['name'].lower()+'_'+str(n_mocks)+'mocks_combined.dat'
                         dlos_mid, dlos_dist = np.loadtxt(dlos_comb_peak_file, unpack=True, usecols=[0,1])
 
@@ -1095,30 +1314,28 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
 
                         rand2 = np.array([closest_dlos])
                         #--------------------------------------------------------------------- 
-                    else: 
-                        raise NotImplementedError('does not work') 
 
                     # in case the displacement falls out of bound 
                     # NOTE: THIS IS NOT CORRECT, BUT IMPLEMENTED FOR SIMPLICITY 
-                    if (comdis_imock+rand2 > survey_comdis_max) or \
-                            (comdis_imock+rand2 < survey_comdis_min): 
-                        collided_z = comdis2z(comdis_imock - rand2, **cosmo)
+                    if (comdis_imock+rand2 > comdis_hi) or (comdis_imock+rand2 < comdis_lo): 
+                        collided_z = comdis2z(comdis_imock-rand2, **cosmo)
                     else: 
-                        collided_z = comdis2z(comdis_imock + rand2, **cosmo)
+                        collided_z = comdis2z(comdis_imock+rand2, **cosmo)
 
-                    append_z.append(collided_z[0]) 
-                    append_dlos.append(rand2)
+                    appended_z.append(collided_z[0]) 
+                    appended_dlos.append(rand2)
                     
                     if correction['name'] == 'allpeakshot': 
                         # for allpeak + shot noise correction 
                         # need to re-upweight the fibercollided galaxies by 1-fpeak 
-                        reupw.append(i_mock)       # save index to be re-upweighted 
+                        upweight_again.append(i_mock)       # save index to be re-upweighted 
 
                     if sanitycheck == True:             
                         # append calculated LOS displacement 
                         pr_test.append(rand2) 
 
-                else:                                           # Not in peak 
+                # Tail -----------------------------------------------------------------------------------------------
+                else:
                     if correction['name'] == 'peaktest': 
                         # do nothing. 
                         # This effectively discards the galaxies that fall into the tail 
@@ -1130,9 +1347,9 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
                         '''
                         # RA, Dec remain the same 
                         # weight = 1
-                        append_ra.append(fibcoll_mock.ra[i_mock])
-                        append_dec.append(fibcoll_mock.dec[i_mock])
-                        append_weight.append(1.0) 
+                        appended_ra.append(fibcoll_mock.ra[i_mock])
+                        appended_dec.append(fibcoll_mock.dec[i_mock])
+                        appended_weight.append(1.0) 
                         
                         wtarg = np.random.random(1)*true_weight_max
                         zindx = np.floor(np.interp(wtarg, true_weight_cum, i_true)).astype(int)+1
@@ -1142,70 +1359,50 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
                         zindx[qqq] = 0 
 
                         # assign redshift 
-                        append_z.append(true_z[zindx]) 
+                        appended_z.append(true_z[zindx]) 
 
                     elif correction['name'] == 'peakshot': 
                         # peak + shot noise correction 
                         # record galaxy index that need to be upweighted again 
-                        reupw.append(i_mock)
+                        upweight_again.append(i_mock)
                     
-                    elif correction['name'] in ('allpeakshot', 'allpeak'): 
+                    elif (correction['name'] == 'allpeak') or (correction['name'] == 'allpeakshot'): 
                         # for all peak correction methods, all galaxies should be in the peak!
                         raise NameError('should not happen')
 
         if correction['name'] == 'peakshot': 
             # re-upweighting for peak+shotnoise correction 
-            for i_reupw in reupw: 
-                fibcoll_mock.weight[i_reupw] += 1.0
+            for i_upweightagain in upweight_again: 
+                fibcoll_mock.weight[i_upweightagain] = fibcoll_mock.weight[i_upweightagain]+1.
 
         elif correction['name'] == 'allpeakshot': 
             # re-upweighting for all peak+shotnoise correction 
-            for i_reupw in reupw: 
-                fibcoll_mock.weight[i_reupw] += 1.0-correction['fpeak']
+            for i_upweightagain in upweight_again: 
+                fibcoll_mock.weight[i_upweightagain] = fibcoll_mock.weight[i_upweightagain]+(1.0-correction['fpeak']) 
 
-        print len(append_ra), ' galaxies were peak corrected'
-    
-        # append the "append" galaxies to the end of the arrays
-        fibcoll_mock.ra = np.concatenate([fibcoll_mock.ra, append_ra])
-        fibcoll_mock.dec = np.concatenate([fibcoll_mock.dec, append_dec])
-        fibcoll_mock.weight = np.concatenate([fibcoll_mock.weight, append_weight])
-
+        print len(appended_ra), ' galaxies were peak corrected'
+        fibcoll_mock.ra = np.concatenate([fibcoll_mock.ra, appended_ra])
+        fibcoll_mock.dec = np.concatenate([fibcoll_mock.dec, appended_dec])
+        fibcoll_mock.weight = np.concatenate([fibcoll_mock.weight, appended_weight])
         if catalog['name'].lower() == 'qpm': 
-            fibcoll_mock.wfkp = np.concatenate([fibcoll_mock.wfkp, append_wfkp])
-            fibcoll_mock.comp = np.concatenate([fibcoll_mock.comp, append_comp])
-        elif catalog['name'].lower() == 'patchy': 
-            fibcoll_mock.nbar = np.concatenate([fibcoll_mock.nbar, append_nbar])
-
+            fibcoll_mock.wfkp = np.concatenate([fibcoll_mock.wfkp, appended_wfkp])
+            fibcoll_mock.comp = np.concatenate([fibcoll_mock.comp, appended_comp])
         fibcoll_mock.z = np.concatenate([fibcoll_mock.z, appended_z])
-        
-        if sanitycheck == True:         # output sanitycheck 
-            sanitycheck_file = ''.join([
-                'peak_corrected_dlos_values_', correction['name'].lower(), '_', 
-                correction['fit'].lower(), '.dat']) 
-            np.savetxt(sanitycheck_file,
-                    np.c_[append_dlos], fmt=['%10.5f']) 
+
+        np.savetxt('peak_corrected_dlos_values_'+correction['name'].lower()+'_'+correction['fit'].lower()+'.dat',
+                np.c_[appended_dlos], fmt=['%10.5f']) 
     else: 
         raise NameError('Error here') 
 
-    peakcorr_file = get_galaxy_data_file('data', **cat_corr) 
+    peakcorr = galaxy_data('data', readdata=False, **cat_corr)
+    peakcorr_file = peakcorr.file_name 
     
     if catalog['name'].lower() == 'qpm': 
-        np.savetxt(peakcorr_file, 
-                np.c_[fibcoll_mock.ra, fibcoll_mock.dec, fibcoll_mock.z, 
-                    fibcoll_mock.wfkp, fibcoll_mock.weight, fibcoll_mock.comp], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
-                delimiter='\t') 
-
-    elif catalog['name'].lower() == 'patchy': 
-        np.savetxt(peakcorr_file, 
-                np.c_[fibcoll_mock.ra, fibcoll_mock.dec, fibcoll_mock.z, 
-                    fibcoll_mock.nbar, fibcoll_mock.weight], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
-                delimiter='\t') 
-
-    elif catalog['name'].lower() == 'tilingmock': 
-        np.savetxt(peakcorr_file, 
-                np.c_[fibcoll_mock.ra, fibcoll_mock.dec, fibcoll_mock.z, fibcoll_mock.weight], 
+        # QPM has specific formatting
+        np.savetxt(peakcorr_file, np.c_[fibcoll_mock.ra, fibcoll_mock.dec, fibcoll_mock.z, fibcoll_mock.wfkp, fibcoll_mock.weight, fibcoll_mock.comp], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+    else: 
+        np.savetxt(peakcorr_file, np.c_[fibcoll_mock.ra, fibcoll_mock.dec, fibcoll_mock.z, fibcoll_mock.weight], 
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
     if sanitycheck == True: 

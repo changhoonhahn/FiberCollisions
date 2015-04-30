@@ -132,6 +132,53 @@ def fortran_code(fft_power, **cat_corr):
             f_code = code_dir+'power_FKP_SDSS_BOSS_v3.f'
         else: 
             raise NameError("not Yet coded") 
+    
+    elif catalog['name'].lower() == 'patchy': 
+
+        code_dir = '/home/users/hahn/powercode/FiberCollisions/PATCHY/dr12/v6s/'
+        
+        if fft_power.lower() == 'fft': 
+            # FFT code
+            if correction['name'].lower() == 'floriansn': 
+                f_code = code_dir+'FFT-patchy-fkp-w-nbar-florian-'+str(spec['grid'])+'grid.f'
+            elif correction['name'].lower() == 'hectorsn': 
+                f_code = code_dir+'FFT-patchy-fkp-w-nbar-hector-'+str(spec['grid'])+'grid.f'
+            else: 
+                f_code = code_dir+'FFT-patchy-fkp-w-nbar-'+str(spec['grid'])+'grid.f'
+    
+        elif fft_power.lower() == 'power': 
+            if correction['name'].lower() in ('true', 'upweight', 'peaknbar'):
+                # normal FKP shot noise correction
+                if spec['grid'] == 360: 
+                    f_code = code_dir+'power-patchy-fkp-w-nbar-360grid-180bin.f'
+                elif spec['grid'] == 960: 
+                    pass
+                    f_code = code_dir+'power-qpm-fkp-w-nbar-960grid-480bin.f'
+
+            elif correction['name'].lower() in \
+                    ('peakshot', 'shotnoise', 'floriansn', 
+                            'hectorsn', 'vlospeakshot', 'peakshot_dnn'): 
+                if spec['grid'] == 360: 
+                    # Igal Irand shot noise correction 
+                    f_code = code_dir+'power-qpm-fkp-w-nbar-Igal-Irand-360grid-180bin.f'
+                elif spec['grid'] == 960: 
+                    pass
+                    # Igal Irand shot noise correction 
+                    f_code = code_dir+'power-qpm-fkp-w-nbar-Igal-Irand-960grid-480bin.f'
+
+        # quadrupole codes --------------------------------------------
+        # regardess of catalog or correction TEMPORARILY HARDCODED HERE FOR TEST RUN 
+        '''
+        elif fft_power.lower() == 'quadfft': 
+            code_dir = '/home/users/hahn/powercode/FiberCollisions/' 
+            f_code = code_dir+'FFT_FKP_BOSS_cic_il4_v3.f' 
+        elif fft_power.lower() == 'quadpower': 
+            code_dir = '/home/users/hahn/powercode/FiberCollisions/' 
+            f_code = code_dir+'power_FKP_SDSS_BOSS_v3.f'
+        else: 
+            raise NameError("not Yet coded") 
+        '''
+    
     else: 
         raise NaemError('Not coded!') 
 
@@ -174,12 +221,13 @@ def get_fibcoll_dir(file_type, **cat_corr):
     catalog = cat_corr['catalog']
     correction = cat_corr['correction']
 
-    if (file_type.lower() != 'data') and (file_type.lower() != 'fft') and (file_type.lower() != 'power'): 
+    if file_type.lower() not in ('data', 'fft', 'power'): 
         raise NameError('either data, fft, or power') 
+
     else: 
-        # Lasdamasgeo ------------------------------------------------------------------------------------
         if catalog['name'].lower() == 'lasdamasgeo': 
-            # lasdamasgeo data
+            # Lasdamasgeo -----------------------------------------
+            
             if file_type.lower() == 'data': 
                 file_dir = '/mount/riachuelo1/hahn/data/LasDamas/Geo/'
             elif file_type.lower() == 'fft': 
@@ -187,8 +235,8 @@ def get_fibcoll_dir(file_type, **cat_corr):
             else:
                 file_dir = '/mount/riachuelo1/hahn/power/LasDamas/Geo/'
 
-        # TilingMock ------------------------------------------------------------------------------------
         elif catalog['name'].lower() == 'tilingmock': 
+            # Tiling mock -------------------------------------------
 
             if file_type.lower() == 'data': 
                 file_dir = '/mount/riachuelo1/hahn/data/tiling_mocks/'
@@ -197,8 +245,8 @@ def get_fibcoll_dir(file_type, **cat_corr):
             else:
                 file_dir = '/mount/riachuelo1/hahn/power/tiling_mocks/'
 
-        # QPM --------------------------------------------------------------------------------------------
         elif catalog['name'].lower() == 'qpm': 
+            # QPM ------------------------------------------------------
 
             if file_type.lower() == 'data': 
                 file_dir = '/mount/riachuelo1/hahn/data/QPM/dr12d/'
@@ -206,6 +254,17 @@ def get_fibcoll_dir(file_type, **cat_corr):
                 file_dir = '/mount/riachuelo1/hahn/FFT/QPM/dr12d/'
             else:
                 file_dir = '/mount/riachuelo1/hahn/power/QPM/dr12d/'
+
+        elif catalog['name'].lower() == 'patchy': 
+            # PATCHY ------------------------------------------------------
+            
+            if file_type.lower() == 'data': 
+                file_dir = '/mount/riachuelo1/hahn/data/PATCHY/dr12/v6s/'
+            elif file_type.lower() == 'fft': 
+                file_dir = '/mount/riachuelo1/hahn/FFT/PATCHY/dr12/v6s/'
+            else:
+                file_dir = '/mount/riachuelo1/hahn/power/PATCHY/dr12/v6s/'
+
         else: 
             raise NameError('not yet coded')
     return file_dir 

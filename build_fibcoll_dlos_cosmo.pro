@@ -61,6 +61,7 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
         overlap_indx = where(d12 GT 0.0, overlapcount)
         m_nocp = match1[overlap_indx]
         m_upcp = match2[overlap_indx]
+
     endif else if (strlowcase(catalog) EQ 'qpm') then begin 
         omega_m = 0.31
         readcol,mock_file, mock_ra, mock_dec, mock_redshift, w_fkp, w_cp
@@ -77,6 +78,24 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
         red_nocp = mock_redshift[nocp_indx]
 
         spherematch, ra_nocp, dec_nocp, ra_upcp, dec_upcp, fib_angscale, m_nocp, m_upcp, d12, maxmatch=0
+
+    endif else if (strlowcase(catalog) EQ 'patchy') then begin 
+        omega_m = 0.31
+        readcol, mock_file, mock_ra, mock_dec, mock_redshift, nbar, w_cp 
+
+        ;Galaxies with up-weighted w_cp
+        upcp_indx = where(w_cp gt 1)
+        ra_upcp  = mock_ra[upcp_indx]
+        dec_upcp = mock_dec[upcp_indx]
+        red_upcp = mock_redshift[upcp_indx]
+
+        nocp_indx = where(w_cp eq 0)
+        ra_nocp  = mock_ra[nocp_indx]
+        dec_nocp = mock_dec[nocp_indx]
+        red_nocp = mock_redshift[nocp_indx]
+
+        spherematch, ra_nocp, dec_nocp, ra_upcp, dec_upcp, fib_angscale, m_nocp, m_upcp, d12, maxmatch=0
+
     endif else if (strlowcase(catalog) EQ 'cmass') then begin 
         omega_m = 0.274
         readcol, mock_file, mock_ra, mock_dec, mock_redshift, mock_wsys, mock_wnoz, mock_wfc, mock_nbar, mock_comp
