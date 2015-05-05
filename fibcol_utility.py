@@ -135,7 +135,7 @@ def fortran_code(fft_power, **cat_corr):
     
     elif catalog['name'].lower() == 'patchy': 
 
-        code_dir = '/home/users/hahn/powercode/FiberCollisions/PATCHY/dr12/v6s/'
+        code_dir = '/home/users/hahn/powercode/FiberCollisions/PATCHY/dr12/v6c/'
         
         if fft_power.lower() == 'fft': 
             # FFT code
@@ -259,11 +259,11 @@ def get_fibcoll_dir(file_type, **cat_corr):
             # PATCHY ------------------------------------------------------
             
             if file_type.lower() == 'data': 
-                file_dir = '/mount/riachuelo1/hahn/data/PATCHY/dr12/v6s/'
+                file_dir = '/mount/riachuelo1/hahn/data/PATCHY/dr12/v6c/'
             elif file_type.lower() == 'fft': 
-                file_dir = '/mount/riachuelo1/hahn/FFT/PATCHY/dr12/v6s/'
+                file_dir = '/mount/riachuelo1/hahn/FFT/PATCHY/dr12/v6c/'
             else:
-                file_dir = '/mount/riachuelo1/hahn/power/PATCHY/dr12/v6s/'
+                file_dir = '/mount/riachuelo1/hahn/power/PATCHY/dr12/v6c/'
 
         else: 
             raise NameError('not yet coded')

@@ -132,7 +132,7 @@ class Spec:
         elif catalog['name'].lower() == 'patchy': 
             # PATCHY Mocks ---------------------------------------------------------------
 
-            file_dir = ''.join([spec_dir, '/PATCHY/dr12/v6s/']) 
+            file_dir = ''.join([spec_dir, '/PATCHY/dr12/v6c/']) 
 
             data_file = fc_data.get_galaxy_data_file('data', **cat_corr)
 

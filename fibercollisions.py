@@ -399,29 +399,38 @@ def patchy_fibcoll_pk(i_mock, corr, quad=False):
     power_file = fc_spec.build_fibcol_power(**i_cat_corr) 
     print 'Constructing ', power_file 
 
-# ------------------------------------------------------------------------------------------------
-#  AVERAGE PK
-def build_avg_Pk(n_mock, **cat_corr):           # Build average QPM P(k) for n_mocks 
+#  Average P(k) (both monopole and quadrupole) ---------
+def build_avg_Pk(n_mock, quad=False, **cat_corr):           
+    ''' Calculate average P(k) using n_mocks
+    '''
+
     catalog = cat_corr['catalog'] 
     correction = cat_corr['correction']
     
-    if catalog['name'].lower() == 'tilingmock': 
-        spec = {'P0': 20000, 'sscale':4000.0, 'Rbox':2000.0, 'box':4000, 'grid':360} 
-    else: 
-        spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':360} 
+    if 'spec' not in cat_corr.keys(): 
+        if catalog['name'].lower() == 'tilingmock': 
+            spec = {'P0': 20000, 'sscale':4000.0, 'Rbox':2000.0, 'box':4000, 'grid':360, 
+                    'quad': quad} 
+        else: 
+            spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':360, 
+                    'quad': quad} 
+    else:  
+        spec = cat_corr['spec']
     
-    # COMPUTE THE TOTAL P(k) depending on catalog 
-    
+    # Compute total( P(k) )
     if catalog['name'].lower() == 'qpm': 
+        # QPM 
         for i_mock in range(1, n_mock+1): 
-            i_cat_corr = {'correction': correction, 'spec':spec}
-            i_cat_corr['catalog'] = catalog
+            i_cat_corr = {'catalog': catalog, 'correction': correction, 'spec':spec}
             (i_cat_corr['catalog'])['n_mock'] = i_mock
                 
             power_i = fc_spec.Spec('power', **i_cat_corr)
             power_i.readfile()
             
-            Pk_i = power_i.Pk
+            if spec['quad'] == False: 
+                Pk_i = power_i.Pk
+            else: 
+                Pk_i = power_i.P2k
 
             try: 
                 tot_Pk
@@ -429,21 +438,26 @@ def build_avg_Pk(n_mock, **cat_corr):           # Build average QPM P(k) for n_m
                 tot_Pk = Pk_i
             else: 
                 tot_Pk = tot_Pk + Pk_i
+
         n_file = n_mock 
 
     elif catalog['name'].lower() == 'lasdamasgeo': 
+        # LasDamasGeo
+
         n_file = 0
         for i_mock in range(1, n_mock+1): 
             for letter in ['a', 'b', 'c', 'd']: 
-                i_cat_corr = {'correction': correction, 'spec':spec}
-                i_cat_corr['catalog'] = catalog
+                i_cat_corr = {'catalog': catalog, 'correction': correction, 'spec':spec}
                 (i_cat_corr['catalog'])['n_mock'] = i_mock
                 (i_cat_corr['catalog'])['letter'] = letter 
                 
                 power_i = fc_spec.Spec('power', **i_cat_corr)
                 power_i.readfile()
             
-                Pk_i = power_i.Pk
+                if spec['quad'] == False: 
+                    Pk_i = power_i.Pk
+                else: 
+                    Pk_i = power_i.P2k
 
                 try: 
                     tot_Pk
@@ -451,7 +465,7 @@ def build_avg_Pk(n_mock, **cat_corr):           # Build average QPM P(k) for n_m
                     tot_Pk = Pk_i
                 else: 
                     tot_Pk = tot_Pk + Pk_i
-                n_file = n_file+1
+                n_file += 1 
 
     elif catalog['name'].lower() == 'tilingmock': 
         n_file = 1
@@ -459,67 +473,101 @@ def build_avg_Pk(n_mock, **cat_corr):           # Build average QPM P(k) for n_m
         power_i = fc_spec.Spec('power', **i_cat_corr)
         power_i.readfile()
             
-        tot_Pk = power_i.Pk
+        if spec['quad'] == False: 
+            tot_Pk = power_i.Pk
+        else: 
+            tot_Pk = power_i.P2k
 
     else: 
-        raise NameError('errorerereor') 
+        raise NotImplementedError('errorerereor') 
 
     avg_k = power_i.k  
     avg_Pk = tot_Pk/np.float(n_file)
-   
-    avg_file_name = avg_Pk_file(n_mock, **cat_corr)     # get avg file name 
-    np.savetxt(avg_file_name, np.c_[avg_k, avg_Pk], fmt=['%10.5e', '%10.5e'], delimiter='\t')  # save to text
+    
+    # output to file 
+    avg_file_name = avg_Pk_file(n_mock, **cat_corr)     
+    np.savetxt(avg_file_name, np.c_[avg_k, avg_Pk], 
+            fmt=['%10.5e', '%10.5e'], delimiter='\t') 
 
-def avg_Pk_file(n_mock, **cat_corr):            # avg P(k) file name 
-    ''' 
-    Get avareage P(k) file name
+def avg_Pk_file(n_mock, quad=False, **cat_corr):            # avg P(k) file name 
+    ''' Return avareage P(k) file name (both monopole and quadrupole) 
+
+    Paramters
+    ---------
+    n_mock : number of mocks
+    cat_corr : catalog correction dictionary 
+
     '''
     catalog = cat_corr['catalog'] 
-    if catalog['name'].lower() == 'qpm': 
-        spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':360} 
-        (cat_corr['catalog'])['n_mock'] = 1
-    elif catalog['name'].lower() == 'lasdamasgeo': 
-        spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':360} 
-        (cat_corr['catalog'])['n_mock'] = 1 
-        (cat_corr['catalog'])['letter'] = 'a'
-    elif catalog['name'].lower() == 'tilingmock': 
-        spec = {'P0': 20000, 'sscale':4000.0, 'Rbox':2000.0, 'box':4000, 'grid':360} 
-    else:
-        raise NameError("error error") 
-    cat_corr['spec'] = spec
+
+    if 'spec' not in cat_corr.keys(): 
+        if catalog['name'].lower() == 'qpm': 
+            spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':360, 
+                    'quad': quad} 
+            (cat_corr['catalog'])['n_mock'] = 1
+        elif catalog['name'].lower() == 'lasdamasgeo': 
+            spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':360, 
+                    'quad': quad} 
+            (cat_corr['catalog'])['n_mock'] = 1 
+            (cat_corr['catalog'])['letter'] = 'a'
+        elif catalog['name'].lower() == 'tilingmock': 
+            spec = {'P0': 20000, 'sscale':4000.0, 'Rbox':2000.0, 'box':4000, 'grid':360, 
+                    'quad': quad} 
+        else:
+            raise NameError("error error") 
+        cat_corr['spec'] = spec
+    else: 
+        if catalog['name'].lower() == 'qpm': 
+            (cat_corr['catalog'])['n_mock'] = 1
+
+        elif catalog['name'].lower() == 'lasdamasgeo': 
+            (cat_corr['catalog'])['n_mock'] = 1 
+            (cat_corr['catalog'])['letter'] = 'a'
 
     power_i = fc_spec.Spec('power', **cat_corr)
     
-    indiv_filename = power_i.file_name           #a0.6452_0045.dr12d_cmass_ngc.vetoed.fibcoll.gauss.peaknbar.sigma4.38.fpeak1.0.dat
+    #a0.6452_0045.dr12d_cmass_ngc.vetoed.fibcoll.gauss.peaknbar.sigma4.38.fpeak1.0.dat
+    indiv_filename = power_i.file_name           
+
     if catalog['name'].lower() == 'qpm': 
-        indiv_filename = power_i.file_name           #a0.6452_0045.dr12d_cmass_ngc.vetoed.fibcoll.gauss.peaknbar.sigma4.38.fpeak1.0.dat
+        #a0.6452_0045.dr12d_cmass_ngc.vetoed.fibcoll.gauss.peaknbar.sigma4.38.fpeak1.0.dat
+        indiv_filename = power_i.file_name           
+
         # get average P(k) file name 
         avg_file_name = indiv_filename.split('6452_')[0]+'6452_'+str(n_mock)+'mockavg.dr12d'+(indiv_filename.split('6452_')[1]).split('.dr12d')[1]
+
     elif catalog['name'].lower() == 'lasdamasgeo': 
+
         indiv_filename = power_i.file_name          # sdssmock_gamma_lrgFull_zm_oriana19b_no.rdcz.fibcoll.dat.expon.peakshot.sigma7.0.fpeak0.8.corrnbar 
 
         avg_file_name = indiv_filename.split('oriana')[0]+'oriana'+str(n_mock)+'mockavg_no.'+(indiv_filename.split('oriana')[1]).split('_no.')[1]
+
     elif catalog['name'].lower() == 'tilingmock': 
+
         avg_file_name = power_i.file_name          # just the file itself since it only has 1 file
 
     return avg_file_name
 
-def avgPk(n_mock, **cat_corr):                  # outputs average k, Pk
+def avgPk(n_mock, clobber=False, **cat_corr):
+    ''' Wrapper that returns average(k) and average(P(k))
+    '''
+
     avg_file_name = avg_Pk_file(n_mock, **cat_corr) 
 
     i_cat_corr = cat_corr.copy()                # get the highest number mock power 
     (i_cat_corr['catalog'])['n_mock'] = n_mock  
     power_hii = fc_spec.Spec('power', **i_cat_corr)
 
+    # check that the file exists and check that the file 
+    # is more updated that the highest number mock power file 
     high_file_mod_time = os.path.getmtime(power_hii.file_name)
-    # check that the file exists and check that the file is more updated that the highest number mock power file 
     if os.path.isfile(avg_file_name) == False: 
         avg_file_mod_time = 0 
     else: 
         avg_file_mod_time = os.path.getmtime(avg_file_name)
 
     # if code was changed since exe file was last compiled then compile fft code 
-    if avg_file_mod_time < high_file_mod_time: 
+    if (avg_file_mod_time < high_file_mod_time) or (clobber == True): 
         build_avg_Pk(n_mock, **cat_corr) 
     
     avg_k, avg_Pk = np.loadtxt(avg_file_name, unpack=True, usecols=[0, 1]) 
@@ -530,33 +578,59 @@ def avgP_interp(k, avg_k, avg_Pk):          # get average P(k) of n_mocks at k u
     k_avg_Pk = np.interp(k, avg_k, avg_Pk)
     return k_avg_Pk
 
-# ------------------------------------------------------------------------------------------------
-#  DELTA PK
-def deltaP_file(n_mock, **cat_corr):        # get delta P file name
+#  DELTA PK ----------
+def deltaP_file(n_mock, **cat_corr):        
+    ''' Return name of delta P(k) fil 
+    '''
     catalog = cat_corr['catalog']
+    spec = cat_corr['spec']
 
     avg_power_file_name = avg_Pk_file(n_mock, **cat_corr) 
     
-    if catalog['name'].lower() == 'qpm': 
-        Pk_var_file_name = 'delP_a0'.join(avg_power_file_name.split('power_a0')) 
-    elif catalog['name'].lower() == 'lasdamasgeo': 
-        Pk_var_file_name = 'delP_sdssmock'.join(avg_power_file_name.split('power_sdssmock')) 
+    if spec['quad'] == True: 
+        delP_str = 'delP2_'
+        quad_str = 'quad_'
+    else: 
+        delP_str = 'delP_'
+        quad_str = ''
+
+
+    if catalog['name'].lower() == 'qpm':    # QPM 
+        Pk_var_file_name = (delP_str+'a0').join(avg_power_file_name.split('power_'+quad_str+'a0')) 
+    elif catalog['name'].lower() == 'lasdamasgeo':  # LasDamasGeo
+        Pk_var_file_name = (delP_str+'sdssmock').join(avg_power_file_name.split('power_'+quad_str+'sdssmock')) 
     elif catalog['name'].lower() == 'tilingmock': 
-        Pk_var_file_name = 'delP_cmass'.join(avg_power_file_name.split('power_cmass')) 
+        Pk_var_file_name = (delP_str+'cmass').join(avg_power_file_name.split('power_'+quad_str+'cmass')) 
 
     return Pk_var_file_name
 
-def build_deltaP(n_mock, **cat_corr):             # Calculated Delta P given a specific correction method
+def build_deltaP(n_mock, quad=False, **cat_corr):             
+    '''Calculated Delta P for a given correction method
+    '''
     catalog = cat_corr['catalog']
-    # get average P(k) file name 
     
+    # get average P(k) file name 
     avg_power = avgPk(n_mock, **cat_corr) 
     avg_k = avg_power[0]
     avg_Pk = avg_power[1]
-    
+
+    if 'spec' not in cat_corr.keys(): 
+        if catalog['name'].lower() == 'qpm': 
+            spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':360, 
+                    'quad': quad} 
+        elif catalog['name'].lower() == 'lasdamasgeo': 
+            spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':360, 
+                    'quad': quad}  
+        elif catalog['name'].lower() == 'tilingmock':
+            spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':360, 
+                    'quad': quad} 
+        else: 
+            raise NotImplementedError('asdfasdf') 
+    else: 
+        spec = cat_corr['spec']
+
     # Calculate DeltaP for QPM 
     if catalog['name'].lower() == 'qpm': 
-        spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':360} 
 
         for i_mock in range(1, n_mock+1): 
             i_cat_corr = cat_corr.copy() 
@@ -566,7 +640,10 @@ def build_deltaP(n_mock, **cat_corr):             # Calculated Delta P given a s
             power_i = fc_spec.Spec('power', **i_cat_corr)
             power_i.readfile()
             
-            Pk_i = power_i.Pk
+            if spec['quad'] == False: 
+                Pk_i = power_i.Pk
+            else: 
+                Pk_i = power_i.P2k
 
             try: 
                 Pk_var
@@ -578,7 +655,6 @@ def build_deltaP(n_mock, **cat_corr):             # Calculated Delta P given a s
         n_file = n_mock
 
     elif catalog['name'].lower() == 'lasdamasgeo': 
-        spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':360}  
 
         n_file = 0 
         for i_mock in range(1, n_mock+1): 
@@ -591,8 +667,11 @@ def build_deltaP(n_mock, **cat_corr):             # Calculated Delta P given a s
 
                 power_i = fc_spec.Spec('power', **i_cat_corr)
                 power_i.readfile()
-            
-                Pk_i = power_i.Pk
+                
+                if spec['quad'] == False: 
+                    Pk_i = power_i.Pk
+                else: 
+                    Pk_i = power_i.P2k
 
                 try: 
                     Pk_var
@@ -606,7 +685,7 @@ def build_deltaP(n_mock, **cat_corr):             # Calculated Delta P given a s
         qpm_n_mock = 100
         qpm_cat_corr = {'catalog': {'name': 'qpm'}, 
                 'correction': {'name': 'true'}, 
-                'spec': {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':360}} 
+                'spec': spec} 
         qpm_Pk = avgPk(qpm_n_mock, **qpm_cat_corr)
         deltaPk = deltaP(qpm_n_mock, **qpm_cat_corr) 
 
@@ -629,23 +708,39 @@ def build_deltaP(n_mock, **cat_corr):             # Calculated Delta P given a s
     if catalog['name'].lower() != 'tilingmock':         # if not tiling mock then square root it
         Pk_var = np.sqrt(Pk_var/np.float(n_file))
     
+    # output  average P(k) 
     Pk_var_file_name = deltaP_file(n_mock, **cat_corr)
-
-    # save average P(k) 
     np.savetxt(Pk_var_file_name, np.c_[avg_k, Pk_var], fmt=['%10.5e', '%10.5e'], delimiter='\t') 
 
-def deltaP(n_mock, **cat_corr): 
+def deltaP(n_mock, clobber=False, **cat_corr): 
+    ''' Calculate delta P for n_mocks for given catalog and correction scheme 
+
+    Parameters
+    ----------
+    n_mock : # of mocks 
+    clobber : If True then recalculates deltaP 
+    cat_corr : catalog correction dictionary 
+
+    '''
+
     avgP_file_name = avg_Pk_file(n_mock, **cat_corr)
     deltaP_file_name = deltaP_file(n_mock, **cat_corr)  
+    
+    if os.path.isfile(avgP_file_name) == True: 
+        avgP_file_mod_time = os.path.getmtime(avgP_file_name)
+    else: 
+        build_avg_Pk(n_mock, **cat_corr)
+        avgP_file_mod_time = os.path.getmtime(avgP_file_name)
 
-    avgP_file_mod_time = os.path.getmtime(avgP_file_name)
     # check that the file exists and check that the file is more updated that the highest number mock power file 
-    if os.path.isfile(deltaP_file_name) == False: 
+    if (os.path.isfile(deltaP_file_name) == False) or \
+            (clobber == True): 
         deltaP_file_mod_time = 0 
+
     else: 
         deltaP_file_mod_time = os.path.getmtime(deltaP_file_name)
     
-    if deltaP_file_mod_time < avgP_file_mod_time: 
+    if (deltaP_file_mod_time < avgP_file_mod_time) or (clobber == True): 
         build_deltaP(n_mock, **cat_corr) 
 
     avg_k, delta_P = np.loadtxt(deltaP_file_name, unpack=True, usecols=[0,1])
@@ -657,7 +752,7 @@ def deltaP_interp(k, avg_k, Pk_var):       # given avg_k and DeltaP, inteerpolat
 
     return k_Pk_var
 
-#--------------------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 def pk_fibcol_comp(catalog_name, n_mock, corr_methods): 
     '''
     Comparison of P(k)avg for different fibercollision correciton methods. Calculate minimum chisquared correction method 

@@ -477,7 +477,7 @@ def get_galaxy_data_file(DorR, **cat_corr):
 
     elif catalog['name'].lower() == 'patchy': 
         # PATHCY mocks ------------------------------------------------
-        data_dir = '/mount/riachuelo1/hahn/data/PATCHY/dr12/v6s/'   # data directory
+        data_dir = '/mount/riachuelo1/hahn/data/PATCHY/dr12/v6c/'   # data directory
 
         if DorR == 'data': 
             # mock catalogs  
@@ -485,14 +485,14 @@ def get_galaxy_data_file(DorR, **cat_corr):
             if correction['name'].lower() == 'true': 
                 # true mocks
                 file_name = ''.join([data_dir, 
-                    'Patchy-Mocks-DR12CMASS-N-V6S-Portsmouth-mass_', 
+                    'Patchy-Mocks-DR12CMASS-N-V6C-Portsmouth-mass_', 
                     str("%04d" % catalog['n_mock']), '.vetoed.dat']) 
                 
             elif correction['name'].lower() in ('upweight', 'shotnoise', 
                     'floriansn', 'hectorsn'): 
                 # upweighted mocks 
                 file_name = ''.join([data_dir, 
-                    'Patchy-Mocks-DR12CMASS-N-V6S-Portsmouth-mass_', 
+                    'Patchy-Mocks-DR12CMASS-N-V6C-Portsmouth-mass_', 
                     str("%04d" % catalog['n_mock']), '.vetoed.fibcoll.dat']) 
 
             elif correction['name'].lower() in ('peaknbar', 'peakshot'): 
@@ -517,7 +517,7 @@ def get_galaxy_data_file(DorR, **cat_corr):
                     raise NameError('peak fit has to be specified: gauss or expon') 
 
                 file_name = ''.join([data_dir, 
-                    'Patchy-Mocks-DR12CMASS-N-V6S-Portsmouth-mass_', 
+                    'Patchy-Mocks-DR12CMASS-N-V6C-Portsmouth-mass_', 
                     str("%04d" % catalog['n_mock']), '.vetoed.fibcoll', corr_str, '.dat'
                     ]) 
 
@@ -525,7 +525,7 @@ def get_galaxy_data_file(DorR, **cat_corr):
                 # only upweight uncorrelated chance alignment fc pairs 
                 corr_str = 'tailupw' 
                 file_name = ''.join([data_dir, 
-                    'Patchy-Mocks-DR12CMASS-N-V6S-Portsmouth-mass_', 
+                    'Patchy-Mocks-DR12CMASS-N-V6C-Portsmouth-mass_', 
                     str("%04d" % catalog['n_mock']), '.vetoed.fibcoll', corr_str, '.dat']) 
             else: 
                 raise NameError('not yet coded') 
@@ -533,7 +533,7 @@ def get_galaxy_data_file(DorR, **cat_corr):
         elif DorR == 'random': 
             # random catalog 
 
-            file_name = ''.join([data_dir, 'Random-DR12CMASS-N-V6S-x50.vetoed.dat'])
+            file_name = ''.join([data_dir, 'Random-DR12CMASS-N-V6C-x50.vetoed.dat'])
 
     return file_name 
 
@@ -634,8 +634,8 @@ def build_true(**cat_corr):
         # PATCHY mocks ------------------------------------------ 
         
         # read original mock data 
-        orig_file = ''.join(['/mount/riachuelo1/hahn/data/PATCHY/dr12/v6s/', 
-            'Patchy-Mocks-DR12CMASS-N-V6S-Portsmouth-mass_', 
+        orig_file = ''.join(['/mount/riachuelo1/hahn/data/PATCHY/dr12/v6c/', 
+            'Patchy-Mocks-DR12CMASS-N-V6C-Portsmouth-mass_', 
             str("%04d" % catalog['n_mock']), '.dat']) 
 
         # ra, dec, z, nbar, wfc, veto 
@@ -683,8 +683,8 @@ def build_random(**cat_corr):
 
     elif catalog['name'].lower() == 'patchy':       # PATCHY
 
-        orig_file = ''.join(['/mount/riachuelo1/hahn/data/PATCHY/dr12/v6s/', 
-            'Random-DR12CMASS-N-V6S-x50.dat']) 
+        orig_file = ''.join(['/mount/riachuelo1/hahn/data/PATCHY/dr12/v6c/', 
+            'Random-DR12CMASS-N-V6C-x50.dat']) 
         orig_ra, orig_dec, orig_z, orig_nbar, orig_veto = np.genfromtxt(orig_file, 
                 unpack=True, usecols=[0, 1, 2, 3, 5]) 
         
@@ -766,8 +766,8 @@ def build_fibercollided(**cat_corr):
         # PATCHY mocks ----------------------------------------
 
         # read original mock data 
-        orig_file = ''.join(['/mount/riachuelo1/hahn/data/PATCHY/dr12/v6s/', 
-            'Patchy-Mocks-DR12CMASS-N-V6S-Portsmouth-mass_', 
+        orig_file = ''.join(['/mount/riachuelo1/hahn/data/PATCHY/dr12/v6c/', 
+            'Patchy-Mocks-DR12CMASS-N-V6C-Portsmouth-mass_', 
             str("%04d" % catalog['n_mock']), '.dat']) 
 
         # ra, dec, z, nbar, wfc, veto 

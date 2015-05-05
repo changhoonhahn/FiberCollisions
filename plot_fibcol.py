@@ -10,40 +10,57 @@ import fibercollisions as fc
 import galaxy_environment as genv
 from matplotlib.collections import LineCollection
 
-# Plotting -----------------------------------------------------------------
-def plot_pk_fibcol_comp(catalog_name, n_mock, corr_methods, resid='False', quad=False): 
-    '''
-    Comparison of P(k)avg for different fibercollision correciton methods
+# Plot P(k) monopole or quadrupole ---------------------
+def plot_pk_fibcol_comp(catalog_name, n_mock, corr_methods, Ngrid=360, type='ratio'): 
+    ''' Plot avg(P(k)) (power spectrum monopole) comparison for specified 
+    fibercollision correciton methods
+
+    Parameters
+    ----------
+    catalog_name : Name of Mock Catalog 
+    n_mock : Number of mock catalogs 
+    corr_methods : list of correction method dictionaries 
+    Ngrid : Ngrid (usually 360 or 960)  
+    type : 'regular', 'ratio', 'residual'
+
+    Notes
+    -----
     Make sure 'true' is first in the correction method list
     '''
+    # pretty pretty 
     prettyplot()
     pretty_colors = prettycolors()
-    
+   
+    # set up figure 
     fig = plt.figure(1, figsize=(7, 8))
     sub = fig.add_subplot(111)
 
     catalog = {'name': catalog_name}    # catalog dict
+
     # hardcoded default power/bispectrum box settings 
     if catalog_name.lower() in ('lasdamasgeo', 'qpm'): 
-        spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':360, 'quad': quad} 
+        spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':Ngrid} 
     elif catalog_name.lower() == 'tilingmock': 
-        spec = {'P0': 20000, 'sscale':4000.0, 'Rbox':2000.0, 'box':4000, 'grid':960} 
+        spec = {'P0': 20000, 'sscale':4000.0, 'Rbox':2000.0, 'box':4000, 'grid':Ngrid} 
     else: 
-        raise NameError('not coded yet') 
+        raise NotImplementedError('asdfasdfa')  
 
     for i_corr, correction in enumerate(corr_methods):     # loop through correction methods
-        # for LasDamasGeo 
+
         if catalog_name.lower() == 'lasdamasgeo': 
+            # LasDamasGeo mocks 
+
             n_file = 0
-            for i_mock in range(1,n_mock+1):                       # compute average[P(k)] for each correction method
+            for i_mock in range(1,n_mock+1):                # compute average[P(k)]
+
                 for letter in ['a', 'b', 'c', 'd']: 
-                    # set catalog correction dictionary for specific file 
+                    
+                    # read each power spectrum file 
                     i_catalog = catalog.copy() 
                     i_catalog['n_mock'] = i_mock
                     i_catalog['letter'] = letter
                     i_cat_corr = {'catalog': i_catalog, 'correction': correction, 'spec':spec}
                     
-                    # import power spectrum 
                     power_i = fc_spec.Spec('power', **i_cat_corr)
                     power_i.readfile()
                     
@@ -55,12 +72,12 @@ def plot_pk_fibcol_comp(catalog_name, n_mock, corr_methods, resid='False', quad=
                     else: 
                         sum_Pk = sum_Pk + power_i.Pk
 
-                    n_file = n_file+1
+                    n_file += 1
 
-        # Tiling Mocks
         elif catalog_name.lower() == 'tilingmock': 
+            # Tiling mock  
+
             i_cat_corr = {'catalog': catalog, 'correction': correction, 'spec':spec}
-            # read tiling mock P(k)
             power = fc_spec.Spec('power', **i_cat_corr)
             power.readfile()
 
@@ -69,6 +86,8 @@ def plot_pk_fibcol_comp(catalog_name, n_mock, corr_methods, resid='False', quad=
             n_file = 1          # only one file 
 
         elif catalog_name.lower() == 'qpm': 
+            # QPM
+
             n_file = 0  
             for i_mock in range(1, n_mock+1): 
                 i_catalog = catalog.copy() 
@@ -76,7 +95,6 @@ def plot_pk_fibcol_comp(catalog_name, n_mock, corr_methods, resid='False', quad=
                 i_cat_corr = {'catalog': i_catalog, 'correction': correction, 'spec':spec}
                     
                 power_i = fc_spec.Spec('power', **i_cat_corr)
-                #print power_i.file_name
                 power_i.readfile()
                     
                 try: 
@@ -87,60 +105,89 @@ def plot_pk_fibcol_comp(catalog_name, n_mock, corr_methods, resid='False', quad=
                 else: 
                     sum_Pk = sum_Pk + power_i.Pk
 
-                n_file = n_file+1
+                n_file += 1
 
         else: 
-            raise NameError('not yet coded!')
-
+            raise NotImplementedError('not yet coded!')
 
         avg_Pk = [sum_Pk[i]/np.float(n_file) for i in range(len(sum_Pk))]    # average P(k)
-        
+
         # P(k) Comparison
-        if resid == 'False':  
-            if correction['name'].lower() == 'true':
-                sub.plot(avg_k, avg_Pk, color=pretty_colors[i_corr], label=r"$\mathtt{\overline{P(k)_{"+correction['name']+"}}}$")
+        if type == 'regular':  
 
-            elif (correction['name'].lower() == 'peak') or (correction['name'].lower() == 'peaknbar') or \
-                    (correction['name'].lower() == 'peaktest') or (correction['name'].lower() == 'peakshot') or (correction['name'].lower() == 'allpeakshot'):
-                # scatter plot
-                sub.scatter(avg_k, avg_Pk, color=pretty_colors[i_corr], label=r"$\mathtt{\overline{P(k)_{"+correction['name']+','+\
-                        ''.join([str(correction['sigma']), str(correction['fpeak'])])+"}}}$")
+            if correction['name'].lower() == 'true':    
+                # true P(k)
+
+                sub.plot(avg_k, avg_Pk, \
+                        color=pretty_colors[i_corr], \
+                        label=r"$\mathtt{\overline{P(k)_{true}}}$")
+
+            elif correction['name'].lower() in ('peak', 'peaknbar', 'peaktest', 
+                    'peakshot', 'allpeakshot'): 
+                # P(k) with dLOS peak corrections
+
+                if correction['name'].lower() == 'peakshot': 
+                    corr_name = 'Hahn'
+                else: 
+                    corr_name = correction['name']
+
+                pk_label = ''.join([
+                    corr_name, ':', str(correction['sigma']), ',', str(correction['fpeak'])
+                    ])
+                    
+                # scatter plot 
+                sub.scatter(avg_k, avg_Pk, color=pretty_colors[i_corr], label=pk_label)
+
             else: 
-                sub.scatter(avg_k, avg_Pk, color=pretty_colors[i_corr], label=r"$\mathtt{\overline{P(k)_{"+correction['name']+"}}}$")
+                # other correction methods 
 
-        # P(k) residual comparison
-        else:               
-            if correction['name'].lower() == 'true':
-                # Should be first and the demoninator otherwise code crashes 
+                sub.scatter(avg_k, avg_Pk, 
+                        color=pretty_colors[i_corr], label=correction['name'])
+
+        elif type == 'ratio':               # P(k)/P_true comparison 
+
+            if correction['name'].lower() == 'true':    
                 avg_Pk_true = avg_Pk
+
             else: 
-                if correction['name'].lower() in ('peak', 'peaknbar', 'peaktest', 'peakshot', 'allpeakshot', 'vlospeakshot'):
-                    if correction['fit'].lower() in ('gauss', 'expon'):
-                        # set residual label
-                        resid_label = ''.join([r"$\mathtt{", "\overline{P(k)_{", correction['fit'], ", ", correction['name'], ",", 
-                            ''.join([str(correction['sigma']), str(correction['fpeak'])]), "}}/\overline{P(k)_{True}}}$"])
-                    elif correction['fit'].lower() in ('true'): 
-                        # set residual label
-                        resid_label = ''.join([r"$\mathtt{", "\overline{P(k)_{", correction['fit'], ", ", correction['name'], ",", 
-                            str(correction['fpeak']), "}}/\overline{P(k)_{True}}}$"])
+                if correction['name'].lower() in ('peak', 'peaknbar', 'peaktest', 
+                        'peakshot', 'allpeakshot', 'vlospeakshot'):
+
+                    if correction['name'] == 'peakshot': 
+                        corr_name = 'Hahn'
                     else: 
-                        raise NameError('asdflkjasdf')
+                        corr_name = correction['name']
+
+                    if correction['fit'].lower() in ('gauss', 'expon'):
+                        pk_label = ''.join([
+                            corr_name, ': ', correction['fit'], ',', 
+                            str(correction['sigma']), ',', str(correction['fpeak']) 
+                            ])
+
+                    elif correction['fit'].lower() in ('true'): 
+                        pk_label = ''.join([
+                            corr_name, ': ', correction['fit'], ',', str(correction['fpeak']) 
+                            ])
+
+                    else: 
+                        raise NotImplementedError('asdflkjasdf')
                     
                     # plot residual 
-                    sub.scatter(avg_k, residual(avg_Pk, avg_Pk_true), color=pretty_colors[i_corr], label=resid_label)
-                    print resid_label 
+                    sub.scatter(avg_k, residual(avg_Pk, avg_Pk_true), \
+                            color=pretty_colors[i_corr+1], label=pk_label)
 
-                    print avg_k[(avg_k > 0.15) & (avg_k < 0.2)]
-                    print residual(avg_Pk, avg_Pk_true)[(avg_k > 0.15) & (avg_k < 0.2)]
+                    #print avg_k[(avg_k > 0.15) & (avg_k < 0.2)]
+                    #print residual(avg_Pk, avg_Pk_true)[(avg_k > 0.15) & (avg_k < 0.2)]
                     #print avg_k[-5:-1]
                     #print residual(avg_Pk, avg_Pk_true)[-5:-1]
                 else:
-                    resid_label = ''.join([r"$\mathtt{", "\overline{P(k)_{",correction['name'], "}}/\overline{P(k)_{True}}}$"])
+                    pk_label = correction['name']
 
-                    sub.scatter(avg_k, residual(avg_Pk, avg_Pk_true), color=pretty_colors[i_corr], label=resid_label)
-                    print resid_label 
-                    print avg_k[(avg_k > 0.15) & (avg_k < 0.2)]
-                    print residual(avg_Pk, avg_Pk_true)[(avg_k > 0.15) & (avg_k < 0.2)]
+                    sub.scatter(avg_k, residual(avg_Pk, avg_Pk_true), 
+                            color=pretty_colors[i_corr], label=pk_label)
+
+                    #print avg_k[(avg_k > 0.15) & (avg_k < 0.2)]
+                    #print residual(avg_Pk, avg_Pk_true)[(avg_k > 0.15) & (avg_k < 0.2)]
                     #print avg_k[-5:-1]
                     #print residual(avg_Pk, avg_Pk_true)[-5:-1]
 
@@ -148,15 +195,18 @@ def plot_pk_fibcol_comp(catalog_name, n_mock, corr_methods, resid='False', quad=
                 #print chi2
         try: 
             corr_str 
+
         except NameError: 
             corr_str = ''.join(['_', correction['name']]) 
         else: 
             if correction['name'] in ('peak', 'peaknbar', 'peaktest', 'peakshot'): 
                 if correction['fit'].lower() in ('expon', 'gauss'): 
-                    corr_str = ''.join([corr_str, '_', correction['fit'], '_', correction['name'], 
+                    corr_str = ''.join([
+                        corr_str, '_', correction['fit'], '_', correction['name'], 
                         '_sigma', str(correction['sigma']), '_fpeak', str(correction['fpeak'])]) 
                 elif correction['fit'].lower() in ('true'): 
-                    corr_str = ''.join([corr_str, '_', correction['fit'], '_', correction['name'], 
+                    corr_str = ''.join([
+                        corr_str, '_', correction['fit'], '_', correction['name'], 
                         '_fpeak', str(correction['fpeak'])]) 
                 else: 
                     raise NameError('asdlfkjasdf')
@@ -167,7 +217,7 @@ def plot_pk_fibcol_comp(catalog_name, n_mock, corr_methods, resid='False', quad=
         del avg_Pk
 
     # set axes
-    if resid == 'False':
+    if type == 'regular': 
         #        if catalog_name.lower() == 'lasdamasgeo':
         ylimit = [10**2,10**5.5]
         ytext = 10**5.2
@@ -177,64 +227,80 @@ def plot_pk_fibcol_comp(catalog_name, n_mock, corr_methods, resid='False', quad=
         resid_str = ''
         fig_name = ''.join(['powerspec_', catalog_name.lower(), 
             '_fibcoll_', corr_str, '_comparison.png'])
-    else:
-        ylimit = [0.85,1.15] 
-        ytext = 1.15
+
+    elif type == 'ratio': 
+        ylimit = [0.85,1.5] 
+        ytext = 0.875
         ylabel = r"$\mathtt{\overline{P(k)}/\overline{P(k)_{\rm{True}}}}$"
         resid_str = '_residual'
 
-    if quad == True: 
-        quad_tag = 'quad_'
-    else: 
-        quad_tag = ''
-
-    fig_name = ''.join(['powerspec_', quad_tag, catalog_name.lower(), 
+    fig_name = ''.join(['powerspec_', catalog_name.lower(), 
         '_fibcoll_', corr_str, resid_str, '_comparison.png'])     
 
-    sub.text(1.5*10**-3, np.mean(ylimit), ''.join([str(n_file), ' ', catalog_name.upper()]))              # number of mocks + Catalog name 
+    # imprint number of mocks + Catalog name 
+    sub.text(0.15, ytext, ''.join([str(n_file), ' ', catalog_name.upper()]))  
+
     sub.set_xscale('log')
-    sub.set_xlim([10**-3,10**0])
+    sub.set_xlim([10**-1,10**0])
     sub.set_ylim(ylimit)
     sub.set_xlabel('k', fontsize=20)
     sub.set_ylabel(ylabel, fontsize=20)
 
-    if resid == 'False': 
-        sub.legend(loc='lower left', scatterpoints=1, prop={'size':14})
-    elif resid == 'True': 
-        sub.legend(loc='upper left', scatterpoints=1, prop={'size':14})
+    #if resid == 'False': 
+    #    sub.legend(loc='lower left', scatterpoints=1, prop={'size':14})
+    #elif resid == 'True': 
+    sub.legend(loc='upper left', scatterpoints=1, prop={'size':14})
     
-    try:
-        fig.savefig(''.join(['/home/users/hahn/research/figures/boss/fiber_collision/', fig_name]), bbox_inches="tight")
-    except IOError: 
-        fig.savefig(''.join(['/home/users/hahn/research/figures/boss/fiber_collision/', 'powerspec_', catalog_name.lower(), '_fibcoll_toolong', resid_str, '_comparison.png']), bbox_inches="tight")
-
+    fig.savefig(
+            ''.join(['/home/users/hahn/research/figures/boss/fiber_collision/', fig_name]),
+            bbox_inches="tight")
     fig.clear()
 
-def plot_p2k_fibcol_comp(catalog_name, n_mock, corr_methods, resid='False'): 
+def plot_p2k_fibcol_comp(catalog_name, n_mock, corr_methods, type='ratio', **kwargs): 
+    ''' Plots the comparison of quadrupole avg(P2(k)) for multiple 
+    fibercollision correciton methods
+    
+    Paramters
+    ---------
+    catalog_name : Name of mock catalog 
+    n_mock : number of mocks 
+    corr_method : list with the correction methods 
+    type : 'regular' compares the actual P2(k) values, 'ratio' compares the ratio 
+    with the true P2(k), 'residual' compares the difference with the true P2(k) 
+
+    Notes
+    -----
+    Make sure 'true' is first in the correction method list!
+
     '''
-    Comparison of quadrupole P2(k)avg for different fibercollision correciton methods
-    Make sure 'true' is first in the correction method list
-    '''
-    prettyplot()
+    prettyplot()                         # set up plot 
     pretty_colors = prettycolors()
     
-    fig = plt.figure(1, figsize=(7, 8))
+    fig = plt.figure(1, figsize=(7, 8)) # set up figure 
     sub = fig.add_subplot(111)
 
     catalog = {'name': catalog_name}    # catalog dict
+
     # hardcoded default power/bispectrum box settings 
     if catalog_name.lower() in ('lasdamasgeo', 'qpm'): 
-        spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':360, 'quad': True} 
+        spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 
+                'grid':360, 'quad': True} 
+
     elif catalog_name.lower() == 'tilingmock': 
-        spec = {'P0': 20000, 'sscale':4000.0, 'Rbox':2000.0, 'box':4000, 'grid':360, 'quad': True} 
+        spec = {'P0': 20000, 'sscale':4000.0, 'Rbox':2000.0, 'box':4000, 'grid':360, 
+                'quad': True} 
+
     else: 
-        raise NameError('not coded yet') 
+        raise NotImplementedError('not coded yet') 
 
     for i_corr, correction in enumerate(corr_methods):     # loop through correction methods
-        # for LasDamasGeo 
+
         if catalog_name.lower() == 'lasdamasgeo': 
+            # LasDamasGeo 
+
+            # compute average[P(k)] for each correction method
             n_file = 0
-            for i_mock in range(1,n_mock+1):                       # compute average[P(k)] for each correction method
+            for i_mock in range(1, n_mock+1):                       
                 for letter in ['a', 'b', 'c', 'd']: 
                     # set catalog correction dictionary for specific file 
                     i_catalog = catalog.copy() 
@@ -256,11 +322,11 @@ def plot_p2k_fibcol_comp(catalog_name, n_mock, corr_methods, resid='False'):
 
                     n_file = n_file+1
 
-        # Tiling Mocks
         elif catalog_name.lower() == 'tilingmock': 
+            # Tiling Mocks
             i_cat_corr = {'catalog': catalog, 'correction': correction, 'spec':spec}
-            # read tiling mock P(k)
-            power = fc_spec.Spec('power', **i_cat_corr)
+
+            power = fc_spec.Spec('power', **i_cat_corr)         # read tiling mock P(k)
             power.readfile()
 
             avg_k = power.k
@@ -285,7 +351,7 @@ def plot_p2k_fibcol_comp(catalog_name, n_mock, corr_methods, resid='False'):
                 else: 
                     sum_P2k = sum_P2k + np.abs(power_i.P2k)
 
-                n_file = n_file+1
+                n_file += 1
 
         else: 
             raise NameError('not yet coded!')
@@ -293,60 +359,153 @@ def plot_p2k_fibcol_comp(catalog_name, n_mock, corr_methods, resid='False'):
 
         avg_P2k = [sum_P2k[i]/np.float(n_file) for i in range(len(sum_P2k))]    # average P(k)
         
-        # P2(k) Comparison
-        if resid == 'False':  
-            if correction['name'].lower() == 'true':
-                # plot for true  Pk
-                sub.plot(avg_k, avg_P2k, color=pretty_colors[i_corr], label=r"$\mathtt{\overline{P_{2}(k)_{"+correction['name']+"}}}$")
+        if type == 'regular':                       # P2(k) Comparison
 
-            elif correction['name'].lower() in ('peak', 'peaknbar', 'peaktest', 'peakshot', 'allpeakshot', 'vlospeakshot'):
+            if correction['name'].lower() == 'true':    # P_true(k) 
+                sub.plot(avg_k, avg_P2k, 
+                        color=pretty_colors[i_corr], 
+                        label=correction['name'])
+
+            elif correction['name'].lower() in ('peak', 'peaknbar', 'peaktest', 
+                    'peakshot', 'allpeakshot', 'vlospeakshot'):
+
+                if correction['name'] == 'peakshot': 
+                    corr_name = 'Hahn' 
+                else: 
+                    corr_name = correction['name']  
                 
                 if correction['fit'].lower() in ('expon', 'gauss'): 
-                    resid_label = r"$\mathtt{\overline{P_2(k)_{"+correction['name']+','+''.join([str(correction['sigma']), str(correction['fpeak'])])+"}}}$"
-                elif correction['fit'].lower() in ('true'): 
-                    resid_label = r"$\mathtt{\overline{P_2(k)_{"+correction['name']+','+str(correction['fpeak'])+"}}}$"
-            
-                sub.scatter(avg_k, avg_P2k, color=pretty_colors[i_corr], label=resid_label)
-            else: 
-                sub.scatter(avg_k, avg_P2k, color=pretty_colors[i_corr], label=r"$\mathtt{\overline{P_2(k)_{"+correction['name']+"}}}$")
+                    resid_label = ''.join([
+                        corr_name, ': ', 
+                        str(correction['sigma']), ',', str(correction['fpeak'])
+                        ]) 
 
-        # P(k) residual comparison
-        else:               
-            if correction['name'].lower() == 'true':    # Should be first and the demoninator otherwise code crashes 
-                avg_P2k_true = avg_P2k
+                elif correction['fit'].lower() in ('true'): 
+                    resid_label = ''.join([
+                        corr_name, ': ', str(correction['fpeak'])
+                        ]) 
+            
+                sub.scatter(avg_k, avg_P2k, 
+                        color=pretty_colors[i_corr+1], label=resid_label)
+
             else: 
-                if correction['name'].lower() in ('peak', 'peaknbar', 'peaktest', 'peakshot', 'allpeakshot', 'vlospeakshot'):
-                    # set residual label
-                    if correction['fit'].lower() in ('expon', 'gauss'): 
-                        resid_label = ''.join([r"$\mathtt{", "\overline{P_2(k)_{", correction['fit'], ", ", correction['name'], ",", 
-                            ''.join([str(correction['sigma']), str(correction['fpeak'])]), "}}/\overline{P_2(k)_{True}}}$"])
+                sub.scatter(avg_k, avg_P2k, 
+                        color=pretty_colors[i_corr], label=correction['name'])
+
+        elif type == 'ratio':                       # P_corr(k)/P_true comparison 
+            if correction['name'].lower() == 'true':        
+                # P_true(k) 
+                avg_P2k_true = avg_P2k
+
+            else: 
+                if correction['name'].lower() in ('peak', 'peaknbar', 'peaktest', 
+                        'peakshot', 'allpeakshot', 'vlospeakshot'):
+
+                    if correction['name'] == 'peakshot': 
+                        corr_name = 'Hahn'
+                    else: 
+                        corr_name = correction['name']
+                    if correction['fit'].lower() in ('expon', 'gauss'): # labels
+                        # exponential and gaussian fits 
+                        resid_label = ''.join([
+                            corr_name, ': ', correction['fit'], ', ' 
+                            ','.join([str(correction['sigma']), str(correction['fpeak'])])
+                            ])
+                        #resid_label = ''.join([r"$\mathtt{", 
+                        #    "\overline{P_2(k)_{", correction['fit'], ", ", 
+                        #    correction['name'], ",", ''.join([str(correction['sigma']), 
+                        #        str(correction['fpeak'])]), "}}/\overline{P_2(k)_{True}}}$"])
+
                     elif correction['fit'].lower() in ('true'): 
-                        resid_label = ''.join([r"$\mathtt{", "\overline{P_2(k)_{", correction['fit'], ", ", correction['name'], ",", 
-                            str(correction['fpeak']), "}}/\overline{P_2(k)_{True}}}$"])
+                        # true distribution fits
+                        resid_label = ''.join([r"$\mathtt{", 
+                            "\overline{P_2(k)_{", correction['fit'], ", ", 
+                            correction['name'], ",", str(correction['fpeak']), 
+                            "}}/\overline{P_2(k)_{True}}}$"])
                     else:
                         raise NameError('asdflkj')
                     
-                    # plot residual 
-                    sub.scatter(avg_k, residual(avg_P2k, avg_P2k_true), color=pretty_colors[i_corr], label=resid_label)
+                    # plot ratio
+                    sub.scatter(avg_k, residual(avg_P2k, avg_P2k_true), \
+                            color=pretty_colors[i_corr+1], label=resid_label)
+                    
+                    '''
                     print avg_P2k[-5:-1]
                     print avg_P2k_true[-5:-1]
                     print resid_label 
                     print residual(avg_P2k, avg_P2k_true)[(avg_k > 0.15) & (avg_k < 0.2)]
                     print avg_k[(avg_k > 0.15) & (avg_k < 0.2)]
+                    '''
                 else:
-                    resid_label = ''.join([r"$\mathtt{", "\overline{P_2(k)_{",correction['name'], "}}/\overline{P_2(k)_{True}}}$"])
+                    resid_label = correction['name']
 
-                    sub.scatter(avg_k, residual(avg_P2k, avg_P2k_true), color=pretty_colors[i_corr], label=resid_label)
+                    sub.scatter(avg_k, residual(avg_P2k, avg_P2k_true), \
+                            color=pretty_colors[i_corr], label=resid_label)
+                    '''
                     print resid_label 
                     print residual(avg_P2k, avg_P2k_true)[(avg_k > 0.15) & (avg_k < 0.2)]
                     print avg_k[(avg_k > 0.15) & (avg_k < 0.2)]
+                    '''
+        
+        elif type == 'residual':        # |P_corr(k) - P_true(k)|/Delta P(k) 
+
+            if correction['name'].lower() == 'true': # P_true(k) 
+                true_cat_corr = {'catalog': catalog, 
+                        'correction': {'name': 'true'}, 'spec': spec} 
+
+                avg_P2k_true = avg_P2k
+                delta_P = fc.deltaP(n_mock, **true_cat_corr) 
+                delP = delta_P[1]
+            else: 
+                if correction['name'].lower() in ('peak', 'peaknbar', 'peaktest', 
+                        'peakshot', 'allpeakshot', 'vlospeakshot'):
+
+                    if correction['name'] == 'peakshot': 
+                        corr_name = 'Hahn'
+                    else: 
+                        corr_name = correction['name']  
+
+                    if correction['fit'].lower() in ('expon', 'gauss'): # residual labels
+                        # exponential and gaussian fits 
+                        resid_label = ''.join([
+                            corr_name, ': ', correction['fit'], ', ' 
+                            ','.join([str(correction['sigma']), str(correction['fpeak'])])
+                            ])
+
+                    elif correction['fit'].lower() in ('true'): 
+                        # true distribution fits
+                        resid_label = ''.join([
+                            corr_name, ': ', correction['fit'], ',', str(correction['fpeak'])
+                            ]) 
+                    else:
+                        raise NameError('asdflkj')
+                    
+                    resids = [ np.abs(avg_P2k[i] - avg_P2k_true[i])/delP[i]
+                            for i in range(len(avg_P2k)) ] 
+
+                    # plot residual 
+                    sub.scatter(avg_k, resids, \
+                            color=pretty_colors[i_corr+1], label=resid_label)
+
+                else:
+                    resid_label = correction['name'] 
+
+                    resids = [ np.abs(avg_P2k[i] - avg_P2k_true[i])/delP[i]
+                            for i in range(len(avg_P2k)) ] 
+                    
+                    sub.scatter(avg_k, resids, \
+                            color=pretty_colors[i_corr], label=resid_label)
+
+        else: 
+            raise NotImplementedError('asdfasdfasdfadf') 
 
         try: 
             corr_str 
         except NameError: 
             corr_str = ''.join(['_', correction['name']]) 
         else: 
-            if correction['name'].lower in ('peak', 'peaknbar', 'peaktest', 'peakshot', 'vlospeakshot'): 
+            if correction['name'].lower in ('peak', 'peaknbar', 'peaktest', 
+                    'peakshot', 'vlospeakshot'): 
                 corr_str = ''.join([corr_str, '_', correction['fit'], '_', correction['name'], 
                     '_sigma', str(correction['sigma']), '_fpeak', str(correction['fpeak'])]) 
             else: 
@@ -356,37 +515,56 @@ def plot_p2k_fibcol_comp(catalog_name, n_mock, corr_methods, resid='False'):
         del avg_P2k
 
     # set axes
-    if resid == 'False':
+    if type == 'regular':
         ylimit = [10**2,10**5.5]
         ytext = 10**5.2
 
         ylabel = 'P(k)'
         sub.set_yscale('log')
         resid_str = ''
-    else:
-        ylimit = [0.0, 2.0] 
-        ytext = 1.15
+    elif type == 'ratio': 
+        ylimit = [0.5, 2.0] 
+        ytext = 0.55
         ylabel = r"$\mathtt{\overline{P_2(k)}/\overline{P_2(k)_{\rm{True}}}}$"
+        resid_str = '_ratio'
+    elif type == 'residual':
+        #ylimit = [-500.0, 4000.0] 
+        ylimit = [0.0, 5.0]
+        #ytext = -450  
+        yytext = 2.5
+        ylabel = r"$\mathtt{|\overline{P_2(k)} - \overline{P_2(k)_{\rm{True}}}|/\Delta P_2}$"
         resid_str = '_residual'
+    else: 
+        raise NotImplementedError('asdfasdfasdf') 
 
+    if 'xrange' in kwargs.keys():   # specify x-range 
+        sub.set_xlim(kwargs['xrange']) 
+        yxtext = 1.5*min(kwargs['xrange'])
+    else: 
+        sub.set_xlim([10**-3,10**0])
+        yxtext = 1.5*10**-3
 
-    fig_name = ''.join(['p2k_', catalog_name.lower(), 
-        '_fibcoll_', corr_str, resid_str, '_comparison.png'])     
-
-    sub.text(1.5*10**-3, np.mean(ylimit), ''.join([str(n_file), ' ', catalog_name.upper()]))              # number of mocks + Catalog name 
+    sub.text(yxtext, yytext, 
+            ''.join([str(n_file), ' ', catalog_name.upper()]))  # number of mocks + Catalog name 
     sub.set_xscale('log')
-    sub.set_xlim([10**-3,10**0])
+
     sub.set_ylim(ylimit)
     sub.set_xlabel('k', fontsize=20)
     sub.set_ylabel(ylabel, fontsize=20)
 
-    if resid == 'False': 
-        sub.legend(loc='lower left', scatterpoints=1, prop={'size':14})
-    elif resid == 'True': 
-        sub.legend(loc='upper left', scatterpoints=1, prop={'size':14})
+    #if resid == 'False': 
+    #    sub.legend(loc='lower left', scatterpoints=1, prop={'size':14})
+    #elif resid == 'True': 
+    sub.legend(loc='upper left', scatterpoints=1, prop={'size':14})
     
+    fig_name = ''.join(['p2k_', catalog_name.lower(), 
+        '_fibcoll_', corr_str, resid_str, '_comparison.png'])     
     try:
-        fig.savefig(''.join(['/home/users/hahn/research/figures/boss/fiber_collision/', fig_name]), bbox_inches="tight")
+        fig.savefig(
+                ''.join([
+                    '/home/users/hahn/research/figures/boss/fiber_collision/', 
+                    fig_name]), 
+                bbox_inches="tight")
     except IOError: 
         fig.savefig(''.join(['/home/users/hahn/research/figures/boss/fiber_collision/', 'p2k_', catalog_name.lower(), '_fibcoll_toolong', resid_str, '_comparison.png']), bbox_inches="tight")
 
@@ -497,6 +675,149 @@ def plot_bispec_fibcolcorr_comparison(BorQ='B', x_axis='triangles', triangle='al
     fig.savefig(''.join(['/home/users/hahn/research/figures/boss/fiber_collision/', fig_name]))
     fig.clear()
 
+
+# Average P(k) (monopole and quadrupole) ------------------------------
+def plot_avg_pk_fibcol(catalog_name, n_mock, corr_method, quad=False, **kwargs):
+    ''' Plot average P(k) monopole or quadrupole of n_mock realizations
+
+    Paramters
+    ---------
+    catalog_name : Name of mock catalog 
+    n_mock : number of mocks 
+    corr_method : correction method
+
+    '''
+    prettyplot()                         # set up plot 
+    pretty_colors = prettycolors()
+    
+    fig = plt.figure(1, figsize=(7, 8)) # set up figure 
+    sub = fig.add_subplot(111)
+
+    catalog = {'name': catalog_name}    # catalog
+    correction = corr_method            # correction 
+
+    # get spectrum info for cat_corr dictionary 
+    if catalog_name.lower() in ('lasdamasgeo', 'qpm'): 
+        spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 
+                'grid':360, 'quad': quad} 
+    elif catalog_name.lower() == 'tilingmock': 
+        spec = {'P0': 20000, 'sscale':4000.0, 'Rbox':2000.0, 'box':4000, 'grid':360, 
+                'quad': quad} 
+    else: 
+        raise NotImplementedError('not coded yet') 
+
+    if catalog_name.lower() == 'lasdamasgeo':           # LasDamasGeo 
+
+        # plot P(k) for each mock realization
+        for i_mock in range(1, n_mock+1):                       
+            for letter in ['a', 'b', 'c', 'd']: 
+
+                # set catalog correction dictionary for specific file 
+                i_catalog = catalog.copy() 
+                i_catalog['n_mock'] = i_mock
+                i_catalog['letter'] = letter
+                i_cat_corr = {'catalog': i_catalog, 'correction': correction, 'spec':spec}
+                
+                # import power spectrum 
+                power_i = fc_spec.Spec('power', **i_cat_corr)
+                power_i.readfile()
+                
+                if quad == True: 
+                    power_Pk = power_i.P2k
+                else: 
+                    power_Pk = power_i.Pk 
+
+                sub.plot(power_i.k, power_Pk, 
+                        color=pretty_colors[i_mock % 20], lw=2) 
+
+    elif catalog_name.lower() == 'tilingmock':          # Tiling Mocks
+
+        i_cat_corr = {'catalog': catalog, 'correction': correction, 'spec':spec}
+
+        power = fc_spec.Spec('power', **i_cat_corr)         # read tiling mock P(k)
+        power.readfile()
+
+        if quad == True: 
+            power_Pk = power_i.P2k
+        else: 
+            power_Pk = power_i.Pk 
+
+        sub.plot(power_i.k, power_Pk, 
+                color=pretty_colors[0], lw=2) 
+
+    elif catalog_name.lower() == 'qpm': 
+        n_file = 0  
+        for i_mock in range(1, n_mock+1): 
+            i_catalog = catalog.copy() 
+            i_catalog['n_mock'] = i_mock
+            i_cat_corr = {'catalog': i_catalog, 'correction': correction, 'spec':spec}
+                
+            power_i = fc_spec.Spec('power', **i_cat_corr)
+            power_i.readfile()
+                
+            if quad == True: 
+                power_Pk = power_i.P2k
+            else: 
+                power_Pk = power_i.Pk 
+
+            sub.plot(power_i.k, power_Pk, 
+                    color=pretty_colors[i_mock % 20], lw=2) 
+
+            n_file += 1
+
+    else: 
+        raise NameError('not yet coded!')
+
+    # read in average P(k)  
+    avg_cat_corr = {'catalog': catalog, 'correction': correction, 'spec':spec}
+    avg_k, avg_Pk = fc.avgPk(n_mock, clobber=True, **avg_cat_corr)
+    
+    avg_k, delPk = fc.deltaP(n_mock, clobber=True, **avg_cat_corr) 
+
+    sub.plot(avg_k, avg_Pk, color='black', lw=6, label=r'$\mathtt{Average\;P(k)}$')
+    #sub.fill_between(avg_k, avg_Pk - delPk, avg_Pk + delPk) 
+    #sub.errorbar(avg_k, avg_Pk, yerr=delPk, fmt=None, capsize=4, color='black', 
+    #        elinewidth=4)#, label=r'$\mathtt{Average\;P(k)}$')
+
+
+    # set axes
+    ylimit = [10**2,10**5.5]
+    yytext = 10**5.2
+    if quad == True: 
+        quad_str = '2'
+        ylabel = r'$\mathtt{P_2(k)}$'
+    else: 
+        quad_str = '0'
+        ylabel = r'$\mathtt{P_0(k)}$'
+
+    sub.set_yscale('log')
+    resid_str = ''
+
+    if 'xrange' in kwargs.keys():   # specify x-range 
+        sub.set_xlim(kwargs['xrange']) 
+        yxtext = 1.5*min(kwargs['xrange'])
+    else: 
+        sub.set_xlim([10**-3,10**0])
+        yxtext = 1.5*10**-3
+
+    sub.text(yxtext, yytext, 
+            ''.join([str(n_mock), ' ', catalog_name.upper()]))  # number of mocks + Catalog name 
+    sub.set_xscale('log')
+
+    sub.set_ylim(ylimit)
+    sub.set_xlabel('k', fontsize=20)
+    sub.set_ylabel(ylabel, fontsize=20)
+
+    sub.legend(loc='upper left', scatterpoints=1, prop={'size':14})
+    
+    fig_name = ''.join(['avg_', 'p', quad_str, 'k_', catalog_name.lower(), 
+        '_fibcoll_', correction['name'], '.png'])     
+    fig.savefig(''.join(['/home/users/hahn/research/figures/boss/fiber_collision/', 
+                fig_name]), 
+            bbox_inches="tight")
+    fig.clear()
+
+# others 
 def plot_peakcorrection_check(catalog_name, n_mock, corr_methods):
     '''
     Check dLOS generated during peak correction 
@@ -1735,14 +2056,28 @@ if __name__=="__main__":
     #        'correction': {'name': 'upweight'}} 
 
     #plot_catalog_nearest_neighbor(n=3, cat='lasdamasgeo') 
-    
-    qpm_corr_methods = [
-            {'name': 'true'}, {'name':'upweight'}, 
-            {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}, 
-            {'name': 'peakshot_dnn', 'sigma':4.4, 'NN': 3, 'fit': 'gauss'}
-            ]
-    plot_pk_fibcol_comp('qpm', 10, qpm_corr_methods, resid='True') 
-    plot_p2k_fibcol_comp('qpm', 10, qpm_corr_methods, resid='True') 
+    plot_avg_pk_fibcol('lasdamasgeo', 40, {'name': 'true'}, quad=True)   
+    plot_avg_pk_fibcol('qpm', 100, {'name': 'true'}, quad=True)   
+
+    plot_avg_pk_fibcol('lasdamasgeo', 40, {'name': 'true'}, quad=False)   
+    plot_avg_pk_fibcol('qpm', 100, {'name': 'true'}, quad=False)   
+
+    qpm_corr_methods = [ {'name': 'true'}, {'name':'upweight'}, 
+            {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}
+            ] 
+            #{'name': 'peakshot_dnn', 'sigma':4.4, 'NN': 3, 'fit': 'gauss'}
+            #]
+    #plot_pk_fibcol_comp('qpm', 10, qpm_corr_methods, resid='True') 
+    plot_p2k_fibcol_comp('qpm', 100, qpm_corr_methods, type='residual') 
+
+    ldg_corr_methods = [{'name': 'true'},  {'name': 'upweight'}, {'name': 'peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}]
+    #plot_pk_fibcol_comp('lasdamasgeo', 39, ldg_corr_methods, type='ratio')
+    #plot_pk_fibcol_comp('lasdamasgeo', 39, ldg_corr_methods, type='regular') 
+
+    #plot_p2k_fibcol_comp('lasdamasgeo', 40, ldg_corr_methods, type='residual') 
+    #plot_p2k_fibcol_comp('lasdamasgeo', 40, ldg_corr_methods, type='ratio') 
+    #plot_p2k_fibcol_comp('lasdamasgeo', 40, ldg_corr_methods, type='regular') 
+    plot_p2k_fibcol_comp('lasdamasgeo', 40, ldg_corr_methods, type='residual') 
 
     '''
     # --------------------------------------------------------------------------------------------------------------------------------------------
