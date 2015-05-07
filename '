@@ -306,9 +306,9 @@ def plot_pk_fibcol_comp(catalog_name, n_mock, corr_methods, quad=False, type='ra
             ylabel = kwargs['ylabel']
         else: 
             if quad == True: 
-                ylabel = r'$\mathtt{P_2(k)}$'
+                ylabel = 'P_2(k)'
             else: 
-                ylabel = r'$\mathtt{P_0(k)}$'
+                ylabel = 'P_0(k)'
 
         if 'xscale' in kwargs.keys(): 
             sub.set_xscale(kwargs['xscale']) 
@@ -367,9 +367,6 @@ def plot_pk_fibcol_comp(catalog_name, n_mock, corr_methods, quad=False, type='ra
 
         if 'yscale' in kwargs.keys(): 
             sub.set_yscale(kwargs['yscale'])
-            if (kwargs['yscale'] == 'log') and \
-                    ('yrange' not in kwargs.keys()):
-                ylimit = [10**-3, 10**1] 
         else: 
             pass
 
@@ -1907,8 +1904,13 @@ if __name__=="__main__":
             ] 
             #{'name': 'peakshot_dnn', 'sigma':4.4, 'NN': 3, 'fit': 'gauss'}
             #]
-    plot_pk_fibcol_comp('qpm', 100, qpm_corr_methods, quad=False, type='residual', yscale='log', xrange=[0.02, 1.0]) 
-    plot_pk_fibcol_comp('qpm', 100, qpm_corr_methods, quad=True, type='residual', yscale='log', xrange=[0.02, 1.0]) 
+    plot_pk_fibcol_comp('qpm', 100, qpm_corr_methods, quad=False, type='regular', xrange=[0.02,) 
+    plot_pk_fibcol_comp('qpm', 100, qpm_corr_methods, quad=False, type='ratio') 
+    plot_pk_fibcol_comp('qpm', 100, qpm_corr_methods, quad=False, type='residual') 
+
+    plot_pk_fibcol_comp('qpm', 100, qpm_corr_methods, quad=True, type='regular') 
+    plot_pk_fibcol_comp('qpm', 100, qpm_corr_methods, quad=True, type='ratio') 
+    plot_pk_fibcol_comp('qpm', 100, qpm_corr_methods, quad=True, type='residual') 
 
     ldg_corr_methods = [{'name': 'true'},  {'name': 'upweight'}, {'name': 'peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}]
     #plot_pk_fibcol_comp('lasdamasgeo', 39, ldg_corr_methods, type='ratio')
@@ -1917,11 +1919,17 @@ if __name__=="__main__":
     #plot_p2k_fibcol_comp('lasdamasgeo', 40, ldg_corr_methods, type='residual') 
     #plot_p2k_fibcol_comp('lasdamasgeo', 40, ldg_corr_methods, type='ratio') 
     #plot_p2k_fibcol_comp('lasdamasgeo', 40, ldg_corr_methods, type='regular') 
+    plot_pk_fibcol_comp('lasdamasgeo', 40, ldg_corr_methods, quad=False, type='regular') 
+    plot_pk_fibcol_comp('lasdamasgeo', 40, ldg_corr_methods, quad=False, type='ratio') 
+    plot_pk_fibcol_comp('lasdamasgeo', 40, ldg_corr_methods, quad=False, type='residual') 
 
-    plot_pk_fibcol_comp('lasdamasgeo', 39, ldg_corr_methods, 
-            quad=False, Ngrid=960, type='residual', yscale='log', xrange=[0.02, 1.0]) 
-    plot_pk_fibcol_comp('lasdamasgeo', 40, ldg_corr_methods, 
-            quad=True, type='residual', yscale='log', xrange=[0.02, 1.0]) 
+    plot_pk_fibcol_comp('lasdamasgeo', 39, ldg_corr_methods, quad=False, Ngrid=960, type='regular') 
+    plot_pk_fibcol_comp('lasdamasgeo', 39, ldg_corr_methods, quad=False, Ngrid=960, type='ratio') 
+    plot_pk_fibcol_comp('lasdamasgeo', 39, ldg_corr_methods, quad=False, Ngrid=960, type='residual') 
+
+    plot_pk_fibcol_comp('lasdamasgeo', 40, ldg_corr_methods, quad=True, type='regular') 
+    plot_pk_fibcol_comp('lasdamasgeo', 40, ldg_corr_methods, quad=True, type='ratio') 
+    plot_pk_fibcol_comp('lasdamasgeo', 40, ldg_corr_methods, quad=True, type='residual') 
 
     '''
     # --------------------------------------------------------------------------------------------------------------------------------------------
