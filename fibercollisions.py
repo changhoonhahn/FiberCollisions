@@ -309,6 +309,84 @@ def lasdamasgeo_fibcoll_pk_rand_disp_test(n_mocks):
         print 'Building ', power_file 
         subprocess.call(power_cmd.split())
 
+def build_fibcol_pk(cat, i_mock, corr, quad=False, **kwargs): 
+    ''' Construct P(k) (monopole or quadrupole) for a specified mock catalog 
+
+    Parameters
+    ----------
+    cat : Catalog ('qpm', 'lasdamasgeo', 'tilingmock') 
+    i_mock : Realization # of the mocks
+    corr : Fiber collision correction method with specificiation 
+    quad : monopole or quadrupole 
+
+    '''
+    catalog = {'name': cat} 
+    correction = corr 
+    if cat == 'qpm': 
+        # some constants throughout the code
+        if 'spec' in kwargs.keys(): 
+            spec = kwargs['spec']
+        else: 
+            spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 
+                    'grid':360, 'quad':quad}
+
+        i_catalog = catalog.copy() 
+        i_catalog['n_mock'] = i_mock 
+
+        i_cat_corr = {'catalog': i_catalog, 'correction': correction, 'spec': spec}
+        # random data ------------------------------------------------
+        fibcoll_data_prep('random', silent=False, **i_cat_corr) 
+
+        # build random FFT  
+        rand_fft_file = fc_fft.build_fibcol_fft('random', **i_cat_corr)
+
+        # mock data ---------------------------------------------------
+        fibcoll_data_prep('data', **i_cat_corr) 
+                
+        # build mock FFT
+        fft_file = fc_fft.build_fibcol_fft('data', **i_cat_corr) 
+        print 'Constructing ', fft_file 
+        
+        power_file = fc_spec.build_fibcol_power(**i_cat_corr) 
+        print 'Constructing ', power_file 
+
+    elif cat == 'lasdamasgeo': 
+        # some constants throughout the code
+        if 'spec' in kwargs.keys(): 
+            spec = kwargs['spec'] 
+        else:
+            spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 
+                    'grid':360, 'quad': quad} 
+
+        cat_corr = {'catalog':catalog, 'correction': correction, 'spec': spec}
+        # random data ------------------------------------------------
+        fibcoll_data_prep('random', silent=False, **cat_corr) 
+
+        # build random FFT  
+        rand_fft_file = fc_fft.build_fibcol_fft('random', **cat_corr)
+        
+        # mock data ---------------------------------------------------
+        for letter in ['a', 'b', 'c', 'd']: 
+            i_cat_corr = {'catalog':catalog, 'correction': correction, 'spec': spec}
+            i_cat_corr['catalog']['n_mock'] = i_mock 
+            i_cat_corr['catalog']['letter'] = letter
+
+            fibcoll_data_prep('data', **i_cat_corr) 
+            
+            # build mock FFT
+            fft_file = fc_fft.build_fibcol_fft('data', **i_cat_corr) 
+            print 'Constructing ', fft_file 
+            
+            power_file = fc_spec.build_fibcol_power(**i_cat_corr) 
+            print 'Constructing ', power_file 
+
+            # in order to safe memory delete data FFT file which can be generated quickly
+            cleanup_cmd = ''. join(['rm ', fft_file])
+            print cleanup_cmd 
+            os.system(cleanup_cmd) 
+    else: 
+        raise NotImplementedError() 
+    
 # ------------------------------------------------------------------------------------
 # Tiling Mock
 def tilingmock_fibcoll_pk(corr, quad=False): 
@@ -336,37 +414,6 @@ def tilingmock_fibcoll_pk(corr, quad=False):
     print 'Constructing ', fft_file 
     
     power_file = fc_spec.build_fibcol_power(**cat_corr) 
-    print 'Constructing ', power_file 
-
-# QPM --------------------------------------------------------------------------------
-def qpm_fibcoll_pk(i_mock, corr, quad=False): 
-    '''
-    Compute fibercollision corrected P(k)
-    '''
-    # set catalog_correction dictionary
-    catalog = {'name':'qpm'}
-    correction = corr
-    # some constants throughout the code
-    spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':360, 'quad':quad}
-
-    i_catalog = catalog.copy() 
-    i_catalog['n_mock'] = i_mock 
-
-    i_cat_corr = {'catalog': i_catalog, 'correction': correction, 'spec': spec}
-    # random data ------------------------------------------------
-    fibcoll_data_prep('random', silent=False, **i_cat_corr) 
-
-    # build random FFT  
-    rand_fft_file = fc_fft.build_fibcol_fft('random', **i_cat_corr)
-
-    # mock data ---------------------------------------------------
-    fibcoll_data_prep('data', **i_cat_corr) 
-            
-    # build mock FFT
-    fft_file = fc_fft.build_fibcol_fft('data', **i_cat_corr) 
-    print 'Constructing ', fft_file 
-    
-    power_file = fc_spec.build_fibcol_power(**i_cat_corr) 
     print 'Constructing ', power_file 
 
 # PATCHY ----------------------------------------------------------------------------
@@ -1003,39 +1050,39 @@ def pk_tm_peakshot_expon_grid():
     print pk_true/pk-1.0
 '''
 
-def build_qpm():
-    ''' Function to build QPM stuff
+def build_qpm(n_mocks):
+    ''' Wrapper to build powerspectrum (monopole or quadrupole) for QPM mock catalog
+
+    Notes
+    -----
+    * peakshot "bestfit" parameters are {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}
     ''' 
-    pass 
-    '''
-    #corr = {'name': 'peaknbar', 'sigma':4.38, 'fpeak':1.0, 'fit':'gauss'}
-    #corr = {'name': 'vlospeakshot', 'sigma':650, 'fpeak':0.7, 'fit':'expon'}
-    #[{'name': 'true'}, {'name':'upweight'}, {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}]#[{'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}]
-    #[{'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}]#, {'name': 'peakshot', 'sigma': 4.8, 'fpeak': 0.65, 'fit': 'expon'}]
-            #{'name': 'true'}, {'name':'upweight'}, {'name': 'peakshot', 'sigma': 4.3, 'fpeak': 0.6, 'fit': 'gauss'}]
-            #{'name': 'true'}, {'name':'upweight'}, {'name': 'floriansn'}, {'name': 'hectorsn'}] 
-            #{'name': 'peakshot', 'sigma':5.0, 'fpeak':0.65, 'fit':'expon'}, {'name': 'vlospeakshot', 'sigma':580, 'fpeak':0.62, 'fit':'gauss'}] 
-    #corrections = [{'name': 'true'}, {'name': 'upweight'}, {'name': 'vlospeakshot', 'sigma':580, 'fpeak':0.62, 'fit':'gauss'}, {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}]
-    #corrections = [{'name': 'peakshot', 'fit': 'true', 'fpeak':0.65}]
-    ##corrections = [{'name': 'peakshot', 'fit': 'true', 'fpeak':1.0}]
-    #corrections = [{'name': 'tailupw'}] 
-    #####corrections = [ 
-    #####        {'name': 'true'}, 
-    #####        {'name': 'upweight'}, 
-    #####        {'name': 'peakshot', 'fit': 'gauss', 'sigma': 4.4, 'fpeak':0.65}, 
-    #####        {'name': 'floriansn'}, 
-    #####        {'name': 'hectorsn'}
-    #####        ]
-    #####for i_mock in range(51, 101): 
-    #####    for corr in corrections: 
-    #####        qpm_fibcoll_pk(i_mock, corr, quad=False) 
-   
-    #####corrections = [{'name': 'peaknbar', 'sigma': 4.4, 'fpeak': 1.0, 'fit': 'gauss'}, {'name': 'shotnoise'}] 
-    #####
-    #####for i_mock in range(1, 101): 
-    #####    for corr in corrections: 
-    #####        qpm_fibcoll_pk(i_mock, corr, quad=False) 
-    '''
+
+    # build P(k) monopole or quadrupole
+    corrections = [ {'name': 'true'}, {'name': 'upweight'}, 
+           {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}]
+    spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 
+                'grid': 960, 'quad': True}
+    for i_mock in range(1, n_mocks+1): 
+        for corr in corrections: 
+            qpm_fibcoll_pk(i_mock, corr, spec=spec) 
+
+def build_lasdamasgeo(n_mocks): 
+    ''' Wrapper to build powerspectrum (monopole or quadrupole) for LasDamas Geo mock catalog
+
+    Notes
+    -----
+    * peakshot "bestfit" parameters are {'name': 'peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}
+    ''' 
+
+    # build P(k) monopole or quadrupole
+    corrections = [ {'name': 'true'}, {'name': 'upweight'}, 
+            {'name': 'peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}]
+    spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 
+                'grid': 960, 'quad': True}
+    for i_mock in range(1, n_mocks+1): 
+        for corr in corrections: 
+            build_fibcol_pk('lasdamasgeo', i_mock, corr, spec=spec)
 
 def build_patchy(): 
     corrs = [{'name': 'true'}, {'name': 'upweight'}] 
@@ -1044,7 +1091,15 @@ def build_patchy():
             patchy_fibcoll_pk(i_mock, corr, quad=False) 
 
 if __name__=='__main__': 
-    build_patchy()
+    for corr in ['true', 'upweight', 'noweight']: 
+        cat_corr = {'catalog': {'name':'lasdamasgeo', 'n_mock':1, 'letter':'a'}, 
+                'correction': {'name': corr}} 
+        fc_data.galaxy_data('data', clobber=True, **cat_corr) 
+    #cat_corr = {'catalog': {'name':'lasdamasgeo', 'n_mock':1, 'letter':'a'}, 'correction': {'name': 'true'}} 
+    #fc_data.build_true(**cat_corr) 
+    #build_lasdamasgeo(10) 
+    #build_qpm(10) 
+    #build_patchy()
 
     #for i_mock in np.arange(1,2): 
     #    fc_data.galaxy_data('data', readdata=True, clobber=True, **cat_corr) 

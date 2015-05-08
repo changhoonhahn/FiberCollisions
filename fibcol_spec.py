@@ -211,16 +211,17 @@ class Spec:
             self.kmax = np.array([np.max([self.k1[i], self.k2[i], self.k3[i]]) for i in range(len(self.k1))])
 
 def build_fibcol_power(**cat_corr): 
-    '''
-    Given catalog_correction dictionary, construct FFT file 
+    ''' Build powerspectrum data for specified catalog+correction mocks 
+    
+    Parameters
+    ----------
+    cat_corr : catalog and correction dictionary    
+
     '''
     catalog = cat_corr['catalog']
     correction = cat_corr['correction']
     spec = cat_corr['spec'] 
     
-    # data file name 
-    data = fc_data.galaxy_data('data', readdata=False, **cat_corr) 
-
     # FFt file names 
     fft_file = fc_fft.get_fibcol_fft_file('data', **cat_corr) 
     fft_rand_file = fc_fft.get_fibcol_fft_file('random', **cat_corr) 
@@ -228,10 +229,12 @@ def build_fibcol_power(**cat_corr):
     power = Spec('power', **cat_corr) 
     power_file = power.file_name 
     
-    if spec['quad'] == True:                # for quadrupole power
+    # code for powerspectrum 
+    if spec['quad'] == True:    # for quadrupole
         power_code = fc_util.fortran_code('quadpower', **cat_corr) 
     else: 
         power_code = fc_util.fortran_code('power', **cat_corr) 
+    # .exe 
     power_exe = fc_util.fortran_code2exe(power_code)
     
     # code and exe modification time 
@@ -253,6 +256,7 @@ def build_fibcol_power(**cat_corr):
                 str(spec['sscale']), str(spec['grid']/2)]) 
         else: 
             power_cmd = ' '.join([power_exe, fft_file, fft_rand_file, power_file, str(spec['sscale'])]) 
+
         print power_cmd
         subprocess.call(power_cmd.split()) 
     else: 

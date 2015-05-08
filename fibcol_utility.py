@@ -1,3 +1,16 @@
+'''
+
+
+Utility codes for FiberCollisions project
+
+
+Author(s): ChangHoon Hahn 
+
+
+'''
+
+
+
 import os.path
 import numpy as np
 import subprocess

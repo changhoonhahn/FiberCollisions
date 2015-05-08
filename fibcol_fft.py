@@ -54,6 +54,7 @@ def build_fibcol_fft(DorR, **cat_corr):
     ----------
     DorR : 'data'/'random'
     cat_corr : Catalog and Correction dictionary 
+
     '''
     catalog = cat_corr['catalog']
     correction = cat_corr['correction']
@@ -146,7 +147,10 @@ def build_fibcol_fft(DorR, **cat_corr):
         # FFT_FKP_BOSS_cic_il4_v3.exe idata box Ngrid interpol iflag P0  ifc icomp input_file output_file
         # icomp is hardcoded 0 so that it takes into account completeness!
         FFT_cmd = ' '.join([
-            FFT_exe, str(idata), str(spec['box']), str(spec['grid']), "4", str(DorR_number), str(spec['P0']), str(ifc), "0", data.file_name, fft_file]) 
+            FFT_exe, str(idata), 
+            str(spec['box']), str(spec['grid']), 
+            "4", str(DorR_number), str(spec['P0']), 
+            str(ifc), "0", data_file, fft_file]) 
         print FFT_cmd
 
         if DorR.lower() == 'data':  # don't bother checking if the file exists for mocks and run the damn thing 

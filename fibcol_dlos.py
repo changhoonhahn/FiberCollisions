@@ -161,14 +161,23 @@ def build_dlos(**cat_corr):
     ---------
     cat_corr : catalog and correction dictionary that specify the mock catalog
 
-    See Also
-    --------
-    pyspherematch 
-    cosmolopy 
-
     Notes 
     -----
-    fiber collision angular scale : 62'' or 0.01722 
+    * fiber collision angular scale : 62'' or 0.01722 
+    * Bug in pyspherematch.py, so now back to using IDL 
+
+    '''
+    catalog = cat_corr['catalog']
+
+    mock_file = fc_data.get_galaxy_data_file('data', **cat_corr)
+    dLOS = dlos(readdata=False, **cat_corr) 
+    dlos_file = dLOS.file_name 
+
+    idl_command = ''.join(['idl -e ', 
+        '"build_fibcoll_dlos_cosmo, ', 
+        "'", catalog['name'], "', '", mock_file, "', '", dlos_file, "'", '"'
+        ]) 
+    os.system(idl_command) 
 
     '''
     catalog = cat_corr['catalog']
@@ -225,6 +234,7 @@ def build_dlos(**cat_corr):
                 coll_ra, coll_dec, coll_z], 
             fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
             delimiter='\t') 
+    '''
 
 # ------------------------------------------------------------------------------------
 # Derived quantities 
@@ -1525,8 +1535,7 @@ def combined_catalog_dlos_fits(catalog, n_mock):
     if 'lasdamasgeo' in catalog:  
         print 'LASDAMASGEO------------------------------------------------------'
         cat_corr = {'catalog': {'name':'lasdamasgeo'}, 'correction': {'name': 'upweight'}}
-        print 'Expon ', combined_dlos_fit(40, fit='expon', sanitycheck=True,  **cat_corr) 
-        print 'Gauss ', combined_dlos_fit(40, fit='gauss', sanitycheck=True,  **cat_corr) 
+        print 'Gauss ', combined_dlos_fit(n_mock, fit='gauss', sanitycheck=True,  **cat_corr) 
     elif 'qpm' in catalog: 
         print 'QPM------------------------------------------------------'
         cat_corr = {'catalog': {'name':'qpm'}, 'correction': {'name': 'upweight'}}
@@ -1541,36 +1550,13 @@ def combined_catalog_dlos_fits(catalog, n_mock):
                 clobber=True, **cat_corr) 
     else: 
         raise NameError('asdfasdfasdf')  
-    #print 'Tiling Mock------------------------------------------------------'
-    #cat_corr = {'catalog': {'name':'tilingmock'}, 'correction': {'name': 'upweight'}}
-    #print 'Expon ', combined_dlos_fit(1, fit='expon', sanitycheck=True,  **cat_corr) 
-    #print 'Gauss ', combined_dlos_fit(1, fit='gauss', sanitycheck=True,  **cat_corr) 
-    #cat_corr = {'catalog': {'name':'cmass'}, 'correction': {'name': 'upweight'}}
-    #print 'CMASS-----------------------------------------------------------'
-    #print 'Expon ', combined_dlos_fit(1, fit='expon', sanitycheck=True,  **cat_corr) 
-    #print 'Gauss ', combined_dlos_fit(1, fit='gauss', sanitycheck=True,  **cat_corr) 
 
 if __name__=="__main__": 
     #for i in np.arange(1, 11): 
-    #    cat_corr = {
-    #            'catalog': {'name': 'patchy', 'n_mock': i}, 
-    #            'correction': {'name': 'upweight'}
-    #            } 
-    #    build_dlos(**cat_corr) 
-    #dlos_env(n=1, **cat_corr)
-    #dlos_env(n=2, **cat_corr)
-    #dlos_env(n=3, **cat_corr)
-    #dlos_env(n=5, **cat_corr)
+    #    for letter in ['a', 'b', 'c', 'd']: 
+    #        cat_corr = {'catalog': {'name': 'lasdamasgeo', 'n_mock': i, 'letter': letter}, 
+    #                'correction': {'name': 'upweight'}} 
+    #        fc_data.galaxy_data('data', clobber=True, **cat_corr) 
+    #        build_dlos(**cat_corr) 
     #combined_catalog_dlos_fits('patchy', 10)
-    #combined_catalog_dlos_fits('qpm', 10)
-
-    #correction = {'name': 'upweight'}
-    #cat_corrs = [{'catalog': {'name':catalog}, 'correction': correction} for catalog in ['patchy', 'qpm']]
-
-    #cat_corrs = [{'catalog': {'name':catalog}, 'correction': correction} for catalog in ['qpm']]
-    #for cat_corr in cat_corrs: 
-    #    combined_dlos_dist(**cat_corr)
-    
-    correction = {'name': 'upweight'}
-    cat_corrs = [{'catalog': {'name':catalog}, 'correction': correction} for catalog in ['qpm', 'lasdamasgeo', 'cmass', 'patchy']]
-    plot_fcpaper_dlos(cat_corrs)
+    combined_catalog_dlos_fits('lasdamasgeo', 5)

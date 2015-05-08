@@ -1,8 +1,9 @@
-pro ldg_fibcollmock_wcp_assign, true_file 
+pro ldg_fibcollmock_wcp_assign, n, letter 
 ; build LasDamasGeo mock catalog with close pair fibercollision weights
 ; using spherematch with angular separation 
 ; and output dLOS for each fibercollided pairs
 ; read LasDamas Geo mock
+    true_file = '/mount/riachuelo1/hahn/data/LasDamas/Geo/sdssmock_gamma_lrgFull_zm_oriana'+strmid(strtrim(string(n+100),1),1)+letter+'_no.rdcz.dat'
     readcol, true_file, mock_ra, mock_dec, mock_redshift
     Ngal = n_elements(mock_ra)
     print, Ngal, ' galaxies'
