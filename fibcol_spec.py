@@ -8,7 +8,7 @@ import fibcol_utility as fc_util
 
 # Classes ------------------------------------------------------------
 class Spec: 
-    def __init__(self, spectrum, Igal_Irand=False, **cat_corr):
+    def __init__(self, spectrum, **cat_corr):
         ''' Class for power/bispectrum measurements 
         
         specify catalog, version, mock file number, file specifications (e.g. Nrandom), 
@@ -249,9 +249,10 @@ def build_fibcol_power(**cat_corr):
     if power_exe_mod_time < power_code_mod_time: 
         fc_util.compile_fortran_code(power_code) 
     
-    # LasDamas Geo and Tiling Mock ----------------------------------------------------------------
-    if catalog['name'].lower() in ('lasdamasgeo', 'tilingmock', 'qpm', 'patchy'): 
-        if spec['quad'] == True:            # for quadrupole code NOTE: ORDER OF RAND AND MOCK FILES ARE REVERSED
+    
+    if catalog['name'].lower() in ('lasdamasgeo', 'tilingmock', 'qpm', 'patchy'):   
+        if spec['quad'] == True:            # for quadrupole code 
+            # NOTE: ORDER OF RAND AND MOCK FILES ARE REVERSED
             power_cmd = ' '.join([power_exe, fft_rand_file, fft_file, power_file, 
                 str(spec['sscale']), str(spec['grid']/2)]) 
         else: 
@@ -261,6 +262,43 @@ def build_fibcol_power(**cat_corr):
         subprocess.call(power_cmd.split()) 
     else: 
         raise NameError('not yet coded') 
+            
+    return power_file  
+
+def build_fibcol_bispec(**cat_corr): 
+    '''
+    Given catalog_correction dictionary, construct bispec file 
+    '''
+    catalog = cat_corr['catalog']
+    correction = cat_corr['correction']
+    spec = cat_corr['spec'] 
+    
+    # data file name 
+    data = fc_data.galaxy_data('data', readdata=False, **cat_corr) 
+
+    # FFt file names 
+    fft_file = get_fibcol_fft_file('data', **cat_corr) 
+    fft_rand_file = get_fibcol_fft_file('random', **cat_corr) 
+
+    bispec = fc_spec.spec('bispec', **cat_corr) 
+    bispec_file = bispec.file_name 
+
+    bispec_code = fc_util.fortran_code('bispec', **cat_corr) 
+    bispec_exe = fc_util.fortran_code2exe(power_code)
+    
+    # code and exe modification time 
+    power_code_mod_time = time.ctime(os.path.getmtime(power_code))
+    power_exe_mod_time = time.ctime(os.path.getmtime(power_exe))
+
+    # if code was changed since exe file was last compiled then 
+    # compile power code 
+    if (power_exe_mod_time < power_code_mod_time) or (os.path.isfile(bispec_exe) == False): 
+        fc_util.compile_fortran_code(bispec_code) 
+
+    if catalog['name'].lower() == 'lasdamasgeo': 
+        bispec_cmd = ' '.join([bispec_exe, '2', fft_rand_file, fft_file, bispec_file]) 
+        print power_cmd
+        subprocess.call(power_cmd.split()) 
             
     return power_file  
 
@@ -304,40 +342,3 @@ def build_fibcol_power_Igal_Iran(**cat_corr):
             
     return power_file  
 """
-
-def build_fibcol_bispec(**cat_corr): 
-    '''
-    Given catalog_correction dictionary, construct bispec file 
-    '''
-    catalog = cat_corr['catalog']
-    correction = cat_corr['correction']
-    spec = cat_corr['spec'] 
-    
-    # data file name 
-    data = fc_data.galaxy_data('data', readdata=False, **cat_corr) 
-
-    # FFt file names 
-    fft_file = get_fibcol_fft_file('data', **cat_corr) 
-    fft_rand_file = get_fibcol_fft_file('random', **cat_corr) 
-
-    bispec = fc_spec.spec('bispec', **cat_corr) 
-    bispec_file = bispec.file_name 
-
-    bispec_code = fc_util.fortran_code('bispec', **cat_corr) 
-    bispec_exe = fc_util.fortran_code2exe(power_code)
-    
-    # code and exe modification time 
-    power_code_mod_time = time.ctime(os.path.getmtime(power_code))
-    power_exe_mod_time = time.ctime(os.path.getmtime(power_exe))
-
-    # if code was changed since exe file was last compiled then 
-    # compile power code 
-    if (power_exe_mod_time < power_code_mod_time) or (os.path.isfile(bispec_exe) == False): 
-        fc_util.compile_fortran_code(bispec_code) 
-
-    if catalog['name'].lower() == 'lasdamasgeo': 
-        bispec_cmd = ' '.join([bispec_exe, '2', fft_rand_file, fft_file, bispec_file]) 
-        print power_cmd
-        subprocess.call(power_cmd.split()) 
-            
-    return power_file  

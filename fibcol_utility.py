@@ -20,13 +20,18 @@ import fibcol_data as fc_data
 import fibcol_spec as fc_spec
 
 def fortran_code(fft_power, **cat_corr): 
-    '''
-    Uses catalog and correction dictionary to select appropriate fortran code 
+    ''' Return appropriate FORTRAN code for calculating FFT or powerspectrum
+
+    Parameters
+    ----------
+    fft_power : 'fft', 'power', 'quadfft', 'quadpower'
+    cat_corr : catalog correction dictionary 
+
+
     '''
     catalog = cat_corr['catalog']
     correction = cat_corr['correction']
     spec = cat_corr['spec']
-    
     
     # LasDamasGeo ------------------------------------------------------------------------------------------------
     if catalog['name'].lower() == 'lasdamasgeo': 
@@ -49,7 +54,7 @@ def fortran_code(fft_power, **cat_corr):
                 elif spec['grid'] == 960: 
                     f_code = ldg_code_dir+'power_ldg_fkp_960grid_480bin.f'
 
-            elif correction['name'].lower() in ('peakshot', 'allpeakshot', 
+            elif correction['name'].lower() in ('peakshot', 'allpeakshot', 'noweight', 
                     'shotnoise', 'vlospeakshot', 'floriansn', 'hectorsn', 'peakshot_dnn'): 
                 # Igal+Irand shot noise incorporated
                 if spec['grid'] == 360: 
@@ -126,7 +131,7 @@ def fortran_code(fft_power, **cat_corr):
                     f_code = code_dir+'power-qpm-fkp-w-nbar-960grid-480bin.f'
 
             elif correction['name'].lower() in \
-                    ('peakshot', 'shotnoise', 'floriansn', 
+                    ('peakshot', 'shotnoise', 'floriansn', 'noweight', 
                             'hectorsn', 'vlospeakshot', 'peakshot_dnn'): 
                 if spec['grid'] == 360: 
                     # Igal Irand shot noise correction 

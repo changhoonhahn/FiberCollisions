@@ -808,7 +808,7 @@ def build_noweight(**cat_corr):
         vetoed_wfc = np.array([1.0 for i in range(n_veto)]) 
 
         noweight_file = get_galaxy_data_file('data', **cat_corr) 
-        np.savetxt(noweight_file.file_name, np.c_[
+        np.savetxt(noweight_file, np.c_[
             vetoed_ra, vetoed_dec, vetoed_z, vetoed_wfkp, vetoed_wfc, vetoed_comp], 
             fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
     
