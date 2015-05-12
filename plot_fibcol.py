@@ -416,10 +416,9 @@ def plot_pk_fibcol_comp(catalog_name, n_mock, corr_methods, quad=False, type='ra
     else: 
         fig_name = ''.join(['p0k_', catalog_name.lower(), 
             '_fibcoll_', corr_str, resid_str, '_comparison_Ngrid', str(Ngrid), '.png'])     
-
+    print''.join(['/home/users/hahn/research/figures/boss/fiber_collision/', fig_name]) 
     fig.savefig(''.join(['/home/users/hahn/research/figures/boss/fiber_collision/', 
-                fig_name]), 
-            bbox_inches="tight")
+                fig_name]), bbox_inches="tight")
 
     fig.clear()
 
@@ -985,17 +984,17 @@ if __name__=="__main__":
     #plot_avg_pk_fibcol('lasdamasgeo', 40, {'name': 'true'}, quad=False)   
     #plot_avg_pk_fibcol('qpm', 100, {'name': 'true'}, quad=False)   
 
-    qpm_corr_methods = [ {'name': 'true'}, {'name':'upweight'}, {'name': 'noweight'} ] 
-    #        {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}
-    #        ] 
+    qpm_corr_methods = [ {'name': 'true'}, {'name':'upweight'}, {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}]
     #        #{'name': 'peakshot_dnn', 'sigma':4.4, 'NN': 3, 'fit': 'gauss'}
-    #        #]
-    plot_pk_fibcol_comp('qpm', 2, qpm_corr_methods, quad=False, Ngrid=360, type='ratio', xrange=[0.02, 1.0]) 
+    plot_pk_fibcol_comp('qpm', 10, qpm_corr_methods, quad=True, Ngrid=960, type='regular', xrange=[0.001, 1.0], yrange=[10**-3, 3*10**5]) 
+    plot_pk_fibcol_comp('qpm', 10, qpm_corr_methods, quad=True, Ngrid=960, type='ratio', xrange=[0.001, 1.0]) 
+    plot_pk_fibcol_comp('qpm', 10, qpm_corr_methods, quad=True, Ngrid=960, type='residual', yscale='log', xrange=[0.02, 1.0]) 
     #plot_pk_fibcol_comp('qpm', 100, qpm_corr_methods, quad=True, type='residual', yscale='log', xrange=[0.02, 1.0]) 
 
-    #ldg_corr_methods = [{'name': 'true'},  {'name': 'upweight'}, {'name': 'peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}]
-    ldg_corr_methods = [{'name': 'true'},  {'name': 'upweight'}, {'name': 'noweight'}] 
-    plot_pk_fibcol_comp('lasdamasgeo', 2, ldg_corr_methods, quad=False, Ngrid=360, type='ratio', xrange=[0.02, 1.0])
+    ldg_corr_methods = [ {'name': 'true'},  {'name': 'upweight'}, {'name': 'peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}]
+    plot_pk_fibcol_comp('lasdamasgeo', 10, ldg_corr_methods, quad=True, Ngrid=960, type='regular', xrange=[0.001, 1.0], yrange=[10**-3, 3*10**5])
+    plot_pk_fibcol_comp('lasdamasgeo', 10, ldg_corr_methods, quad=True, Ngrid=960, type='ratio', xrange=[0.001, 1.0])
+    plot_pk_fibcol_comp('lasdamasgeo', 10, ldg_corr_methods, quad=True, Ngrid=960, type='residual', yscale='log', xrange=[0.02, 1.0])
 
     #plot_pk_fibcol_comp('lasdamasgeo', 39, ldg_corr_methods, type='ratio')
     #plot_pk_fibcol_comp('lasdamasgeo', 39, ldg_corr_methods, type='regular') 
