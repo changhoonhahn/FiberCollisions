@@ -1,48 +1,66 @@
+'''
+
+
+Code to analyze nbar(z) of mock catalogs
+
+
+Author(s) : ChangHoon Hahn 
+
+
+'''
+
 import numpy as np
 import os.path
 import subprocess
 import cosmolopy as cosmos
+
+# --- Local --- 
 import fibcol_data as fc_data
 import fibcol_utility as fc_util
 
 # Classes ------------------------------------------------------------
 class nbar: 
-    def __init__(self, **cat_corr):
-        '''
-        read/construct nbar(z) file corresponding to catalog_correction dictionary 
+    def __init__(self, clobber=False, **cat_corr):
+        ''' read/construct nbar(z) file corresponding to catalog_correction dictionary 
+
+        Parameters
+        ----------
+        clobber : True/False
+        cat_corr : catalog and correction dictionary 
+
+        Notes
+        -----
+        * nbar(z) is built by first using a nbar-ngal file, then scaling the nbar(z) file 
+        * Upweight, Peak+shot correciton methods change nbar(z) by a negligible amount so a correction is unnecssary
+
         '''
         catalog = cat_corr['catalog'] 
         correction  = cat_corr['correction'] 
 
         # set zlow, zmid, zhigh (consistent with CMASS nbar(z) files) 
-        self.zlow = np.array([0.005*np.float(i) for i in range(201)])
+        self.zlow = np.arange(0.0, 1.005, 0.005)
         self.zhigh = self.zlow+0.005 
         self.zmid = self.zlow+0.0025 
+        n_zbin = len(self.zlow) 
     
-        # store catalog and correction info 
-        self.cat_corr = cat_corr
-        
-        # LasDamasGeo ----------------------------------------------------------------------------------------
-        if catalog['name'].lower() == 'lasdamasgeo': 
-            # get nbar file name 
-            self.file_name = get_nbar_file(**cat_corr) 
+        if catalog['name'].lower() == 'lasdamasgeo':            # LasDamasGeo -----------------------------------------------
 
-            ldg_nbar = 9.44451*10.0**-5         # constant nbar(z) value for true
+            self.file_name = get_nbar_file(**cat_corr)  # nbar file name 
+            
+            ldg_nbar = 0.0000944233     # constant nbar(z) value for true
 
-            # for no correction ----------------------------------------------------------------------------
-            if correction['name'] .lower() in ('true', 'upweight', 'peakshot', 'vlospeakshot'): 
-                # upweight and peakshot change the nbar(z) only by a negligible amount so a correction is unnecesary   
-                # constant nbar(z)=9.44451e-5 
-                self.nbar = np.array([ldg_nbar for i in range(len(self.zlow))]) 
+            if correction['name'] .lower() in ('true', 'upweight', 'peakshot'): 
+                # no correction 
+                self.nbar = np.array([ldg_nbar for i in range(n_zbin)]) 
 
-            # for upweight, peak, all peak, and peak test correction ----------------------------------------
             else:
-                # if file exists
-                if os.path.isfile(self.file_name) == True: 
-                    # read file 
+                # nbar(z) needs to be corrected 
+
+                if (os.path.isfile(self.file_name) == True) and (clobber == False): 
+
                     self.nbar = np.loadtxt(self.file_name, unpack=True, usecols=[3])
                 else: 
-                    # if nbar does not exist then make it 
+
                     print 'Constructing ', self.file_name 
 
                     # check that the corrected nbar-ngal files exist
@@ -257,8 +275,13 @@ def get_nbar_file(**cat_corr):
     return file_name 
 
 def get_nbar_ngal_file(DorR, **cat_corr): 
-    '''
-    get nbar_ngal file name
+    ''' Return nbar_ngal file name
+
+    Parameters
+    ----------
+    DorR : 'data', 'random', 'allmocks' (You want to use 'allmocks') 
+    cat_corr : catalog correction dictionary 
+
     '''
     catalog = cat_corr['catalog'] 
     correction = cat_corr['correction'] 
@@ -271,9 +294,9 @@ def get_nbar_ngal_file(DorR, **cat_corr):
     else: 
         raise NameError('DorR error') 
 
-    # LasDamasGeo ------------------------------------------------------------------------------------
-    if catalog['name'].lower() == 'lasdamasgeo': 
-        file_dir = '/mount/riachuelo1/hahn/data/LasDamas/Geo/'
+    if catalog['name'].lower() == 'lasdamasgeo':                    # LasDamasGeo -----------------------------------
+
+        file_dir = '/mount/riachuelo1/hahn/data/LasDamas/Geo/'  # directory
 
         # if data, specify specific catalog #  
         if DorR.lower() == 'data':

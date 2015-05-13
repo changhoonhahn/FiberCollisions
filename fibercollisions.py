@@ -1022,10 +1022,10 @@ def build_lasdamasgeo(n_mocks):
     ''' 
 
     # build P(k) monopole or quadrupole
-    corrections = [ {'name': 'true'}, {'name': 'upweight'}, {'name': 'noweight'}]#, {'name': 'peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}]
+    corrections = [ {'name': 'true'}, {'name': 'upweight'}, {'name': 'peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}]
     spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 
-                'grid': 360, 'quad': False}
-    for i_mock in range(3, n_mocks+1): 
+                'grid': 960, 'quad': True}
+    for i_mock in range(11, n_mocks+1): 
         for corr in corrections: 
             build_fibcol_pk('lasdamasgeo', i_mock, corr, spec=spec, clobber=True)
 
@@ -1042,8 +1042,8 @@ if __name__=='__main__':
     #    fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     #cat_corr = {'catalog': {'name':'lasdamasgeo', 'n_mock':1, 'letter':'a'}, 'correction': {'name': 'true'}} 
     #fc_data.build_true(**cat_corr) 
-    #build_lasdamasgeo(10) 
-    build_qpm(10) 
+    build_lasdamasgeo(40) 
+    #build_qpm(10) 
     #build_patchy()
 
     #for i_mock in np.arange(1,2): 

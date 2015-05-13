@@ -1,6 +1,6 @@
 '''
 
-Deal with galaxy data for FiberCollisions 
+Code to handle galaxy data for FiberCollisions 
 
 Author(s): ChangHoon Hahn 
 
@@ -75,6 +75,8 @@ class galaxy_data:
 
                     elif correction['name'].lower() in ('noweight'): 
                         # No weight
+
+                        catalog_columns = ['ra', 'dec', 'z', 'nbar', 'weight'] 
                         build_noweight(**cat_corr) 
 
                     else: 
