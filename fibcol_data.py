@@ -75,8 +75,7 @@ class galaxy_data:
 
                     elif correction['name'].lower() in ('noweight'): 
                         # No weight
-
-                        catalog_columns = ['ra', 'dec', 'z', 'nbar', 'weight'] 
+                        catalog_columns = ['ra', 'dec', 'z', 'weight'] 
                         build_noweight(**cat_corr) 
 
                     else: 

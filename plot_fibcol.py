@@ -720,13 +720,77 @@ def plot_peakcorrection_check(catalog_name, n_mock, corr_methods):
     sub.set_xlabel(r"$d_{LOS}$ Mpc") 
     plt.show() 
 
-def plot_nbar_comparison(n_mock, cat_corr_list, resid='False'): 
-    '''
-    comparison of nbar(z) values 
-    '''
 
-    for cat_corr in cat_corr_list: 
-        pass
+# nbar(z) ------------------------------------------------------------
+def plot_nbar_comparison(cat_corr_list, type='ratio', **kwargs):
+    ''' Plot n(z) values for a list of correction methods 
+    
+    
+    Paramters
+    ---------
+    cat_corr_list : list of catalog, correction dictionary  
+    type : Comparison type ('regular', 'ratio', etc) 
+
+    Notes
+    -----
+    * If type == 'ratio', put denominator first (the true) 
+
+    '''
+    # make pretty 
+    prettyplot()
+    pretty_colors = prettycolors()
+    
+    fig = plt.figure(1) 
+    sub = fig.add_subplot(111)
+
+    nbar_list, nbar_label = [], [] 
+    cat_corr_str = ''
+    for i_cc, cat_corr in enumerate(cat_corr_list): 
+        
+        catalog = cat_corr['catalog']
+        correction = cat_corr['correction']
+        cat_corr_label = ''.join([catalog['name'].lower(), ': ', correction['name']]) 
+        cat_corr_str += ''.join(['_', catalog['name'].lower(), '.', correction['name']]) 
+        
+        nb = fc_nbar.nbar(**cat_corr)   # import nbar class 
+
+        if type == 'regular': 
+            # plot nbar(z) 
+            sub.plot(nb.zmid, nb.nbar, c=pretty_colors[i_cc], lw=4, label=cat_corr_label) 
+    
+        elif type == 'ratio': 
+            if i_cc == 0: 
+                denom_nbar = nb.nbar
+            else: 
+                nbar_list.append(nb.nbar) 
+                nbar_label.append(cat_corr_label) 
+                nbar_z = nb.zmid
+    
+    # plot nbar(z) ratio 
+    if type == 'ratio': 
+        for i_nbz, nbz in enumerate(nbar_list): 
+            sub.plot(nbar_z, nbz/denom_nbar, lw=4, c=pretty_colors[i_nbz], label=nbar_label[i_nbz])
+
+    sub.legend() 
+
+    if 'xrange' in kwargs.keys(): 
+        sub.set_xlim(kwargs['xrange'])
+    else: 
+        sub.set_xlim([0.43, 0.7])
+
+    if 'yrange' in kwargs.keys(): 
+        sub.set_ylim(kwargs['yrange'])
+    else: 
+        if type =='ratio': 
+            sub.set_ylim([0.8, 1.2])
+    
+    sub.set_xlabel(r'$z$ (Redshift)') 
+    if type == 'ratio': 
+        sub.set_ylabel(r'$\mathtt{\bar{n}(z)/\bar{n}_{true}(z)}$')
+        
+    fig_file = ''.join(['figure/', 
+        'nbar', cat_corr_str, '_', type, '.png']) 
+    fig.savefig(fig_file, bbox_inches='tight') 
 
 def plot_pk_chi2_comp(catalog_name, n_mock, corr_methods): 
     '''
@@ -974,6 +1038,14 @@ def chi_squared():
             [{'name': 'true'}, {'name':'upweight'}, {'name':'floriansn'}, {'name':'hectorsn'}, {'name': 'peakshot', 'sigma':4.8, 'fpeak':0.62, 'fit':'gauss'}])
 
 if __name__=="__main__":
+
+    cat_corr_list = [] 
+    catalog = {'name': 'lasdamasgeo'}
+    for corr in ['true', 'noweight']: 
+        cat_corr_list.append({'catalog': catalog, 'correction': {'name': corr}}) 
+
+    plot_nbar_comparison(cat_corr_list, type='ratio', xrange=[0.16, 0.4], yrange=[0.95, 1.05])
+
     #cat_corr = {'catalog': {'name': 'lasdamasgeo', 'n_mock': 1, 'letter': 'a'}, 
     #        'correction': {'name': 'upweight'}} 
 
@@ -984,17 +1056,17 @@ if __name__=="__main__":
     #plot_avg_pk_fibcol('lasdamasgeo', 40, {'name': 'true'}, quad=False)   
     #plot_avg_pk_fibcol('qpm', 100, {'name': 'true'}, quad=False)   
 
-    qpm_corr_methods = [ {'name': 'true'}, {'name':'upweight'}, {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}]
-    #        #{'name': 'peakshot_dnn', 'sigma':4.4, 'NN': 3, 'fit': 'gauss'}
-    plot_pk_fibcol_comp('qpm', 10, qpm_corr_methods, quad=True, Ngrid=960, type='regular', xrange=[0.001, 1.0], yrange=[10**-3, 3*10**5]) 
-    plot_pk_fibcol_comp('qpm', 10, qpm_corr_methods, quad=True, Ngrid=960, type='ratio', xrange=[0.001, 1.0]) 
-    plot_pk_fibcol_comp('qpm', 10, qpm_corr_methods, quad=True, Ngrid=960, type='residual', yscale='log', xrange=[0.02, 1.0]) 
-    #plot_pk_fibcol_comp('qpm', 100, qpm_corr_methods, quad=True, type='residual', yscale='log', xrange=[0.02, 1.0]) 
+    #qpm_corr_methods = [ {'name': 'true'}, {'name':'upweight'}, {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}]
+    ##        #{'name': 'peakshot_dnn', 'sigma':4.4, 'NN': 3, 'fit': 'gauss'}
+    #plot_pk_fibcol_comp('qpm', 10, qpm_corr_methods, quad=True, Ngrid=960, type='regular', xrange=[0.001, 1.0], yrange=[10**-3, 3*10**5]) 
+    #plot_pk_fibcol_comp('qpm', 10, qpm_corr_methods, quad=True, Ngrid=960, type='ratio', xrange=[0.001, 1.0]) 
+    #plot_pk_fibcol_comp('qpm', 10, qpm_corr_methods, quad=True, Ngrid=960, type='residual', yscale='log', xrange=[0.02, 1.0]) 
+    ##plot_pk_fibcol_comp('qpm', 100, qpm_corr_methods, quad=True, type='residual', yscale='log', xrange=[0.02, 1.0]) 
 
-    ldg_corr_methods = [ {'name': 'true'},  {'name': 'upweight'}, {'name': 'peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}]
-    plot_pk_fibcol_comp('lasdamasgeo', 10, ldg_corr_methods, quad=True, Ngrid=960, type='regular', xrange=[0.001, 1.0], yrange=[10**-3, 3*10**5])
-    plot_pk_fibcol_comp('lasdamasgeo', 10, ldg_corr_methods, quad=True, Ngrid=960, type='ratio', xrange=[0.001, 1.0])
-    plot_pk_fibcol_comp('lasdamasgeo', 10, ldg_corr_methods, quad=True, Ngrid=960, type='residual', yscale='log', xrange=[0.02, 1.0])
+    #ldg_corr_methods = [ {'name': 'true'},  {'name': 'upweight'}, {'name': 'peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}]
+    #plot_pk_fibcol_comp('lasdamasgeo', 10, ldg_corr_methods, quad=True, Ngrid=960, type='regular', xrange=[0.001, 1.0], yrange=[10**-3, 3*10**5])
+    #plot_pk_fibcol_comp('lasdamasgeo', 10, ldg_corr_methods, quad=True, Ngrid=960, type='ratio', xrange=[0.001, 1.0])
+    #plot_pk_fibcol_comp('lasdamasgeo', 10, ldg_corr_methods, quad=True, Ngrid=960, type='residual', yscale='log', xrange=[0.02, 1.0])
 
     #plot_pk_fibcol_comp('lasdamasgeo', 39, ldg_corr_methods, type='ratio')
     #plot_pk_fibcol_comp('lasdamasgeo', 39, ldg_corr_methods, type='regular') 
