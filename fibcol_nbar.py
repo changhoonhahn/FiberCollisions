@@ -32,6 +32,7 @@ class nbar:
         -----
         * nbar(z) is built by first using a nbar-ngal file, then scaling the nbar(z) file 
         * Upweight, Peak+shot correciton methods change nbar(z) by a negligible amount so a correction is unnecssary
+        * only coded for lasdamasgeo so far
 
         '''
         catalog = cat_corr['catalog'] 
@@ -59,6 +60,7 @@ class nbar:
                 if (os.path.isfile(self.file_name) == True) and (clobber == False): 
 
                     self.nbar = np.loadtxt(self.file_name, unpack=True, usecols=[3])
+
                 else: 
 
                     print 'Constructing ', self.file_name 
@@ -66,7 +68,7 @@ class nbar:
                     # check that the corrected nbar-ngal files exist
                     corr_ngal_file = get_nbar_ngal_file('allmocks', **cat_corr)
 
-                    if os.path.isfile(corr_ngal_file) == False: 
+                    if (os.path.isfile(corr_ngal_file) == False) or clobber: 
                         print 'Constructing ', corr_ngal_file
                         write_nbar_ngal('allmocks', **cat_corr) 
                     else: 
@@ -86,7 +88,7 @@ class nbar:
                     # read true nbar_ngal
                     true_ngal = np.loadtxt(true_ngal_file, unpack=True, usecols=[3])
 
-                    # use corrected nbar_ngal file to determine corrected nbar(z) 
+                    # determine corrected nbar(z) using corrected nbar_ngal file
                     self.nbar = np.zeros(len(self.zlow))
                     for i in range(len(true_ngal)): 
                         if true_ngal[i] != 0: 
@@ -94,63 +96,14 @@ class nbar:
                             #print (corr_ngal[i]/true_ngal[i])
                         else: 
                             self.nbar[i] = 0.0
+
                     self.writenbar()
-        
-        # Tiling MOck ------------------------------------------------------------------------------------ 
-        elif catalog['name'].lower() == 'tilingmock': 
-            # get file name 
-            if correction['name'].lower() in ('true', 'upweight', 'peakshot', 'vlospeakshot'): 
-                self.file_name = '/mount/riachuelo1/hahn/data/tiling_mocks/nbar-cmass-boss5003sector-icoll012.dat'  #hard coded
-            else: 
-                self.file_name = get_nbar_file(**cat_corr)          
-
-            if os.path.isfile(self.file_name) == True: 
-                self.nbar = np.loadtxt(self.file_name, unpack=True, usecols=[3])
-
-            # if nbar does not exist then make it 
-            else:
-                print 'Constructing ', self.file_name 
-                # check that the corrected nbar-ngal files exist
-                corr_ngal_file = get_nbar_ngal_file('random', **cat_corr)
-
-                if os.path.isfile(corr_ngal_file) == False: 
-                    print 'Constructing ', corr_ngal_file
-                    write_nbar_ngal('random', **cat_corr) 
-                else: 
-                    print 'Using ', corr_ngal_file
-
-                # read corrected nbar_ngal
-                corr_ngal = np.loadtxt(corr_ngal_file, unpack=True, usecols=[3]) 
-       
-                # check that the true nbar_ngal fiel exists
-                true_cat_corr = {'catalog':catalog, 'correction':{'name':'true'}}
-                true_ngal_file = get_nbar_ngal_file('random', **true_cat_corr) 
-
-                if os.path.isfile(true_ngal_file) == False: 
-                    print 'Constructing ', true_ngal_file
-                    write_nbar_ngal('random', **true_cat_corr) 
-                
-                true_nbar_file = get_nbar_file(**true_cat_corr)         # true nbar file name 
-
-                # read true nbar_ngal and nbar files 
-                true_ngal = np.loadtxt(true_ngal_file, unpack=True, usecols=[3])
-                true_nbar = np.loadtxt(true_nbar_file, unpack=True, usecols=[3])
-                
-                # use corrected nbar_ngal file to determine corrected nbar(z) 
-                self.nbar = np.zeros(len(self.zlow))
-                for i in range(len(true_ngal)): 
-                    if true_ngal[i] != 0: 
-                        self.nbar[i] = true_nbar[i]*(corr_ngal[i]/true_ngal[i])
-                    else: 
-                        self.nbar[i] = 0.0
-                self.writenbar()
 
         else: 
             raise NameError("Not yet Coded!") 
 
     def writenbar(self): 
-        '''
-        Write class object nbar to ASCII file 
+        ''' Write class object nbar to ASCII file 
         '''
         np.savetxt(self.file_name, 
                 np.c_[self.zmid, self.zlow, self.zhigh, self.nbar], 
@@ -158,121 +111,43 @@ class nbar:
 
 # Functions -----------------------------------------------------------------
 def get_nbar_file(**cat_corr): 
-    '''
-    get nbar file name
-    '''
-    catalog = cat_corr['catalog']
-    correction = cat_corr['correction']
+    ''' Return nbar file name
+
+    Parameters
+    ----------
+    DorR : 'data', 'random', 'allmocks' (You want to use 'allmocks') 
+    cat_corr : catalog correction dictionary 
     
-    # las damas geo ------------------------------------------------------------------------------------------------------------
+    Returns
+    -------
+    file_name 
+    '''
+    catalog = cat_corr['catalog'] 
+    correction = cat_corr['correction'] 
+    
     if catalog['name'].lower() == 'lasdamasgeo': 
-        # construct nbar file 
-        nbar_file_dir = '/mount/riachuelo1/hahn/data/LasDamas/Geo/'     # nbar directory 
-        
-        # correction string 
-        if correction['name'].lower() in ('true', 'upweight', 'shotnoise', 'floriansn', 'hectorsn'): 
-            # ture or upweight
-            corr_param_str = ''
-        else: 
-            try: 
-                correction['fit']
-            except KeyError: 
-                pass 
-            else: 
-                # specify peak correction fit (expon or gauss) 
-                if correction['fit'].lower() in ('gauss', 'expon', 'real'): fit_str = correction['fit'].lower()  
-                else: raise NameError('fit type not specified') 
-            
-            if correction['name'].lower() in ('peak', 'peaknbar','peaktest', 'peakshot', 'vlospeakshot'): 
-                # for anything that involves the peak and tail  
-
-                if correction['name'].lower() == 'peak':   
-                    # correct for poor namign convention 
-                    correction['name'] = 'peaknbar'
-                
-                if correction['fit'].lower() in ('gauss', 'expon'): 
-                    corr_param_str = ''.join(['.', fit_str, '.', correction['name'].lower(), 
-                        '.sigma', str(correction['sigma']), 'fpeak', str(correction['fpeak'])])
-                elif correction['fit'].lower() in ('real'): 
-                    corr_param_str = ''.join(['.', fit_str, '.', correction['name'].lower(), '.fpeak', str(correction['fpeak'])])
-
-            # for anything that involves only the peak
-            elif (correction['name'].lower() == 'allpeak') or (correction['name'].lower() == 'allpeakshot'): 
-                corr_param_str = ''.join(['.', fit_str, '.', correction['name'].lower(), 
-                    '.sigma', str(correction['sigma'])])
-
-            # test adjustments  
-            elif (correction['name'].lower() == 'randrm'): 
-                corr_param_str = ''
-
-            else: 
-                raise NameError('Correction method not supported') 
-
-        if correction['name'].lower() == 'shotnoise': 
-            corr_str = 'upweight' 
-        else: 
-            corr_str = correction['name'].lower() 
-        file_name = nbar_file_dir+'-'.join(['nbar', catalog['name'].lower(), corr_str])+corr_param_str+'.dat'
-
-    # Tiling Mock ------------------------------------------------------------------------------------------------------------
-    elif catalog['name'].lower() == 'tilingmock': 
-        # construct nbar file 
-        nbar_file_dir = '/mount/riachuelo1/hahn/data/tiling_mocks/'     # nbar directory 
-        
-        # correction string 
-        if correction['name'].lower() in ('true', 'upweight', 'shotnoise', 'floriansn', 'hectorsn'): 
-            # true or upweight
-            corr_param_str = ''
-
-        # Any correction emthod involving the peak  --------------------------------------------------
-        else: 
-            try: 
-                correction['fit']
-            except KeyError: 
-                pass 
-            else: 
-                # specify peak correction fit (expon or gauss) 
-                if correction['fit'].lower() in ('gauss', 'expon'): 
-                    fit_str = correction['fit'].lower()  
-                else: 
-                    raise NameError('fit type not specified') 
-            
-            # correction specifying string: 
-            if correction['name'].lower() in ('peak', 'peaknbar', 'peaktest', 'peakshot', 'vlospeakshot'): 
-                # for anything that involves the peak and tail  
-
-                if correction['name'].lower() == 'peak': 
-                    # correct for bad naming convention 
-                    correction['name'] = 'peaknbar'
-                
-                corr_param_str = ''.join(['.', fit_str, '.', correction['name'].lower(), 
-                    '.sigma', str(correction['sigma']), 'fpeak', str(correction['fpeak'])])
-
-            elif correction['name'].lower() in ('allpeak', 'allpeakshot'): 
-                # for anything that involves only the peak
-
-                corr_param_str = ''.join(['.', fit_str, '.', correction['name'].lower(), 
-                    '.sigma', str(correction['sigma'])])
-
-            elif (correction['name'].lower() == 'randrm'): 
-                # test adjustments  
-                corr_param_str = ''
-
-            else: 
-                print correction['name'].lower()
-                raise NameError('Correction method not supported') 
-
-
-        file_name = nbar_file_dir+'-'.join(['nbar', catalog['name'].lower(), correction['name']])+corr_param_str+'.dat'
-        
-        if correction['name'].lower() == 'true': 
-            # crude hardcoded for true correction method
-            file_name = '/mount/riachuelo1/hahn/data/tiling_mocks/nbar-cmass-boss5003sector-icoll012.dat'
-
+        catalog['n_mock'] = 1
+        catalog['letter'] = 'a' 
+    elif catalog['name'].lower() == 'qpm': 
+        catalog['n_mock'] = 1
     else: 
-        raise NameError('catalog not yet coded') 
+        raise NameError('not yet coded!')
+    
+    data_file = fc_data.get_galaxy_data_file('data', **cat_corr)
+    data_dir = '/'.join(data_file.split('/')[:-1])+'/'      # directory
+    data_file_name = data_file.split('/')[-1]
 
-    return file_name 
+    # correction specifier 
+    if catalog['name'].lower() == 'lasdamasgeo':
+        corr_str = '.'.join(data_file_name.split('.')[2:])
+    elif catalog['name'].lower() == 'qpm': 
+        corr_str = '.'.join(data_file_name.split('.')[4:])
+    else: 
+        raise NameError('not yet coded!')
+
+    # combine to form filename  
+    file_name = ''.join([data_dir, 'nbar-', catalog['name'].lower(), '-', corr_str])
+    return file_name
 
 def get_nbar_ngal_file(DorR, **cat_corr): 
     ''' Return nbar_ngal file name
@@ -281,146 +156,84 @@ def get_nbar_ngal_file(DorR, **cat_corr):
     ----------
     DorR : 'data', 'random', 'allmocks' (You want to use 'allmocks') 
     cat_corr : catalog correction dictionary 
-
+    
+    Returns
+    -------
+    file_name 
     '''
     catalog = cat_corr['catalog'] 
     correction = cat_corr['correction'] 
     
-    file_prefix = 'nbar-ngal-'
+    if DorR.lower() == 'allmocks': 
+        data_file = fc_data.get_galaxy_data_file('data', **cat_corr)
+    else: 
+        data_file = fc_data.get_galaxy_data_file(DorR, **cat_corr)
+    data_dir = '/'.join(data_file.split('/')[:-1])+'/'      # directory
+    data_file_name = data_file.split('/')[-1]
 
-    catalog_str = catalog['name'].lower() 
     if DorR.lower() in ('data', 'random', 'allmocks'): 
-        DorR_str = DorR.lower()             # can be 'data', 'random', and 'allmocks'
+        DorR_str = DorR.lower() 
     else: 
         raise NameError('DorR error') 
 
-    if catalog['name'].lower() == 'lasdamasgeo':                    # LasDamasGeo -----------------------------------
+    if catalog['name'].lower() == 'lasdamasgeo':
 
-        file_dir = '/mount/riachuelo1/hahn/data/LasDamas/Geo/'  # directory
-
-        # if data, specify specific catalog #  
         if DorR.lower() == 'data':
-            catalog_str = catalog_str+'-'+str(catalog['n_mock'])+catalog['letter']
-    
-        # specify correction method 
-        # No extra correction parameters ---------------------------------------------------------------------
-        if correction['name'].lower() in ('true', 'upweight', 'shotnoise', 'floriansn', 'hectorsn'): 
-            if correction['name'].lower() in ('shotnoise', 'floriansn', 'hectorsn'): 
-                corr_str = 'upweight'
-            else:
-                corr_str = correction['name'].lower()  
-
-        # correction methods that involve peak and tail ---------------------------------------------
-        elif correction['name'].lower() in ('peak', 'peaknbar', 'peaktest', 'peakshot', 'vlospeakshot'):
-
-            if correction['name'].lower() == 'peak': 
-                # correct for poor naming convention
-                correction['name'] = 'peaknbar'
-
-            # specify peak correction fit (expon or gauss) 
-            if correction['fit'].lower() in ('gauss', 'expon'): 
-                corr_str = ''.join([correction['fit'].lower(), '.', correction['name'].lower(), 
-                    '.sigma', str(correction['sigma']), 'fpeak', str(correction['fpeak'])])
-            elif correction['fit'].lower() in ('real'): 
-                corr_str = ''.join([correction['fit'].lower(), '.', correction['name'].lower(), '.fpeak', str(correction['fpeak'])]) 
-            else: 
-                raise NameError('peak fit has to be specified: gauss or expon') 
-
-        # correction methods that involve only peak -------------------------------------------------
-        elif correction['name'].lower() in ('allpeak', 'allpeakshot'): 
-            
-            # specify peak correction fit (expon or gauss) 
-            if correction['fit'].lower() in ('gauss', 'expon'): 
-                pass
-            else: 
-                raise NameError('peak fit has to be specified: gauss or expon') 
-
-            corr_str = ''.join([correction['fit'].lower(), '.', correction['name'].lower(), '.sigma', str(correction['sigma'])])
+            catalog_str = ''.join([catalog['name'].lower(), '-', str(catalog['n_mock']), catalog['letter']]) 
+        elif DorR.lower() == 'allmocks': 
+            catalog_str = ''.join([catalog['name'].lower(), '-', 'allmocks']) 
+        else:
+            catalog_str = ''.join([catalog['name'].lower(), '-', 'random']) 
         
-        # test adjustments ----------------------------------------------------------------------------
-        elif (correction['name'].lower() == 'randrm'): 
-            corr_str = correction['name'].lower() 
-
-        else: 
-            raise NameError('correction method unknown')
-    
-    # Tiling mock --------------------------------------------------------------------------------------------------------------------
-    elif catalog['name'].lower() == 'tilingmock': 
-        file_dir = '/mount/riachuelo1/hahn/data/tiling_mocks/'
-        
-        # specify correction method 
-        # No correction parameters ----------------------------------------------------------------------------------------
-        if correction['name'].lower() in ('true', 'upweight', 'shotnoise', 'floriansn', 'hectorsn', 'randrm'): 
-            if correction['name'].lower() in ('shotnoise', 'floriansn', 'hectorsn'):
-                corr_str = 'upweight'
-            else:
-                corr_str = correction['name'].lower()  
-
-        # correction methods that involve peak and tail ---------------------------------------------
-        elif correction['name'].lower() in ('peak', 'peaknbar', 'peaktest', 'peakshot', 'vlospeakshot'):
-
-            if correction['name'].lower() == 'peak': 
-                # correct for poor naming convention
-                correction['name'] = 'peaknbar'
-
-            # specify peak correction fit (expon or gauss) 
-            if correction['fit'].lower() in ('gauss', 'expon'): 
-                pass
-            else: 
-                raise NameError('peak fit has to be specified: gauss or expon') 
-
-            corr_str = ''.join([correction['fit'].lower(), '.', correction['name'].lower(), 
-                '.sigma', str(correction['sigma']), 'fpeak', str(correction['fpeak'])])
-
-        # correction methods that involve only peak -------------------------------------------------
-        elif correction['name'].lower() in ('allpeak', 'allpeakshot'): 
-            
-            # specify peak correction fit (expon or gauss) 
-            if (correction['fit'].lower() == 'gauss') or (correction['fit'].lower() == 'expon'): 
-                pass
-            else: 
-                raise NameError('peak fit has to be specified: gauss or expon') 
-
-            corr_str = ''.join([correction['fit'].lower(), '.', correction['name'].lower(), '.sigma', str(correction['sigma'])])
-        else: 
-            raise NameError('correction method not available')
+        # correction specifier 
+        corr_str = '.'.join(data_file_name.split('.')[2:])
 
     elif catalog['name'].lower() == 'qpm': 
-        file_dir = '/mount/riachuelo1/hahn/data/QPM/dr12d/'
+        
+        if DorR.lower() == 'data':
+            catalog_str = ''.join([catalog['name'].lower(), '-', str(catalog['n_mock'])]) 
+        elif DorR.lower() == 'allmocks': 
+            catalog_str = ''.join([catalog['name'].lower(), '-', 'allmocks']) 
+        else: 
+            catalog_str = ''.join([catalog['name'].lower(), '-', 'random']) 
+        
+        # correction specifier 
+        corr_str = '.'.join(data_file_name.split('.')[4:])
 
-        if correction['name'].lower() in ('true'): 
-            corr_str = correction['name'].lower()  
-
-    elif catalog['name'].lower() == 'cmass': 
-        file_dir = '/mount/riachuelo1/hahn/data/'
-        #####  
-        #####  
-        #####  FIX LATER
-        #####  
-        #####  
-        corr_str = correction['name'].lower() 
     else: 
         raise NameError('not yet coded!')
 
     # combine to form filename  
-    file_name = ''.join([file_dir, file_prefix, catalog_str, '-', DorR_str, '-', corr_str, '.dat'])
+    file_name = ''.join([data_dir, 
+        'nbar-ngal-', catalog_str, '-', corr_str])
     return file_name
 
 def write_nbar_ngal(DorR, **cat_corr): 
-    '''
-    write ngal values for nbar(z) redshift bins to a file so it doesn't have to be repeated
+    ''' Construct ngal values for nbar(z) redshift bins for specified mock catalog
+    so that it doesn't have to be repeated
+    
+    Parameters
+    ----------
+    DorR : data, random, allmocks 
+    cat_corr : catalog correction specifier 
+    
+    Notes
+    -----
+    * If DorR == 'allmock', then nbar_ngal is calculated for the combination of all the mocks
+
     '''
     catalog = cat_corr['catalog'] 
     correction = cat_corr['correction'] 
    
-    # import z values and shell volumes from arbitrary nbar file  
-    zcen, zlow, zhigh, shell_vol = np.loadtxt('/mount/riachuelo1/hahn/data/nbar-junk.dat', unpack=True, usecols=[0,1,2,5])
+    # import z values and shell volumes from nbar file  
+    zcen, zlow, zhigh, shell_vol = np.loadtxt('/mount/riachuelo1/hahn/data/nbar-junk.dat', 
+            unpack=True, usecols=[0,1,2,5])
     z_values =[zcen, zlow, zhigh, shell_vol]
 
-    # LasDamasGeo --------------------------------------------------------------------------------------------------------
-    if catalog['name'].lower() == 'lasdamasgeo': 
-        # import mock/random data  
-        if DorR.lower() == 'allmocks': 
+    if catalog['name'].lower() == 'lasdamasgeo':            # LasDamasGeo ----------------------
+        
+        if DorR.lower() == 'allmocks':  # combine mocks 
+
             Ngal = 0 
             for i_mock in range(1,41): 
                 for letter in ['a', 'b', 'c','d']:
@@ -428,41 +241,44 @@ def write_nbar_ngal(DorR, **cat_corr):
                     i_catalog['n_mock'] = i_mock 
                     i_catalog['letter'] = letter
                     i_cat_corr = {'catalog': i_catalog, 'correction':correction}
+                    
                     i_data = fc_data.galaxy_data('data', **i_cat_corr) 
                     print 'Reading ', i_data.file_name 
                    
-                    Ngal = Ngal + len(i_data.z) 
+                    Ngal += len(i_data.z) 
+
+                    # save redshifts and weights
                     try: 
-                        z_dist
+                        z_dist = np.concatenate([z_dist, i_data.z]) 
+                        z_weights = np.concatenate([z_weights, i_data.weight]) 
                     except NameError: 
                         z_dist = i_data.z
                         z_weights = i_data.weight
-                    else: 
-                        z_dist = np.concatenate([z_dist, i_data.z]) 
-                        z_weights = np.concatenate([z_weights, i_data.weight]) 
+
             print Ngal 
             print len(z_dist) 
             print len(z_weights) 
-        else:
+
+        else:       # data or random 
+
             data = fc_data.galaxy_data(DorR, **cat_corr) 
     
             z_dist = data.z 
             try:  
                 data.weight                         # see if weights exists (does not exist for certain randoms and trues) 
             except AttributeError: 
-                Ngal = np.float(len(data.z))
                 z_weights = np.array([1.0 for i in range(len(z_dist))]) 
             else: 
-                Ngal = np.sum(data.weight)          # number of galaxies account for weights 
                 z_weights = data.weight
 
+        # calculate ngal(z) 
         nbar_ngal = np.zeros(len(z_values[0]))
         for i_z, zmid in enumerate(z_values[0]):
             zlim = (z_dist >= (z_values[1])[i_z]) & (z_dist < (z_values[2])[i_z])
             nbar_ngal[i_z] = np.sum(z_weights[zlim])
 
-    # Tiling Mock/CMASS ------------------------------------------------------------------------------------------------- 
-    elif catalog['name'].lower() in ('cmass', 'tilingmock'): 
+    elif catalog['name'].lower() in ('cmass', 'tilingmock'):        # Tiling Mock/CMASS --------------------------------
+
         # import mock/random data  
         if DorR.lower() == 'allmocks': 
             print catalog['name'].lower(), ' only has one mock'
@@ -485,19 +301,19 @@ def write_nbar_ngal(DorR, **cat_corr):
             zlim = (z_dist >= (z_values[1])[i_z]) & (z_dist < (z_values[2])[i_z])
             nbar_ngal[i_z] = np.sum(z_weights[zlim])
 
-    # QPM ----------------------------------------------------------------------------------------------------------------
-    elif catalog['name'].lower() == 'qpm': 
-        # import mock/random data  
-        if DorR.lower() == 'allmocks': 
+    elif catalog['name'].lower() == 'qpm':                          # QPM ----------------------------------------
+        
+        if DorR.lower() == 'allmocks':  # combine mocks 
+
             Ngal = 0 
-            for i_mock in range(1,45): 
+            for i_mock in range(1,51):  # (only 50 mocks for now) 
                 i_catalog = catalog 
                 i_catalog['n_mock'] = i_mock 
                 i_cat_corr = {'catalog': i_catalog, 'correction':correction}
                 i_data = fc_data.galaxy_data('data', **i_cat_corr) 
                 print 'Reading ', i_data.file_name 
                    
-                Ngal = Ngal + len(i_data.z) 
+                Ngal += len(i_data.z) 
                 try: 
                     z_dist
                 except NameError: 
@@ -506,20 +322,21 @@ def write_nbar_ngal(DorR, **cat_corr):
                 else: 
                     z_dist = np.concatenate([z_dist, i_data.z]) 
                     z_weights = np.concatenate([z_weights, i_data.weight]) 
-            print Ngal 
-            print len(z_dist) 
-            print len(z_weights) 
+
+            if (Ngal != len(z_dist)) or (Ngal != len(z_weights)): 
+                raise NameError("mismatch between Ngal and z_weights") 
+
         else:
             data = fc_data.galaxy_data(DorR, **cat_corr) 
     
             z_dist = data.z 
+            
+            # check whether weights exists
             try:  
-                data.weight                         # see if weights exists (does not exist for certain randoms and trues) 
+                data.weight                         
             except AttributeError: 
-                Ngal = np.float(len(data.z))
                 z_weights = np.array([1.0 for i in range(len(z_dist))]) 
             else: 
-                Ngal = np.sum(data.weight)          # number of galaxies account for weights 
                 z_weights = data.weight
 
         nbar_ngal = np.zeros(len(z_values[0]))
@@ -536,7 +353,7 @@ def write_nbar_ngal(DorR, **cat_corr):
             np.c_[z_values[0], z_values[1], z_values[2], nbar_ngal],
             fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t')
 
-def append_corr_nbar(DorR, sanitycheck=False, **cat_corr):
+def append_corr_nbar(DorR, **cat_corr):
     '''
     append corrected interpolated nbar(z) to corrected data or random file
     '''
@@ -592,3 +409,8 @@ def append_corr_nbar(DorR, sanitycheck=False, **cat_corr):
         np.savetxt(gal_corr_nbar_file,
                 np.c_[gal_data.ra, gal_data.dec, gal_data.z, nbar_arr],
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5e'], delimiter='\t')
+
+if __name__=='__main__':
+    cat_corr = {'catalog': {'name': 'lasdamasgeo'}, 
+            'correction': {'name': 'noweight'}} 
+    nbar(**cat_corr) 
