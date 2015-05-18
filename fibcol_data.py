@@ -518,8 +518,7 @@ def get_galaxy_data_file(DorR, **cat_corr):
                 
             file_name = ''.join([data_dir, 'a0.6452_rand50x.dr12d_cmass_ngc.vetoed.dat'])             # hardcoded to 50x so it does'nt take forever
 
-    elif catalog['name'].lower() == 'patchy': 
-        # PATHCY mocks ------------------------------------------------
+    elif catalog['name'].lower() == 'patchy':               # PATHCY mocks -------------
         data_dir = '/mount/riachuelo1/hahn/data/PATCHY/dr12/v6c/'   # data directory
 
         if DorR == 'data': 
@@ -577,6 +576,56 @@ def get_galaxy_data_file(DorR, **cat_corr):
             # random catalog 
 
             file_name = ''.join([data_dir, 'Random-DR12CMASS-N-V6C-x50.vetoed.dat'])
+    
+    elif catalog['name'].lower() == 'nseries':              # N-series ------------------
+        data_dir = '/mount/riachuelo1/hahn/data/Nseries/'
+        
+        if DorR == 'data': 
+            # mock catalogs  
+
+            if correction['name'].lower() == 'true': 
+                # true mocks
+                file_name = ''.join([data_dir, 
+                    'CutskyN', catalog['n_mock'], '.dat']) 
+                
+            elif correction['name'].lower() in ('upweight', 'shotnoise', 
+                    'floriansn', 'hectorsn'): 
+                # upweighted mocks 
+                file_name = ''.join([data_dir, 
+                    'CutskyN', catalog['n_mock'], '.fibcoll.dat']) 
+
+            elif correction['name'].lower() in ('peaknbar', 'peakshot'): 
+                # peak corrected mocks 
+                if correction['name'].lower() == 'peaknbar': 
+                    pass
+
+                # specify fit (expon or gauss) to peak 
+                if correction['fit'].lower() in ('gauss', 'expon'): 
+                    # correction specifier string 
+                    corr_str = ''.join(['.', correction['fit'].lower(), 
+                        '.', correction['name'].lower(), 
+                        '.sigma', str(correction['sigma']), 
+                        '.fpeak', str(correction['fpeak'])]) 
+
+                elif correction['fit'].lower() in ('true'): 
+                    # correction specifier string 
+                    corr_str = ''.join(['.', correction['fit'].lower(), 
+                        '.', correction['name'].lower(), 
+                        '.fpeak', str(correction['fpeak'])]) 
+                else: 
+                    raise NameError('peak fit has to be specified: gauss or expon') 
+
+                file_name = ''.join([data_dir, 
+                    'CutskyN', catalog['n_mock'], '.fibcoll', corr_str, '.dat'
+                    ]) 
+
+            else: 
+                raise NameError('not yet coded') 
+
+        elif DorR == 'random': 
+            # random catalog 
+
+            file_name = ''.join([data_dir, 'Nseries_cutsky_randoms_50x_redshifts.dat']) 
 
     return file_name 
 
