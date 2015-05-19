@@ -93,25 +93,28 @@ class dlos:
         elif catalog['name'].lower() == 'nseries':          # Nseries ------------------------------------
 
             file_dir = '/mount/riachuelo1/hahn/data/Nseries/' # directory
-            file_name = ''.join([file_dir, 'DLOS_CutskyN', catalog['n_mock'], '.dat']) 
+            file_name = ''.join([file_dir, 'DLOS_CutskyN', str(catalog['n_mock']), '.dat_test']) 
             
             self.file_name = file_name 
 
-            if readdate == True: 
+            if readdata == True: 
                 if not os.path.isfile(file_name) or clobber: 
                     print 'Constructing ', file_name 
                     
                     build_dlos(**cat_corr)  
                     build_dlos_nseries_test(**cat_corr) 
 
-                readin_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4,5,6]) 
-                self.dlos = readin_data[0]
-                self.targ_ra = readin_data[1]
-                self.targ_dec = readin_data[2]
-                self.targ_z = readin_data[3]
-                self.neigh_ra = readin_data[4] 
-                self.neigh_dec = readin_data[5] 
-                self.neigh_z = readin_data[6]
+                readin_data = np.loadtxt(file_name, unpack=True, usecols=[0]) 
+                self.dlos = readin_data
+
+                #readin_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4,5,6]) 
+                #self.dlos = readin_data[0]
+                #self.targ_ra = readin_data[1]
+                #self.targ_dec = readin_data[2]
+                #self.targ_z = readin_data[3]
+                #self.neigh_ra = readin_data[4] 
+                #self.neigh_dec = readin_data[5] 
+                #self.neigh_z = readin_data[6]
 
         elif catalog['name'].lower() =='patchy': 
             # PATCHY mocks --------------------------------------------------- 
@@ -193,6 +196,9 @@ def build_dlos(**cat_corr):
     # fiber collided mock file name 
     mock_file = fc_data.get_galaxy_data_file('data', **cat_corr)
 
+    if not os.path.isfile(mock_file): 
+        mock = fc_data.galaxy_data('data', **cat_corr) 
+
     dLOS = dlos(readdata=False, **cat_corr) 
     dlos_file = dLOS.file_name  # dLOS file name 
     
@@ -268,7 +274,7 @@ def build_dlos_nseries_test(**cat_corr):
     data_dir = '/mount/riachuelo1/hahn/data/Nseries/'   # directory
 
     # original file 
-    orig_file = ''.join([data_dir, 'CutskyN', catalog['n_mock'], '.rdzwc']) 
+    orig_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.rdzwc']) 
     orig_z, orig_wfc, orig_zneigh = np.loadtxt(orig_file, unpack=True, usecols=[2,4,5])
 
     mock = fc_data.galaxy_data('data', **cat_corr)      # import mock file 
@@ -868,7 +874,7 @@ def combined_dlos_fit(n_mocks, fit='gauss', sanitycheck=False, clobber=False, **
         sub.set_ylim([0.0, 1.25*np.max(dlos_hist)])
         sub.legend(loc='upper right', scatterpoints=1, prop={'size':14}) 
 
-        fig_dir = fc_util.get_fig_dir() 
+        fig_dir = 'figure/'
         fig.savefig(fig_dir+catalog['name'].lower()+'_'+str(n_mocks)+'mocks_combined_dlos_peakfit_'+fit.lower()+'.png', bbox_inches="tight")
         fig.clear() 
 
@@ -1497,6 +1503,8 @@ def plot_fcpaper_dlos(cat_corrs):
             mocks = [str(num)+letter for num in range(1,41) for letter in ['a', 'b', 'c', 'd']]
         elif catalog['name'].lower() == 'qpm': 
             mocks = range(1,10) 
+        elif catalog['name'].lower() == 'nseries': 
+            mocks = range(1,10)
         elif catalog['name'].lower() == 'patchy': 
             mocks = range(1,11) 
         elif catalog['name'].lower() == 'cmass': 
@@ -1543,6 +1551,9 @@ def plot_fcpaper_dlos(cat_corrs):
         elif catalog['name'].lower() == 'qpm': 
             cat_label = 'QPM' 
             cat_color = pretty_colors[3]
+        elif catalog['name'].lower() == 'nseries': 
+            cat_label = 'N Series' 
+            cat_color = pretty_colors[9]
         elif catalog['name'].lower() == 'patchy': 
             cat_label = 'patchy' 
             cat_color = pretty_colors[7]
@@ -1564,13 +1575,12 @@ def plot_fcpaper_dlos(cat_corrs):
     sub.set_xlabel(r"d$_{\rm{LOS}}$ (Mpc)", fontsize=24) 
     sub.set_xlim([-45.0, 45.0])
     #sub.set_xlim([0.1, 100.0])
-    sub.set_ylim([0.0, 0.065])
+    sub.set_ylim([0.0, 0.07])
     #sub.set_xscale('log') 
     #sub.set_yscale("log") 
     sub.legend(loc='upper left', scatterpoints=1, prop={'size':20}) 
 
-    fig_dir = fc_util.get_fig_dir() 
-    fig.savefig(fig_dir+'fcpaper_dlos_dist.png', bbox_inches="tight")
+    fig.savefig('figure/fcpaper_dlos_dist.png', bbox_inches="tight")
     fig.clear() 
 
 def combined_catalog_dlos_fits(catalog, n_mock): 
@@ -1600,7 +1610,7 @@ def combined_catalog_dlos_fits(catalog, n_mock):
         print 'Nseries ------------------------------------------------------'
         cat_corr = {'catalog': {'name':'nseries'}, 'correction': {'name': 'upweight'}}
         print 'Gauss ', combined_dlos_fit(10, fit='gauss', sanitycheck=True, 
-                clobber=True, **cat_corr) 
+                clobber=False, **cat_corr) 
 
     elif 'patchy' in catalog: 
         print 'PATCHY ------------------------------------------------------'
@@ -1620,5 +1630,7 @@ if __name__=="__main__":
     #        build_dlos(**cat_corr) 
     #combined_catalog_dlos_fits('patchy', 10)
     #combined_catalog_dlos_fits('lasdamasgeo', 5)
-    combined_catalog_dlos_fits('nseries', 5)
-
+    #combined_catalog_dlos_fits('nseries', 5)
+    cat_corrs = [ {'catalog': {'name': catalog}, 'correction': {'name': 'upweight'}} 
+            for catalog in ['qpm', 'nseries', 'lasdamasgeo']] 
+    plot_fcpaper_dlos(cat_corrs)

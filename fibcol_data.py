@@ -645,7 +645,7 @@ def get_galaxy_data_file(DorR, **cat_corr):
                     'floriansn', 'hectorsn'): 
                 # upweighted mocks 
                 file_name = ''.join([data_dir, 
-                    'CutskyN', catalog['n_mock'], '.fibcoll.dat']) 
+                    'CutskyN', str(catalog['n_mock']), '.fibcoll.dat']) 
 
             elif correction['name'].lower() in ('peaknbar', 'peakshot'): 
                 # peak corrected mocks 
@@ -1026,11 +1026,11 @@ def build_fibercollided(**cat_corr):
         data_dir = '/mount/riachuelo1/hahn/data/Nseries/'   # directory
 
         # original file 
-        orig_file = ''.join([data_dir, 'CutskyN', catalog['n_mock'], '.rdzwc']) 
-        orig_ra, orig_dec, orig_z, org_wfkp, orig_wfc = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,3,4])
+        orig_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.rdzwc']) 
+        orig_ra, orig_dec, orig_z, orig_wfkp, orig_wfc = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,3,4])
     
         # file with mask completeness
-        mask_file = ''.join([data_dir, 'CutskyN', catalog['n_mock'], '.mask_info']) 
+        mask_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.mask_info']) 
         orig_wcomp = np.loadtxt(mask_file, unpack=True, usecols=[0]) 
 
         # write to file 
@@ -1038,9 +1038,11 @@ def build_fibercollided(**cat_corr):
         np.savetxt(true_file, 
                 np.c_[
                     orig_ra, orig_dec, orig_z, 
-                    orig_wfkp, orig_wfc, orig_comp
+                    orig_wfkp, orig_wfc, orig_wcomp
                     ], 
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+
+        fibcollided_cmd = ''
 
     elif catalog['name'].lower() == 'patchy': 
         # PATCHY mocks ----------------------------------------
