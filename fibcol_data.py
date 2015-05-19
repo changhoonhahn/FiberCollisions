@@ -166,7 +166,7 @@ class galaxy_data:
                     # assign data column to class
                     setattr(self, catalog_column, column_data)
                 
-        elif catalog['name'].lower() == 'qpm':          # QPM -------------------------------
+        elif catalog['name'].lower() == 'qpm':                              # QPM -------------------------------
 
             omega_m = 0.31  # survey cosmology 
 
@@ -228,6 +228,59 @@ class galaxy_data:
                 for i_col, catalog_column in enumerate(catalog_columns): 
                     setattr(self, catalog_column, file_data[i_col])
         
+        elif catalog['name'].lower() == 'nseries':                      # N-series -------------------------------
+
+            omega_m = 0.286  # survey cosmology 
+
+            if DorR == 'data':                          # Data ------------------------------
+                
+                # catalog columns 
+                catalog_columns = ['ra', 'dec', 'z', 'wfkp', 'wfc', 'comp'] 
+                self.columns = catalog_columns
+
+                if not os.path.isfile(file_name) or clobber:
+                    # File does not exist or Clobber = True!
+                    print 'Constructing ', file_name 
+
+                    if correction['name'].lower() == 'true':                    
+                        # true mocks 
+                        # all weights = 1 (fibercollisions *not* imposed) 
+                        build_true(**cat_corr) 
+
+                    elif correction['name'].lower() in ('upweight', 'shotnoise', 'floriansn', 'hectorsn'): 
+                        # upweighted mocks
+                        build_fibercollided(**cat_corr) 
+
+                    elif correction['name'].lower() in ('peaknbar', 'peakshot'): 
+                        # peak corrected mocks 
+                        build_peakcorrected_fibcol(**cat_corr)  # build peak corrected file 
+
+                        #elif correction['name'].lower() in ('noweight'): 
+                        #    # n oweight 
+                        #    build_noweight(**cat_corr) 
+                    else: 
+                        raise NotImplementedError() 
+
+                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4,5])         # ra, dec, z, wfkp, wfc, comp
+
+                # assign to data columns class
+                for i_col, catalog_column in enumerate(catalog_columns): 
+                    setattr(self, catalog_column, file_data[i_col]) 
+                        
+            
+            elif DorR == 'random':              # Random ------------------------------------
+
+                catalog_columns = ['ra', 'dec', 'z', 'wfkp']    # catalog columns 
+
+                if (os.path.isfile(file_name) == False) or (clobber == True):
+                    print 'Constructing ', file_name 
+                    build_random(**cat_corr) 
+
+                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])             # ra, dec, z, wfkp
+
+                # assign to object data columns
+                for i_col, catalog_column in enumerate(catalog_columns): 
+                    setattr(self, catalog_column, file_data[i_col])
         elif catalog['name'].lower() == 'patchy': 
             # PATCHY Mocks --------------------------------------------------
             omega_m = 0.31              # survey cosmology 
@@ -661,9 +714,10 @@ def build_true(**cat_corr):
         np.savetxt(true_zlim_file.file_name, np.c_[orig_ra[zlimit], orig_dec[zlimit], orig_z[zlimit], orig_w[zlimit]], 
             fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
-    elif catalog['name'].lower() == 'qpm': 
-        # QPM -----------------------------------------------------
+    elif catalog['name'].lower() == 'qpm':                                      # QPM ------------------------------------
+
         P0 = 20000.             # hardcoded P0 value
+
         # import original true data 
         orig_true_file = ''.join(['/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/data/', 
             'a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.rdz']) 
@@ -698,14 +752,36 @@ def build_true(**cat_corr):
         vetomask = (orig_true_veto == 0)            
         # Only keep galaxies with veto = 0 (for veto values in .veto file) 
         
-        true_file = galaxy_data('data', readdata=False, **cat_corr)
-        np.savetxt(true_file.file_name, np.c_[
+        true_file = get_galaxy_data_file('data', readdata=False, **cat_corr)
+        np.savetxt(true_file, np.c_[
             true_ra[vetomask], true_dec[vetomask], true_z[vetomask], 
             true_wfkp[vetomask], true_wfc[vetomask], true_comp[vetomask]], 
             fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+
+    elif catalog['name'].lower() == 'nseries':                              # N Series ---------------------------------
+
+        # read rdzw file 
+        data_dir = '/mount/riachuelo1/hahn/data/Nseries/'
+        orig_file = ''.join([data_dir, 'CutskyN', catalog['n_mock'], '.rdzwc']) 
+        orig_ra, orig_dec, orig_z, org_wfkp, orig_wfc = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,3,4])
     
-    elif catalog['name'].lower() == 'lasdamasgeo': 
-        # Las Damas Geo ------------------------------------------------------
+        # file with completeness
+        mask_file = ''.join([data_dir, 'CutskyN', catalog['n_mock'], '.mask_info']) 
+        orig_wcomp = np.loadtxt(mask_file, unpack=True, usecols=[0]) 
+
+        # true wfc 
+        true_wfc = np.array([ 1.0 for i in range(len(orig_wfc)) ]) 
+        
+        # write to file 
+        true_file = get_galaxy_data_file('data', **cat_corr) 
+        np.savetxt(true_file, 
+                np.c_[
+                    orig_ra, orig_dec, orig_z, orig_wfkp, true_wfc, orig_comp
+                    ], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+
+    elif catalog['name'].lower() == 'lasdamasgeo':                          # Las Damas Geo -----------------------------
+
         orig_true_file = ''.join(['/mount/chichipio2/rs123/MOCKS/LRGFull_zm_geo/gaussian/zspace/', 
             'sdssmock_gamma_lrgFull_zm_oriana', str("%02d" % catalog['n_mock']), catalog['letter'], '_no.rdcz.dat']) 
         orig_true_data = np.loadtxt(orig_true_file, unpack=True, usecols=[0,1,2])         # ra, dec, ***CZ***
@@ -880,8 +956,7 @@ def build_noweight(**cat_corr):
         raise NotImplementedError('not yet coded') 
 
 def build_fibercollided(**cat_corr): 
-    ''' Build Fibercollided mock catalogs 
-    using specific idl routines
+    ''' Build Fibercollided mock catalogs using specific idl routines or by using the given fiber collision weights
 
     Parameters
     ----------
@@ -899,12 +974,12 @@ def build_fibercollided(**cat_corr):
         print fibcollided_cmd
         os.system(fibcollided_cmd)  # call IDL code 
 
-    elif catalog['name'].lower() == 'tilingmock':       # Tiling Mock 
+    elif catalog['name'].lower() == 'tilingmock':                               # Tiling Mock ------------------------------
         fibcollided_cmd = ' '.join(['idl', '-e', '"', "build_wcp_assign, 'tilingmock'", '"'])
         os.system(fibcollided_cmd) 
 
-    elif catalog['name'].lower() == 'qpm': 
-        # QPM ------------------------------------------------------------
+    elif catalog['name'].lower() == 'qpm':                                      # QPM -----------------------------------
+
         orig_true_file = ''.join(['/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/data/', 
             'a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.rdz']) 
         orig_true_data = np.loadtxt(orig_true_file) 
@@ -938,13 +1013,34 @@ def build_fibercollided(**cat_corr):
 
         vetomask = (orig_true_veto == 0)
 
-        fc_file = galaxy_data('data', readdata=False, **cat_corr)
-        np.savetxt(fc_file.file_name, np.c_[
+        fc_file = get_galaxy_data_file('data', **cat_corr)
+        np.savetxt(fc_file, np.c_[
             true_ra[vetomask], true_dec[vetomask], true_z[vetomask], 
             true_wfkp[vetomask], true_wfc[vetomask], true_comp[vetomask]], 
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
         fibcollided_cmd = ''
+    
+    elif catalog['name'].lower() == 'nseries':                                  # N series --------------------------------
+    
+        data_dir = '/mount/riachuelo1/hahn/data/Nseries/'   # directory
+
+        # original file 
+        orig_file = ''.join([data_dir, 'CutskyN', catalog['n_mock'], '.rdzwc']) 
+        orig_ra, orig_dec, orig_z, org_wfkp, orig_wfc = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,3,4])
+    
+        # file with mask completeness
+        mask_file = ''.join([data_dir, 'CutskyN', catalog['n_mock'], '.mask_info']) 
+        orig_wcomp = np.loadtxt(mask_file, unpack=True, usecols=[0]) 
+
+        # write to file 
+        true_file = get_galaxy_data_file('data', **cat_corr) 
+        np.savetxt(true_file, 
+                np.c_[
+                    orig_ra, orig_dec, orig_z, 
+                    orig_wfkp, orig_wfc, orig_comp
+                    ], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
     elif catalog['name'].lower() == 'patchy': 
         # PATCHY mocks ----------------------------------------

@@ -33,8 +33,7 @@ class dlos:
         catalog = cat_corr['catalog']
         correction = cat_corr['correction']
 
-        if catalog['name'].lower() == 'lasdamasgeo': 
-            # LasDamas Geo ------------------------------------------------
+        if catalog['name'].lower() == 'lasdamasgeo':        # LasDamas Geo ------------------------------------------------
 
             file_dir = '/mount/riachuelo1/hahn/data/LasDamas/Geo/'
             #File name 
@@ -51,8 +50,7 @@ class dlos:
                 self.targ_z = readin_data[1]
                 self.neigh_z = readin_data[2]
         
-        elif catalog['name'].lower() == 'tilingmock': 
-            # Tiling Mock ---------------------------------------------------
+        elif catalog['name'].lower() == 'tilingmock':       # Tiling Mock ---------------------------------------------------
 
             file_dir = '/mount/riachuelo1/hahn/data/tiling_mocks/'        # directory
             # File name 
@@ -70,8 +68,8 @@ class dlos:
                 self.targ_z = readin_data[1]
                 self.neigh_z = readin_data[2]
         
-        elif catalog['name'].lower() == 'qpm': 
-            # QPM ------------------------------------------------------------
+        elif catalog['name'].lower() == 'qpm':              # QPM ------------------------------------------------------------
+
             file_dir = '/mount/riachuelo1/hahn/data/QPM/dr12d/'        # directory
             # File name 
             file_name = ''.join([file_dir, 'DLOS_a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.vetoed.fibcoll.dat']) 
@@ -82,6 +80,29 @@ class dlos:
                     print 'Constructing ', file_name 
                     # if file does not exist then
                     build_dlos(**cat_corr) 
+
+                readin_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4,5,6]) 
+                self.dlos = readin_data[0]
+                self.targ_ra = readin_data[1]
+                self.targ_dec = readin_data[2]
+                self.targ_z = readin_data[3]
+                self.neigh_ra = readin_data[4] 
+                self.neigh_dec = readin_data[5] 
+                self.neigh_z = readin_data[6]
+
+        elif catalog['name'].lower() == 'nseries':          # Nseries ------------------------------------
+
+            file_dir = '/mount/riachuelo1/hahn/data/Nseries/' # directory
+            file_name = ''.join([file_dir, 'DLOS_CutskyN', catalog['n_mock'], '.dat']) 
+            
+            self.file_name = file_name 
+
+            if readdate == True: 
+                if not os.path.isfile(file_name) or clobber: 
+                    print 'Constructing ', file_name 
+                    
+                    build_dlos(**cat_corr)  
+                    build_dlos_nseries_test(**cat_corr) 
 
                 readin_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4,5,6]) 
                 self.dlos = readin_data[0]
@@ -169,16 +190,19 @@ def build_dlos(**cat_corr):
     '''
     catalog = cat_corr['catalog']
 
+    # fiber collided mock file name 
     mock_file = fc_data.get_galaxy_data_file('data', **cat_corr)
-    dLOS = dlos(readdata=False, **cat_corr) 
-    dlos_file = dLOS.file_name 
 
+    dLOS = dlos(readdata=False, **cat_corr) 
+    dlos_file = dLOS.file_name  # dLOS file name 
+    
+    # idl Command 
     idl_command = ''.join(['idl -e ', 
         '"build_fibcoll_dlos_cosmo, ', 
         "'", catalog['name'], "', '", mock_file, "', '", dlos_file, "'", '"'
         ]) 
     os.system(idl_command) 
-
+    
     '''
     catalog = cat_corr['catalog']
     correction = cat_corr['correction']
@@ -235,6 +259,32 @@ def build_dlos(**cat_corr):
             fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
             delimiter='\t') 
     '''
+
+def build_dlos_nseries_test(**cat_corr): 
+    # Nseries has fiber collided galaxy redshifts
+
+    catalog = cat_corr['catalog']
+    # import original file 
+    data_dir = '/mount/riachuelo1/hahn/data/Nseries/'   # directory
+
+    # original file 
+    orig_file = ''.join([data_dir, 'CutskyN', catalog['n_mock'], '.rdzwc']) 
+    orig_z, orig_wfc, orig_zneigh = np.loadtxt(orig_file, unpack=True, usecols=[2,4,5])
+
+    mock = fc_data.galaxy_data('data', **cat_corr)      # import mock file 
+    cosmo = mock.cosmo  # survey cosmology 
+
+    collided = orig_wfc < 1
+    
+    Dc_coll = cosmos.distance.comoving_distance(orig_z[collided], **cosmo) * cosmo['h']
+    Dc_upw = cosmos.distance.comoving_distance(orig_zneigh[collided], **cosmo) * cosmo['h']
+
+    LOS_d = Dc_coll - Dc_upw
+    
+    los_disp = dlos(readdata=False, **cat_corr)  
+    dlos_file = los_disp.file_name+'_test'
+
+    np.savetxt(dlos_file, np.c_[LOS_d], fmt=['%10.5f'], delimiter='\t') 
 
 # ------------------------------------------------------------------------------------
 # Derived quantities 
@@ -669,7 +719,7 @@ def combined_dlos_fit(n_mocks, fit='gauss', sanitycheck=False, clobber=False, **
         combined_dlos = los_disp.dlos
         n_mocks = 1
 
-    elif catalog['name'].lower() in ('qpm', 'patchy'):
+    elif catalog['name'].lower() in ('qpm', 'patchy', 'nseries'):
         # QPM and PATCHY ------------------------------------------------------------
         for i_mock in range(1, n_mocks+1): 
             # individual catalog_correction dictonary 
@@ -1536,12 +1586,22 @@ def combined_catalog_dlos_fits(catalog, n_mock):
         print 'LASDAMASGEO------------------------------------------------------'
         cat_corr = {'catalog': {'name':'lasdamasgeo'}, 'correction': {'name': 'upweight'}}
         print 'Gauss ', combined_dlos_fit(n_mock, fit='gauss', sanitycheck=True,  **cat_corr) 
+
     elif 'qpm' in catalog: 
+
         print 'QPM------------------------------------------------------'
         cat_corr = {'catalog': {'name':'qpm'}, 'correction': {'name': 'upweight'}}
         #print 'Expon ', combined_dlos_fit(10, fit='expon', sanitycheck=True,  **cat_corr) 
         print 'Gauss ', combined_dlos_fit(10, fit='gauss', sanitycheck=True, 
                 clobber=True, **cat_corr) 
+
+    elif 'nseries' in catalog: 
+
+        print 'Nseries ------------------------------------------------------'
+        cat_corr = {'catalog': {'name':'nseries'}, 'correction': {'name': 'upweight'}}
+        print 'Gauss ', combined_dlos_fit(10, fit='gauss', sanitycheck=True, 
+                clobber=True, **cat_corr) 
+
     elif 'patchy' in catalog: 
         print 'PATCHY ------------------------------------------------------'
         cat_corr = {'catalog': {'name':'patchy'}, 'correction': {'name': 'upweight'}}
@@ -1559,4 +1619,6 @@ if __name__=="__main__":
     #        fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     #        build_dlos(**cat_corr) 
     #combined_catalog_dlos_fits('patchy', 10)
-    combined_catalog_dlos_fits('lasdamasgeo', 5)
+    #combined_catalog_dlos_fits('lasdamasgeo', 5)
+    combined_catalog_dlos_fits('nseries', 5)
+
