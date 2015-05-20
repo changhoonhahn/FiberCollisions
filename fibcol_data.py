@@ -1096,8 +1096,7 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
     else: 
         raise NameError('correction fit has to be specified as gauss or expon') 
 
-    if catalog['name'].lower() == 'lasdamasgeo': 
-        # Las Damas Geo -----------------------------------------------------------
+    if catalog['name'].lower() == 'lasdamasgeo':            # LasDamasGeo -----------------
 
         n_mocks = 160   # total number of mocks
 
@@ -1248,19 +1247,21 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
         fibcoll_mock.weight = np.concatenate([fibcoll_mock.weight, appended_weight])
         fibcoll_mock.z = np.concatenate([fibcoll_mock.z, appended_z])
 
-    elif catalog['name'].lower() in ('tilingmock', 'qpm', 'patchy'): 
+    elif catalog['name'].lower() in ('tilingmock', 'qpm', 'patchy', 'nseries'): 
         # Tiling mock, QPM, PATCHY 
         
         survey_zmin, survey_zmax = 0.43, 0.7    # survey redshift limits
 
         if catalog['name'].lower() == 'qpm':
             n_mocks = 100
+        elif catalog['name'].lower() == 'nseries': 
+            n_mocks = 84
         
         # read in mock with fibercollisions imposed
         fibcoll_cat_corr = {'catalog':catalog, 'correction': {'name': 'upweight'}}
         fibcoll_mock = galaxy_data('data', **fibcoll_cat_corr)  
         
-        cosmo = fibcoll_mock.cosmo      # survey cosmology 
+        cosmo = fibcoll_mock.cosmo  # survey cosmology 
 
         survey_comdis_min = cosmos.distance.comoving_distance(survey_zmin, 
                 **cosmo)*cosmo['h']         # in units of Mpc/h
@@ -1272,12 +1273,12 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
             fibcoll_mock.weight = fibcoll_mock.wfc            
                         
         # read in the true galaxies for tail portion  
-        # the tail portion of the peak corrections will be generated similar to the mksample procedures for 
-        # assigning the random catalog redshift 
+        # the tail portion of the peak corrections will be generated 
+        # similar to the mksample procedures for assigning the random catalog redshift 
         true_cat_corr = {'catalog':catalog, 'correction': {'name': 'true'}}
         true_data = galaxy_data('data', **true_cat_corr)
         
-        if catalog['name'].lower() in ('qpm',  'patchy'): 
+        if catalog['name'].lower() in ('qpm',  'patchy', 'nseries'): 
             true_weight = true_data.wfc
         else: 
             true_weight = true_data.weight
@@ -1296,8 +1297,8 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
     
         append_ra, append_dec, append_z, append_dlos, append_weight = [], [], [], [], []
 
-        if catalog['name'].lower() == 'qpm': 
-            append_wfkp, append_comp = [], [] 
+        if catalog['name'].lower() in ('qpm', 'nseries'): 
+            append_wfkp, append_comp = [], []   # save wfkp and comp
         elif catalog['name'].lower() == 'patchy': 
             append_nbar = [] 
 
@@ -1308,7 +1309,7 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
     
         for i_mock in range(len(fibcoll_mock.weight)):  # go through each galaxy 
 
-            while fibcoll_mock.weight[i_mock] > 1:      # for galaxies with wcp > 1
+            while fibcoll_mock.weight[i_mock] > 1:  # for galaxies with wcp > 1
 
                 fibcoll_mock.weight[i_mock] -= 1.0
 
@@ -1323,7 +1324,7 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
                     append_ra.append(fibcoll_mock.ra[i_mock])    # keep ra and dec
                     append_dec.append(fibcoll_mock.dec[i_mock])
 
-                    if catalog['name'].lower() == 'qpm': 
+                    if catalog['name'].lower() in ('qpm', 'nseries'): 
                         append_wfkp.append(fibcoll_mock.wfkp[i_mock]) 
                         append_comp.append(fibcoll_mock.comp[i_mock])
                     elif catalog['name'].lower() == 'patchy': 
@@ -1471,7 +1472,7 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
 
     peakcorr_file = get_galaxy_data_file('data', **cat_corr) 
     
-    if catalog['name'].lower() == 'qpm': 
+    if catalog['name'].lower() in ('qpm', 'nseries'): 
         np.savetxt(peakcorr_file, 
                 np.c_[fibcoll_mock.ra, fibcoll_mock.dec, fibcoll_mock.z, 
                     fibcoll_mock.wfkp, fibcoll_mock.weight, fibcoll_mock.comp], 

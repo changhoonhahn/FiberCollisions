@@ -33,12 +33,13 @@ def fortran_code(fft_power, **cat_corr):
     correction = cat_corr['correction']
     spec = cat_corr['spec']
     
-    # LasDamasGeo ------------------------------------------------------------------------------------------------
-    if catalog['name'].lower() == 'lasdamasgeo': 
+    if catalog['name'].lower() == 'lasdamasgeo':            # LasDamasGeo ----------------------
+
         # code directory 
-        ldg_code_dir = '/home/users/hahn/powercode/FiberCollisions/LasDamas/Geo/'
+        ldg_code_dir = '/home/users/hahn/powercode/FiberCollisions/LasDamas/Geo/' 
        
-        if fft_power.lower() == 'fft':      # FFT --------------------------------------------------------
+        if fft_power.lower() == 'fft':                      # FFT -----------------
+
             # literature
             if correction['name'].lower() == 'floriansn':     # Beutler+2014
                 f_code = ldg_code_dir+'FFT_ldg_fkp_w_florian_'+str(spec['grid'])+'grid.f'
@@ -47,8 +48,10 @@ def fortran_code(fft_power, **cat_corr):
             else: 
                 f_code = ldg_code_dir+'FFT_ldg_fkp_w_'+str(spec['grid'])+'grid.f'
 
-        elif fft_power.lower() == 'power': 
-            if correction['name'].lower() in ('true', 'upweight', 'peaknbar'):  # FKP estimator
+        elif fft_power.lower() == 'power':                  # power ----------------
+
+            if correction['name'].lower() in ('true', 'upweight', 'peaknbar'):  
+                # FKP estimator
                 if spec['grid'] == 360: 
                     f_code = ldg_code_dir+'power_ldg_fkp_360grid_180bin.f'
                 elif spec['grid'] == 960: 
@@ -75,8 +78,8 @@ def fortran_code(fft_power, **cat_corr):
         else: 
             raise NameError('asdflkajsdf') 
 
-    # Tiling Mocks ------------------------------------------------------------------------------------------------
-    elif catalog['name'].lower() == 'tilingmock': 
+    elif catalog['name'].lower() == 'tilingmock':               # Tiling Mock ----------------
+
         # code directory 
         code_dir = '/home/users/hahn/powercode/FiberCollisions/TilingMock/'
     
@@ -109,8 +112,8 @@ def fortran_code(fft_power, **cat_corr):
         else: 
             raise NameError('asdlkfjalksdjfklasjf')
 
-    # QPM --------------------------------------------------------------------------------------------------------
-    elif catalog['name'].lower() == 'qpm': 
+    elif catalog['name'].lower() == 'qpm':                      # QPM -----------------------
+
         code_dir = '/home/users/hahn/powercode/FiberCollisions/QPM/dr12d/'
         
         if fft_power.lower() == 'fft': 
@@ -151,6 +154,47 @@ def fortran_code(fft_power, **cat_corr):
         else: 
             raise NameError("not Yet coded") 
     
+    elif catalog['name'].lower() == 'nseries':                  # N series ------------------
+
+        code_dir = 'Nseries/'
+        
+        if fft_power.lower() == 'fft':          # FFT
+
+            if correction['name'].lower() == 'floriansn': 
+                f_code = code_dir+'FFT-qpm-fkp-w-nbar-florian-'+str(spec['grid'])+'grid.f'
+            elif correction['name'].lower() == 'hectorsn': 
+                f_code = code_dir+'FFT-qpm-fkp-w-nbar-hector-'+str(spec['grid'])+'grid.f'
+            else: 
+                f_code = code_dir+'FFT-qpm-fkp-w-nbar-'+str(spec['grid'])+'grid.f'
+    
+        elif fft_power.lower() == 'power': 
+            if correction['name'].lower() in ('true', 'upweight', 'peaknbar'):
+                # normal FKP shot noise correction
+                if spec['grid'] == 360: 
+                    f_code = code_dir+'power-qpm-fkp-w-nbar-360grid-180bin.f'
+                elif spec['grid'] == 960: 
+                    f_code = code_dir+'power-qpm-fkp-w-nbar-960grid-480bin.f'
+
+            elif correction['name'].lower() in \
+                    ('peakshot', 'shotnoise', 'floriansn', 'noweight', 
+                            'hectorsn', 'vlospeakshot', 'peakshot_dnn'): 
+                if spec['grid'] == 360: 
+                    # Igal Irand shot noise correction 
+                    f_code = code_dir+'power-qpm-fkp-w-nbar-Igal-Irand-360grid-180bin.f'
+                elif spec['grid'] == 960: 
+                    # Igal Irand shot noise correction 
+                    f_code = code_dir+'power-qpm-fkp-w-nbar-Igal-Irand-960grid-480bin.f'
+
+        # quadrupole codes --------------------------------------------
+        # regardess of catalog or correction TEMPORARILY HARDCODED HERE FOR TEST RUN 
+        elif fft_power.lower() == 'quadfft': 
+            code_dir = '/home/users/hahn/powercode/FiberCollisions/' 
+            f_code = code_dir+'FFT_FKP_BOSS_cic_il4_v3.f' 
+        elif fft_power.lower() == 'quadpower': 
+            code_dir = '/home/users/hahn/powercode/FiberCollisions/' 
+            f_code = code_dir+'power_FKP_SDSS_BOSS_v3.f'
+        else: 
+            raise NameError("not Yet coded") 
     elif catalog['name'].lower() == 'patchy': 
 
         code_dir = '/home/users/hahn/powercode/FiberCollisions/PATCHY/dr12/v6c/'

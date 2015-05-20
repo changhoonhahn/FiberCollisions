@@ -101,8 +101,8 @@ def build_fibcol_fft(DorR, **cat_corr):
     elif DorR.lower() == 'random': 
         DorR_number = 1
 
-    if spec['quad'] == False:       # For NOT Quadrupole code
-        if catalog['name'].lower() in ('lasdamasgeo', 'tilingmock', 'qpm', 'patchy'): 
+    if not spec['quad']:       # For NOT Quadrupole code
+        if catalog['name'].lower() in ('lasdamasgeo', 'tilingmock', 'qpm', 'patchy', 'nseries'): 
             # LasDamas Geo, Tiling Mock, QPM, PATCHY ----------------------------------------
 
             # get bash command 

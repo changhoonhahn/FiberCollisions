@@ -93,7 +93,7 @@ class dlos:
         elif catalog['name'].lower() == 'nseries':          # Nseries ------------------------------------
 
             file_dir = '/mount/riachuelo1/hahn/data/Nseries/' # directory
-            file_name = ''.join([file_dir, 'DLOS_CutskyN', str(catalog['n_mock']), '.dat_test']) 
+            file_name = ''.join([file_dir, 'DLOS_CutskyN', str(catalog['n_mock']), '.dat']) 
             
             self.file_name = file_name 
 
@@ -1610,7 +1610,7 @@ def combined_catalog_dlos_fits(catalog, n_mock):
         print 'Nseries ------------------------------------------------------'
         cat_corr = {'catalog': {'name':'nseries'}, 'correction': {'name': 'upweight'}}
         print 'Gauss ', combined_dlos_fit(10, fit='gauss', sanitycheck=True, 
-                clobber=False, **cat_corr) 
+                clobber=True, **cat_corr) 
 
     elif 'patchy' in catalog: 
         print 'PATCHY ------------------------------------------------------'
@@ -1630,7 +1630,7 @@ if __name__=="__main__":
     #        build_dlos(**cat_corr) 
     #combined_catalog_dlos_fits('patchy', 10)
     #combined_catalog_dlos_fits('lasdamasgeo', 5)
-    #combined_catalog_dlos_fits('nseries', 5)
-    cat_corrs = [ {'catalog': {'name': catalog}, 'correction': {'name': 'upweight'}} 
-            for catalog in ['qpm', 'nseries', 'lasdamasgeo']] 
-    plot_fcpaper_dlos(cat_corrs)
+    combined_catalog_dlos_fits('nseries', 10)
+    #cat_corrs = [ {'catalog': {'name': catalog}, 'correction': {'name': 'upweight'}} 
+    #        for catalog in ['qpm', 'nseries', 'lasdamasgeo']] 
+    #plot_fcpaper_dlos(cat_corrs)
