@@ -216,13 +216,13 @@ class galaxy_data:
             
             elif DorR == 'random':              # Random ------------------------------------
 
-                catalog_columns = ['ra', 'dec', 'z', 'wfkp']    # catalog columns 
+                catalog_columns = ['ra', 'dec', 'z', 'wfkp', 'comp']    # catalog columns 
 
                 if (os.path.isfile(file_name) == False) or (clobber == True):
                     print 'Constructing ', file_name 
                     build_random(**cat_corr) 
 
-                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])             # ra, dec, z, wfkp
+                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4])   # ra, dec, z, wfkp, comp 
 
                 # assign to object data columns
                 for i_col, catalog_column in enumerate(catalog_columns): 
@@ -270,17 +270,18 @@ class galaxy_data:
             
             elif DorR == 'random':              # Random ------------------------------------
 
-                catalog_columns = ['ra', 'dec', 'z', 'wfkp']    # catalog columns 
+                catalog_columns = ['ra', 'dec', 'z', 'wfkp', 'comp']    # catalog columns 
 
                 if (os.path.isfile(file_name) == False) or (clobber == True):
                     print 'Constructing ', file_name 
                     build_random(**cat_corr) 
 
-                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])             # ra, dec, z, wfkp
+                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4])   # ra, dec, z, wfkp, comp
 
                 # assign to object data columns
                 for i_col, catalog_column in enumerate(catalog_columns): 
                     setattr(self, catalog_column, file_data[i_col])
+
         elif catalog['name'].lower() == 'patchy': 
             # PATCHY Mocks --------------------------------------------------
             omega_m = 0.31              # survey cosmology 
@@ -639,7 +640,7 @@ def get_galaxy_data_file(DorR, **cat_corr):
             if correction['name'].lower() == 'true': 
                 # true mocks
                 file_name = ''.join([data_dir, 
-                    'CutskyN', catalog['n_mock'], '.dat']) 
+                    'CutskyN', str(catalog['n_mock']), '.dat']) 
                 
             elif correction['name'].lower() in ('upweight', 'shotnoise', 
                     'floriansn', 'hectorsn'): 
@@ -669,7 +670,7 @@ def get_galaxy_data_file(DorR, **cat_corr):
                     raise NameError('peak fit has to be specified: gauss or expon') 
 
                 file_name = ''.join([data_dir, 
-                    'CutskyN', catalog['n_mock'], '.fibcoll', corr_str, '.dat'
+                    'CutskyN', str(catalog['n_mock']), '.fibcoll', corr_str, '.dat'
                     ]) 
 
             else: 
@@ -678,7 +679,7 @@ def get_galaxy_data_file(DorR, **cat_corr):
         elif DorR == 'random': 
             # random catalog 
 
-            file_name = ''.join([data_dir, 'Nseries_cutsky_randoms_50x_redshifts.dat']) 
+            file_name = ''.join([data_dir, 'Nseries_cutsky_randoms_50x_redshifts_comp.dat']) 
 
     return file_name 
 
@@ -762,11 +763,11 @@ def build_true(**cat_corr):
 
         # read rdzw file 
         data_dir = '/mount/riachuelo1/hahn/data/Nseries/'
-        orig_file = ''.join([data_dir, 'CutskyN', catalog['n_mock'], '.rdzwc']) 
-        orig_ra, orig_dec, orig_z, org_wfkp, orig_wfc = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,3,4])
+        orig_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.rdzwc']) 
+        orig_ra, orig_dec, orig_z, orig_wfkp, orig_wfc = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,3,4])
     
         # file with completeness
-        mask_file = ''.join([data_dir, 'CutskyN', catalog['n_mock'], '.mask_info']) 
+        mask_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.mask_info']) 
         orig_wcomp = np.loadtxt(mask_file, unpack=True, usecols=[0]) 
 
         # true wfc 
@@ -776,7 +777,7 @@ def build_true(**cat_corr):
         true_file = get_galaxy_data_file('data', **cat_corr) 
         np.savetxt(true_file, 
                 np.c_[
-                    orig_ra, orig_dec, orig_z, orig_wfkp, true_wfc, orig_comp
+                    orig_ra, orig_dec, orig_z, orig_wfkp, true_wfc, orig_wcomp
                     ], 
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
@@ -848,6 +849,25 @@ def build_random(**cat_corr):
         np.savetxt(true_random_file, np.c_[(orig_true_random[:,0])[vetomask], (orig_true_random[:,1])[vetomask], 
             (orig_true_random[:,2])[vetomask], (orig_true_random[:,3])[vetomask], (orig_true_random_info[:,1])[vetomask]], 
             fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+
+    elif catalog['name'].lower() == 'nseries':      # Nseries ----------------------------
+
+        # read original random catalog 
+        data_dir = '/mount/riachuelo1/hahn/data/Nseries/'
+
+        orig_rand_file = ''.join([data_dir, 'Nseries_cutsky_randoms_50x_redshifts.dat']) 
+        # RA, Decl, Redhsift, w_fkp
+        ra, dec, z, wfkp = np.loadtxt(orig_rand_file, unpack=True, usecols=[0,1,2,3]) 
+    
+        # sector completeness
+        orig_comp_file = ''.join([data_dir, 'Nseries_cutsky_randoms_50x_maskinfo.dat'])  
+        comp = np.loadtxt(orig_comp_file, unpack=True, usecols=[0])
+        
+        # save rnadom file 
+        true_random_file = get_galaxy_data_file('random', **{'catalog':{'name':'nseries'}, 'correction':{'name':'true'}})
+        np.savetxt(true_random_file, 
+                np.c_[ra, dec, z, wfkp, comp], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
     elif catalog['name'].lower() == 'patchy':       # PATCHY
 
@@ -1268,7 +1288,7 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
         survey_comdis_max = cosmos.distance.comoving_distance(survey_zmax, 
                 **cosmo)*cosmo['h']         # in units of Mpc/h
 
-        if catalog['name'].lower() in ('qpm', 'patchy'): 
+        if catalog['name'].lower() in ('qpm', 'patchy', 'nseries'): 
             # only use fiber collision weights
             fibcoll_mock.weight = fibcoll_mock.wfc            
                         

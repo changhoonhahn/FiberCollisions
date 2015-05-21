@@ -64,7 +64,7 @@ def build_fibcol_fft(DorR, **cat_corr):
     data_file = fc_data.get_galaxy_data_file(DorR, **cat_corr) 
     print data_file
 
-    if catalog['name'].lower() in ('lasdamasgeo', 'qpm', 'patchy'):   
+    if catalog['name'].lower() in ('lasdamasgeo', 'qpm', 'patchy', 'nseries'):   
         # Las Damas included because it's constant nbar(z)
         pass
     else: 

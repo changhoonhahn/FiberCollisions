@@ -1040,8 +1040,8 @@ def chi_squared():
 if __name__=="__main__":
 
     cat_corr_list = [] 
-    catalog = {'name': 'lasdamasgeo'}
-    for corr in ['true', 'noweight']: 
+    catalog = {'name': 'nseries'}
+    for corr in ['true', 'upweight']: 
         cat_corr_list.append({'catalog': catalog, 'correction': {'name': corr}}) 
 
     plot_nbar_comparison(cat_corr_list, type='ratio', xrange=[0.16, 0.4], yrange=[0.95, 1.05])

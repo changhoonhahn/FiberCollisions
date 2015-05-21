@@ -161,29 +161,28 @@ def fortran_code(fft_power, **cat_corr):
         if fft_power.lower() == 'fft':          # FFT
 
             if correction['name'].lower() == 'floriansn': 
-                f_code = code_dir+'FFT-qpm-fkp-w-nbar-florian-'+str(spec['grid'])+'grid.f'
+                f_code = code_dir+'FFT-nseries-fkp-w-nbar-florian-'+str(spec['grid'])+'grid.f'
             elif correction['name'].lower() == 'hectorsn': 
-                f_code = code_dir+'FFT-qpm-fkp-w-nbar-hector-'+str(spec['grid'])+'grid.f'
+                f_code = code_dir+'FFT-nseries-fkp-w-nbar-hector-'+str(spec['grid'])+'grid.f'
             else: 
-                f_code = code_dir+'FFT-qpm-fkp-w-nbar-'+str(spec['grid'])+'grid.f'
+                f_code = code_dir+'FFT-nseries-fkp-w-nbar-'+str(spec['grid'])+'grid.f'
     
         elif fft_power.lower() == 'power': 
             if correction['name'].lower() in ('true', 'upweight', 'peaknbar'):
                 # normal FKP shot noise correction
                 if spec['grid'] == 360: 
-                    f_code = code_dir+'power-qpm-fkp-w-nbar-360grid-180bin.f'
+                    f_code = code_dir+'power-nseries-fkp-w-nbar-360grid-180bin.f'
                 elif spec['grid'] == 960: 
-                    f_code = code_dir+'power-qpm-fkp-w-nbar-960grid-480bin.f'
+                    f_code = code_dir+'power-nseries-fkp-w-nbar-960grid-480bin.f'
 
             elif correction['name'].lower() in \
-                    ('peakshot', 'shotnoise', 'floriansn', 'noweight', 
-                            'hectorsn', 'vlospeakshot', 'peakshot_dnn'): 
+                    ('peakshot', 'shotnoise', 'floriansn', 'noweight', 'hectorsn', 'peakshot_dnn'): 
                 if spec['grid'] == 360: 
                     # Igal Irand shot noise correction 
-                    f_code = code_dir+'power-qpm-fkp-w-nbar-Igal-Irand-360grid-180bin.f'
+                    f_code = code_dir+'power-nseries-fkp-w-nbar-Igal-Irand-360grid-180bin.f'
                 elif spec['grid'] == 960: 
                     # Igal Irand shot noise correction 
-                    f_code = code_dir+'power-qpm-fkp-w-nbar-Igal-Irand-960grid-480bin.f'
+                    f_code = code_dir+'power-nseries-fkp-w-nbar-Igal-Irand-960grid-480bin.f'
 
         # quadrupole codes --------------------------------------------
         # regardess of catalog or correction TEMPORARILY HARDCODED HERE FOR TEST RUN 
@@ -195,7 +194,8 @@ def fortran_code(fft_power, **cat_corr):
             f_code = code_dir+'power_FKP_SDSS_BOSS_v3.f'
         else: 
             raise NameError("not Yet coded") 
-    elif catalog['name'].lower() == 'patchy': 
+
+    elif catalog['name'].lower() == 'patchy':                       # PATCHY --------------------
 
         code_dir = '/home/users/hahn/powercode/FiberCollisions/PATCHY/dr12/v6c/'
         
@@ -307,8 +307,7 @@ def get_fibcoll_dir(file_type, **cat_corr):
             else:
                 file_dir = '/mount/riachuelo1/hahn/power/tiling_mocks/'
 
-        elif catalog['name'].lower() == 'qpm': 
-            # QPM ------------------------------------------------------
+        elif catalog['name'].lower() == 'qpm':                          # QPM ---------------------------------------------
 
             if file_type.lower() == 'data': 
                 file_dir = '/mount/riachuelo1/hahn/data/QPM/dr12d/'
@@ -317,8 +316,16 @@ def get_fibcoll_dir(file_type, **cat_corr):
             else:
                 file_dir = '/mount/riachuelo1/hahn/power/QPM/dr12d/'
 
-        elif catalog['name'].lower() == 'patchy': 
-            # PATCHY ------------------------------------------------------
+        elif catalog['name'].lower() == 'nseries':                          # N series ---------------------------------------
+
+            if file_type.lower() == 'data': 
+                file_dir = '/mount/riachuelo1/hahn/data/Nseries/'
+            elif file_type.lower() == 'fft': 
+                file_dir = '/mount/riachuelo1/hahn/FFT/Nseries/'
+            else:
+                file_dir = '/mount/riachuelo1/hahn/power/Nseries/'
+
+        elif catalog['name'].lower() == 'patchy':                       # PATCHY ----------------------------------------
             
             if file_type.lower() == 'data': 
                 file_dir = '/mount/riachuelo1/hahn/data/PATCHY/dr12/v6c/'

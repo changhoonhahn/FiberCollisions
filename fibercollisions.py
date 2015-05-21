@@ -259,15 +259,17 @@ def build_fibcol_pk(cat, i_mock, corr, quad=False, clobber=False, **kwargs):
 
     Parameters
     ----------
-    cat : Catalog ('qpm', 'lasdamasgeo', 'tilingmock') 
+    cat : Catalog ('qpm', 'lasdamasgeo', 'tilingmock', 'nseries') 
     i_mock : Realization # of the mocks
     corr : Fiber collision correction method with specificiation 
     quad : monopole or quadrupole 
 
     '''
+    # cat corr dictionary
     catalog = {'name': cat} 
     correction = corr 
-    if cat == 'qpm': 
+
+    if cat in ('qpm', 'nseries'):                            
         # some constants throughout the code
         if 'spec' in kwargs.keys(): 
             spec = kwargs['spec']
@@ -294,7 +296,7 @@ def build_fibcol_pk(cat, i_mock, corr, quad=False, clobber=False, **kwargs):
         
         power_file = fc_spec.build_fibcol_power(**i_cat_corr) 
         print 'Constructing ', power_file 
-
+    
     elif cat == 'lasdamasgeo': 
         # some constants throughout the code
         if 'spec' in kwargs.keys(): 
@@ -843,206 +845,39 @@ def pk_fibcol_comp(catalog_name, n_mock, corr_methods):
 
     print corr_methods[min_index+1]
 
-'''
-def pk_ldg_peakshot_expon_grid(): 
-    spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':360}
-    
-    ldg_sigmas = [5.0+0.1*np.float(i) for i in range(0,21)]
-    ldg_fpeaks = [0.3+0.1*np.float(i) for i in range(0,6)]
+def build_pk(catalog, n_mocks): 
+    ''' 
+    Wrapper to build powerspectrum (monopole or quadrupole) for mock catalogs (QPM, Nseries, LasDamasGeo, TilingMock) 
 
-    for ldg_sigma in ldg_sigmas: 
-        for ldg_fpeak in ldg_fpeaks: 
-            print 'SIGMA = ', ldg_sigma, ' FPEAK = ', ldg_fpeak
-            corr = {'name': 'peakshot', 'sigma':ldg_sigma, 'fpeak':ldg_fpeak, 'fit':'expon'}
-            #lasdamasgeo_fibcoll_pk(40, corr) 
-            for i_mock in range(1,41): 
-                for letter in ['a', 'b', 'c', 'd']: 
-                    cat = {'name': 'lasdamasgeo', 'n_mock': i_mock, 'letter': letter} 
-                    cat_corr = {'catalog': cat, 'correction': corr, 'spec': spec} 
-                    power = fc_spec.Spec('power', **cat_corr) 
-                    power_file = power.file_name 
-
-                    if os.path.isfile(power_file) == False: 
-                        print 'Constructign ', power_file 
-                        lasdamasgeo_fibcoll_pk(i_mock, corr)
-
-            # compute the average for the correction: 
-            cat = {'name': 'lasdamasgeo'}
-            cat_corr = {'catalog': cat, 'correction': corr, 'spec': spec}  
-            build_avg_Pk(40, **cat_corr)
-   
-    # import average true P(k)
-    true_cat_corr = {'catalog': {'name': 'lasdamasgeo'}, 'correction': {'name': 'true'}, 'spec': spec} 
-    avg_Pk_true_file = avg_Pk_file(40, **true_cat_corr) 
-    if os.path.isfile(avg_Pk_true_file) == False:
-        print 'Constructing ', avg_Pk_true_file
-        build_avg_Pk(40, **true_cat_corr) 
-
-    avg_Pk_true = np.loadtxt(avg_Pk_true_file, unpack=True, usecols=[1])
-    
-    # import delta P(k) for true
-    Pk_var_file_name = 'delP_sdssmock'.join(avg_Pk_true_file.split('power_sdssmock')) 
-    if os.path.isfile(Pk_var_file_name) == False: 
-        deltaP(40, **true_cat_corr)
-
-    delPk = np.loadtxt(Pk_var_file_name, unpack=True, usecols=[1]) 
-
-    chi2 = [] 
-    chi2_param = [] 
-    for ldg_sigma in ldg_sigmas: 
-        for ldg_fpeak in ldg_fpeaks: 
-            chi2_param.append([ldg_sigma, ldg_fpeak])
-            print 'SIGMA = ', ldg_sigma, ' FPEAK = ', ldg_fpeak
-            cat = {'name': 'lasdamasgeo'}
-            corr = {'name': 'peakshot', 'sigma':ldg_sigma, 'fpeak':ldg_fpeak, 'fit':'expon'}
-            cat_corr = {'catalog': cat, 'correction': corr, 'spec': spec}  
-
-            avg_Pk_filename = avg_Pk_file(40, **cat_corr)
-
-            avg_k, avg_Pk = np.loadtxt(avg_Pk_filename, unpack=True, usecols=[0,1])
-
-            chi2.append(np.sum((avg_Pk_true-avg_Pk)**2/(delPk**2)))
-    
-    min_chi2_index = chi2.index(min(chi2))
-    print 'best fit parameters ------- '
-    print 'sigma = ', chi2_param[min_chi2_index][0]
-    print 'fpeak = ', chi2_param[min_chi2_index][1]
-
-def pk_tm_peakshot_expon_grid(): 
-    qpm_nmock = 45  # hardcoded value 
-
-    spec = {'P0': 20000, 'sscale':4000.0, 'Rbox':2000.0, 'box':4000, 'grid':360} 
-
-    tm_sigmas = [5.0+0.1*np.float(i) for i in range(0,21)]
-    tm_fpeaks = [0.3+0.1*np.float(i) for i in range(0,6)]
-    for tm_sigma in tm_sigmas: 
-        for tm_fpeak in tm_fpeaks: 
-            print 'SIGMA = ', tm_sigma, ' FPEAK = ', tm_fpeak
-            corr = {'name': 'peakshot', 'sigma':tm_sigma, 'fpeak':tm_fpeak, 'fit':'expon'}
-            cat_corr = {'catalog': {'name':'tilingmock'}, 'correction': corr, 'spec': spec} 
-
-            power = fc_spec.Spec('power', **cat_corr) 
-            power_file = power.file_name 
-
-            if os.path.isfile(power_file) == False: 
-                print 'Constructign ', power_file 
-                tilingmock_fibcoll_pk(corr) 
-    
-    # calculate which one has the best fit 
-    cat_corr = {'catalog': {'name':'tilingmock'}, 'correction': {'name': 'true'}, 'spec': spec} 
-    power_true = fc_spec.Spec('power', **cat_corr) 
-    power_true.readfile()
-    k = power_true.k
-    pk_true = power_true.Pk
-
-    # Scaled DeltaP/P using QPM mocks
-    qpm_spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':360} 
-    
-    # First get average QPM Pk_true
-    qpm_tot_Pk_true = np.zeros(len(k)) 
-    for i_mock in range(1, qpm_nmock+1): 
-        i_cat_corr = {'catalog': {'name':'qpm', 'n_mock': i_mock}, 'correction': {'name':'true'}, 'spec':qpm_spec}
-            
-        power_i = fc_spec.Spec('power', **i_cat_corr)
-        power_i.readfile()
-        
-        Pk_i = power_i.Pk
-        qpm_tot_Pk_true = qpm_tot_Pk_true + Pk_i
-
-    qpm_avg_Pk_true = qpm_tot_Pk_true/np.float(qpm_nmock)
-    
-    # Calculate DeltaP for QPM 
-    qpm_Pk_var = np.zeros(len(k)) 
-    for i_mock in range(1, qpm_nmock+1): 
-        i_cat_corr = {'catalog': {'name':'qpm', 'n_mock': i_mock}, 'correction': {'name':'true'}, 'spec':qpm_spec}
-        power_i = fc_spec.Spec('power', **i_cat_corr)
-        power_i.readfile()
-        
-        Pk_i = power_i.Pk
-        qpm_Pk_var = qpm_Pk_var + (qpm_avg_Pk_true - Pk_i)**2
-
-    qpm_Pk_var = np.sqrt(qpm_Pk_var/np.float(qpm_nmock))
-    tm_Pk_var = (qpm_Pk_var/qpm_avg_Pk_true) * pk_true
-
-    chi2 = [] 
-    chi2_param = [] 
-    for tm_sigma in tm_sigmas:
-        for tm_fpeak in tm_fpeaks: 
-            chi2_param.append([tm_sigma, tm_fpeak])
-            corr = {'name': 'peakshot', 'sigma':tm_sigma, 'fpeak':tm_fpeak, 'fit':'expon'}
-            cat_corr = {'catalog': {'name':'tilingmock'}, 'correction': corr, 'spec': spec} 
-
-            power = fc_spec.Spec('power', **cat_corr) 
-            power.readfile()
-
-            k = power.k 
-            pk = power.Pk
-
-            print np.sum((pk_true/pk-1.0)**2)
-            chi2.append(np.sum((pk_true-pk)**2/(tm_Pk_var**2)))
-    
-    min_chi2_index = chi2.index(min(chi2))
-    print 'best fit parameters ------- '
-    print 'sigma = ', chi2_param[min_chi2_index][0]
-    print 'fpeak = ', chi2_param[min_chi2_index][1]
-    corr = {'name': 'peakshot', 'sigma':chi2_param[min_chi2_index][0],'fpeak':chi2_param[min_chi2_index][1], 'fit':'expon'}
-    cat_corr = {'catalog': {'name':'tilingmock'}, 'correction': corr, 'spec': spec} 
-
-    power = fc_spec.Spec('power', **cat_corr) 
-
-    k, pk = np.loadtxt(power.file_name, unpack=True, usecols=[0,1])
-
-    print pk_true/pk-1.0
-'''
-
-def build_qpm(n_mocks):
-    ''' Wrapper to build powerspectrum (monopole or quadrupole) for QPM mock catalog
+    Parameters
+    ----------
+    catalog : name of catalog  
+    n_mocks : # of mocks 
 
     Notes
     -----
-    * peakshot "bestfit" parameters are {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}
+    * QPM peakshot bestfit parameters: {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}
+    * LasDamasGeo peakshot bestfit parameters: {'name': 'peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}
+    * Nseries peakshot bestfit parameters: {'name': 'peakshot', 'sigma', 4.0, 'fpeak': 0.7, 'fit': 'gauss'}
 
-    ''' 
+    '''
+    # correction method list 
+    corrections = [ {'name': 'true'}, {'name': 'upweight'}, {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}]
 
-    # build P(k) monopole or quadrupole
-    corrections = [ {'name': 'true'}, {'name': 'upweight'}, {'name': 'noweight'}]
-    #       {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}]
-    spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 
-                'grid': 360, 'quad': False}
+    spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid': 360, 'quad': False}
+
     for i_mock in range(1, n_mocks+1): 
         for corr in corrections: 
-            build_fibcol_pk('qpm', i_mock, corr, spec=spec, clobber=False) 
-
-def build_lasdamasgeo(n_mocks): 
-    ''' Wrapper to build powerspectrum (monopole or quadrupole) for LasDamas Geo mock catalog
-
-    Notes
-    -----
-    * peakshot "bestfit" parameters are {'name': 'peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}
-    ''' 
-
-    # build P(k) monopole or quadrupole
-    corrections = [ {'name': 'true'}, {'name': 'upweight'}, {'name': 'peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}]
-    spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 
-                'grid': 960, 'quad': True}
-    for i_mock in range(11, n_mocks+1): 
-        for corr in corrections: 
-            build_fibcol_pk('lasdamasgeo', i_mock, corr, spec=spec, clobber=True)
-
-def build_patchy(): 
-    corrs = [{'name': 'true'}, {'name': 'upweight'}] 
-    for i_mock in np.arange(1,11): 
-        for corr in corrs: 
-            patchy_fibcoll_pk(i_mock, corr, quad=False) 
+            build_fibcol_pk(catalog, i_mock, corr, spec=spec, clobber=False) 
 
 if __name__=='__main__': 
+    build_pk('nseries', 1)
     #for corr in ['true', 'upweight', 'noweight']: 
     #    cat_corr = {'catalog': {'name':'lasdamasgeo', 'n_mock':1, 'letter':'a'}, 
     #            'correction': {'name': corr}} 
     #    fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     #cat_corr = {'catalog': {'name':'lasdamasgeo', 'n_mock':1, 'letter':'a'}, 'correction': {'name': 'true'}} 
     #fc_data.build_true(**cat_corr) 
-    build_lasdamasgeo(40) 
     #build_qpm(10) 
     #build_patchy()
 
@@ -1060,8 +895,6 @@ if __name__=='__main__':
     #avg_Pk(40, **cat_corr)
     #corr = {'name': 'peaknbar', 'sigma':6.9, 'fpeak':1.0, 'fit':'expon'}
     #lasdamasgeo_fibcoll_pk(40, corr) 
-
-    ############################################################################################# QPM 
 
     ############################################################################################# LasDamasGeo  
     #cat_corr = {'catalog': {'name': 'qpm'}, 'correction': {'name': 'true'}} 

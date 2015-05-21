@@ -43,10 +43,9 @@ class Spec:
         if spec['quad'] == True:                                # for Quadrupole code 
             spec_file_flag = spec_file_flag+'quad_'
 
-        if catalog['name'].lower() == 'tilingmock':  
-            # Tiling Mock ------------------------------------------------------------
+        if catalog['name'].lower() == 'tilingmock':                             # Tiling Mock ---------------------------
 
-            file_dir = spec_dir+'tiling_mocks/'         # file directory 
+            file_dir = spec_dir+'tiling_mocks/' # file directory 
 
             data_file = fc_data.get_galaxy_data_file('data', **cat_corr)    # data file 
 
@@ -77,10 +76,33 @@ class Spec:
             file_corr = ''
             file_suffix = ''
 
-        elif catalog['name'].lower() == 'qpm': 
-            # QPM --------------------------------------------------------------------
+        elif catalog['name'].lower() == 'qpm':                                  # QPM --------------------------------
 
-            file_dir = spec_dir+'QPM/dr12d/'                       # QPM directory 
+            file_dir = spec_dir+'QPM/dr12d/'    # QPM directory 
+
+            data_file = fc_data.get_galaxy_data_file('data', **cat_corr)
+
+            # file naem  
+            file_prefix = spec_file_flag + data_file.rsplit('/')[-1]
+            
+            if correction['name'].lower() == 'shotnoise': file_prefix = file_prefix+'.shotnoise'
+            if correction['name'].lower() == 'floriansn': file_prefix = file_prefix+'.floriansn'
+            if correction['name'].lower() == 'hectorsn': file_prefix = file_prefix+'.hectorsn'
+
+            # file ending  
+            if spectrum == 'bispec': 
+                file_suffix = '.grid360.nmax.nstep3.P020000.box3600'
+            elif spectrum == 'power': 
+                file_suffix = '.grid'+str(spec['grid'])+'.P0'+str(spec['P0'])+'.box'+str(spec['box'])
+            
+            # specify correction 
+            file_corr = ''          # specified in file_prefix within the data file name 
+
+            self.scale = spec['box']
+        
+        elif catalog['name'].lower() == 'nseries':                              # N series --------------------------------
+
+            file_dir = spec_dir+'Nseries/'    # N series directory 
 
             data_file = fc_data.get_galaxy_data_file('data', **cat_corr)
 
@@ -168,13 +190,14 @@ class Spec:
         # read file 
         file = np.loadtxt(self.file_name) 
         
-        # Powerspectrum ----------------------------------------------------------------------------------------------------
-        if self.spectrum == 'power':
+        if self.spectrum == 'power':                                             # Powerspectrum ---------------------------
+
             # columns of data to be imported
             self.columns = ['k', 'Pk']
             self.k  = file[:,0]
+
             if spec['quad'] == True: 
-                if correction['name'].lower() in ('peakshot', 'vlospeakshot'): 
+                if correction['name'].lower() in ('peakshot'): 
                     self.Pk = file[:,5]
                 else: 
                     self.Pk = file[:,1]
@@ -186,8 +209,8 @@ class Spec:
             else: 
                 pass
 
-        # Bispectrum ----------------------------------------------------------------------------------------------------
-        elif self.spectrum == 'bispec': 
+        elif self.spectrum == 'bispec':                                         # Bispectrum --------------------------------
+
             # columns of data to be imported
             self.columns = ['kfund', 'i_triangles', 'k1', 'k2', 'k3', 'Pk1', 'Pk2', 'Pk3', 
                     'Bk', 'Q', 'avgk', 'kmax']
@@ -250,7 +273,7 @@ def build_fibcol_power(**cat_corr):
         fc_util.compile_fortran_code(power_code) 
     
     
-    if catalog['name'].lower() in ('lasdamasgeo', 'tilingmock', 'qpm', 'patchy'):   
+    if catalog['name'].lower() in ('lasdamasgeo', 'tilingmock', 'qpm', 'patchy', 'nseries'):   
         if spec['quad'] == True:            # for quadrupole code 
             # NOTE: ORDER OF RAND AND MOCK FILES ARE REVERSED
             power_cmd = ' '.join([power_exe, fft_rand_file, fft_file, power_file, 
