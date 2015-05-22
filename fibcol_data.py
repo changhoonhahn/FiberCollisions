@@ -8,6 +8,7 @@ Author(s): ChangHoon Hahn
 '''
 
 import numpy as np
+import scipy as sp 
 import time 
 import os.path
 import subprocess
@@ -22,14 +23,16 @@ import pyspherematch as pysph
 
 # Classes ------------------------------------------------------------
 class galaxy_data: 
-    def __init__(self, DorR, clobber=False, **cat_corr): 
+    def __init__(self, DorR, clobber=False, cosmology='fidcosmo', **cat_corr): 
         ''' Given cat_corr dictionary read in/ build the data or random 
         file and store all the appropriate values  
 
         Parameters
         ----------
         DorR : 'data' or 'random'
-        cat_corr = Catalog correction Dictionary 
+        cat_corr :  Catalog correction Dictionary 
+        cosmology : 'fidcosmo' uses fiducial cosmology; 'boxcosmo' uses box cosmology
+        clobber : 
 
         '''
         self.cat_corr = cat_corr                    # save catalog and correction metadata 
@@ -106,8 +109,7 @@ class galaxy_data:
                     # assign to class
                     setattr(self, catalog_column, column_data)
 
-        elif catalog['name'].lower() == 'tilingmock':   
-            # TILING MOCKS ------------------------------------------------ 
+        elif catalog['name'].lower() == 'tilingmock':                       # Tiling Mock ----------------------
 
             omega_m = 0.274         # survey cosmology 
 
@@ -167,13 +169,13 @@ class galaxy_data:
                     setattr(self, catalog_column, column_data)
                 
         elif catalog['name'].lower() == 'qpm':                              # QPM -------------------------------
-
+            
             omega_m = 0.31  # survey cosmology 
 
             if DorR == 'data':                          # Data ------------------------------
                 
                 # catalog columns 
-                catalog_columns = ['ra', 'dec', 'z', 'wfkp', 'wfc', 'comp'] 
+                catalog_columns = ['ra', 'dec', 'z', 'wfc', 'comp'] 
                 self.columns = catalog_columns
 
                 if (os.path.isfile(file_name) == False) or (clobber == True):
@@ -207,7 +209,7 @@ class galaxy_data:
                     else: 
                         raise NotImplementedError() 
 
-                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4,5])         # ra, dec, z, wfkp, wfc, comp
+                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4])   # ra, dec, z, wfc, comp
 
                 # assign to data columns class
                 for i_col, catalog_column in enumerate(catalog_columns): 
@@ -216,26 +218,29 @@ class galaxy_data:
             
             elif DorR == 'random':              # Random ------------------------------------
 
-                catalog_columns = ['ra', 'dec', 'z', 'wfkp', 'comp']    # catalog columns 
+                catalog_columns = ['ra', 'dec', 'z', 'comp']    # catalog columns 
 
                 if (os.path.isfile(file_name) == False) or (clobber == True):
                     print 'Constructing ', file_name 
                     build_random(**cat_corr) 
 
-                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4])   # ra, dec, z, wfkp, comp 
+                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])   # ra, dec, z, comp 
 
                 # assign to object data columns
                 for i_col, catalog_column in enumerate(catalog_columns): 
                     setattr(self, catalog_column, file_data[i_col])
         
         elif catalog['name'].lower() == 'nseries':                      # N-series -------------------------------
-
-            omega_m = 0.286  # survey cosmology 
+                
+            if cosmology == 'fidcosmo': 
+                omega_m = 0.31 # fiducial cosmology  
+            else: 
+                omega_m = 0.286  # survey cosmology 
 
             if DorR == 'data':                          # Data ------------------------------
                 
                 # catalog columns 
-                catalog_columns = ['ra', 'dec', 'z', 'wfkp', 'wfc', 'comp'] 
+                catalog_columns = ['ra', 'dec', 'z', 'wfc', 'comp'] 
                 self.columns = catalog_columns
 
                 if not os.path.isfile(file_name) or clobber:
@@ -261,7 +266,7 @@ class galaxy_data:
                     else: 
                         raise NotImplementedError() 
 
-                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4,5])         # ra, dec, z, wfkp, wfc, comp
+                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4])         # ra, dec, z, wfc, comp
 
                 # assign to data columns class
                 for i_col, catalog_column in enumerate(catalog_columns): 
@@ -270,13 +275,13 @@ class galaxy_data:
             
             elif DorR == 'random':              # Random ------------------------------------
 
-                catalog_columns = ['ra', 'dec', 'z', 'wfkp', 'comp']    # catalog columns 
+                catalog_columns = ['ra', 'dec', 'z', 'comp']    # catalog columns 
 
                 if (os.path.isfile(file_name) == False) or (clobber == True):
                     print 'Constructing ', file_name 
                     build_random(**cat_corr) 
 
-                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4])   # ra, dec, z, wfkp, comp
+                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])   # ra, dec, z, comp
 
                 # assign to object data columns
                 for i_col, catalog_column in enumerate(catalog_columns): 
@@ -370,11 +375,11 @@ class galaxy_data:
         cosmo = {} 
         cosmo['omega_M_0'] = omega_m 
         cosmo['omega_lambda_0'] = 1.0 - omega_m 
-        cosmo['h'] = 0.7 
+        cosmo['h'] = 0.676
         cosmo = cosmos.distance.set_omega_k_0(cosmo) 
         self.cosmo = cosmo 
 
-def get_galaxy_data_file(DorR, **cat_corr): 
+def get_galaxy_data_file(DorR, cosmology='fidcosmo', **cat_corr): 
     ''' Returns file name of Data or Random catalog 
     given cat_corr dictionary 
     
@@ -382,6 +387,7 @@ def get_galaxy_data_file(DorR, **cat_corr):
     ----------
     DorR : 'data' or 'random'
     cat_corr : catalog + correction dictionary 
+    cosmology : 'fidcosmo', use fiducial cosmology 
 
     Returns
     -------
@@ -634,8 +640,9 @@ def get_galaxy_data_file(DorR, **cat_corr):
     elif catalog['name'].lower() == 'nseries':              # N-series ------------------
         data_dir = '/mount/riachuelo1/hahn/data/Nseries/'
         
-        if DorR == 'data': 
-            # mock catalogs  
+        if DorR == 'data':  # mock catalogs 
+
+            cosmo_str = '_'+cosmology   # specify cosmology 
 
             if correction['name'].lower() == 'true': 
                 # true mocks
@@ -670,8 +677,7 @@ def get_galaxy_data_file(DorR, **cat_corr):
                     raise NameError('peak fit has to be specified: gauss or expon') 
 
                 file_name = ''.join([data_dir, 
-                    'CutskyN', str(catalog['n_mock']), '.fibcoll', corr_str, '.dat'
-                    ]) 
+                    'CutskyN', str(catalog['n_mock']), '.fibcoll', corr_str, cosmo_str, '.dat' ]) 
 
             else: 
                 raise NameError('not yet coded') 
@@ -717,7 +723,7 @@ def build_true(**cat_corr):
 
     elif catalog['name'].lower() == 'qpm':                                      # QPM ------------------------------------
 
-        P0 = 20000.             # hardcoded P0 value
+        P0 = 20000.0    # hardcoded P0 value
 
         # import original true data 
         orig_true_file = ''.join(['/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/data/', 
@@ -740,8 +746,7 @@ def build_true(**cat_corr):
         true_ra = orig_true_data[:,0]
         true_dec = orig_true_data[:,1]
         true_z = orig_true_data[:,2]
-        true_wfkp = orig_true_data[:,3]                           # compute nbar(z_i) from w_fkp 
-        true_wfc = np.array([1.0 for i in range(n_gal)])          # fiber collisions weights are all 1 for true
+        true_wfc = np.array([1.0 for i in range(n_gal)])    # fiber collisions weights are all 1 for true
 
         # check to make sure that the redshifts correspond btw rdz file and rdz.info file 
         if np.max(np.abs(orig_true_info[:,3]/true_z-1.0)) > 10**-5: 
@@ -755,16 +760,17 @@ def build_true(**cat_corr):
         
         true_file = get_galaxy_data_file('data', readdata=False, **cat_corr)
         np.savetxt(true_file, np.c_[
-            true_ra[vetomask], true_dec[vetomask], true_z[vetomask], 
-            true_wfkp[vetomask], true_wfc[vetomask], true_comp[vetomask]], 
-            fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+            true_ra[vetomask], true_dec[vetomask], true_z[vetomask], true_wfc[vetomask], true_comp[vetomask]], 
+            fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
     elif catalog['name'].lower() == 'nseries':                              # N Series ---------------------------------
+    
+        P0 = 20000.0
 
         # read rdzw file 
         data_dir = '/mount/riachuelo1/hahn/data/Nseries/'
         orig_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.rdzwc']) 
-        orig_ra, orig_dec, orig_z, orig_wfkp, orig_wfc = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,3,4])
+        orig_ra, orig_dec, orig_z, orig_wfc = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,4])
     
         # file with completeness
         mask_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.mask_info']) 
@@ -776,10 +782,8 @@ def build_true(**cat_corr):
         # write to file 
         true_file = get_galaxy_data_file('data', **cat_corr) 
         np.savetxt(true_file, 
-                np.c_[
-                    orig_ra, orig_dec, orig_z, orig_wfkp, true_wfc, orig_wcomp
-                    ], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+                np.c_[orig_ra, orig_dec, orig_z, true_wfc, orig_wcomp], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
     elif catalog['name'].lower() == 'lasdamasgeo':                          # Las Damas Geo -----------------------------
 
@@ -836,19 +840,22 @@ def build_random(**cat_corr):
     '''
     catalog = cat_corr['catalog']
 
-    if catalog['name'].lower() == 'qpm':    # QPM
+    if catalog['name'].lower() == 'qpm':                        # QPM ------------------------------
+    
+        data_dir = '/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/randoms/'
         # read original random catalog  
-        orig_true_random = np.loadtxt('/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/randoms/a0.6452_rand50x.dr12d_cmass_ngc.rdz')             # ra, dec, z, wfkp
-        orig_true_random_info = np.loadtxt('/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/randoms/a0.6452_rand50x.dr12d_cmass_ngc.rdz.info')   # galid, comp?
-        orig_true_random_veto = np.loadtxt('/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/randoms/a0.6452_rand50x.dr12d_cmass_ngc.veto')       # veto  
+        orig_true_random = np.loadtxt(''.join([data_dir, 'a0.6452_rand50x.dr12d_cmass_ngc.rdz']))   # ra, dec, z, wfkp
+        orig_true_random_info = np.loadtxt(data_dir+'a0.6452_rand50x.dr12d_cmass_ngc.rdz.info')   # galid, comp?
+        orig_true_random_veto = np.loadtxt(data_dir+'a0.6452_rand50x.dr12d_cmass_ngc.veto')       # veto  
 
         vetomask = (orig_true_random_veto == 0)
-        #true_random = galaxy_data('random', readdata=False, **{'catalog':{'name':'qpm'}, 'correction':{'name':'true'}})
         true_random_file = get_galaxy_data_file('random', **{'catalog':{'name':'qpm'}, 'correction':{'name':'true'}})
         
-        np.savetxt(true_random_file, np.c_[(orig_true_random[:,0])[vetomask], (orig_true_random[:,1])[vetomask], 
-            (orig_true_random[:,2])[vetomask], (orig_true_random[:,3])[vetomask], (orig_true_random_info[:,1])[vetomask]], 
-            fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+        np.savetxt(true_random_file, 
+                np.c_[
+                    (orig_true_random[:,0])[vetomask], (orig_true_random[:,1])[vetomask], (orig_true_random[:,2])[vetomask], 
+                    (orig_true_random_info[:,1])[vetomask]], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
     elif catalog['name'].lower() == 'nseries':      # Nseries ----------------------------
 
@@ -857,7 +864,7 @@ def build_random(**cat_corr):
 
         orig_rand_file = ''.join([data_dir, 'Nseries_cutsky_randoms_50x_redshifts.dat']) 
         # RA, Decl, Redhsift, w_fkp
-        ra, dec, z, wfkp = np.loadtxt(orig_rand_file, unpack=True, usecols=[0,1,2,3]) 
+        ra, dec, z = np.loadtxt(orig_rand_file, unpack=True, usecols=[0,1,2]) 
     
         # sector completeness
         orig_comp_file = ''.join([data_dir, 'Nseries_cutsky_randoms_50x_maskinfo.dat'])  
@@ -866,8 +873,8 @@ def build_random(**cat_corr):
         # save rnadom file 
         true_random_file = get_galaxy_data_file('random', **{'catalog':{'name':'nseries'}, 'correction':{'name':'true'}})
         np.savetxt(true_random_file, 
-                np.c_[ra, dec, z, wfkp, comp], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+                np.c_[ra, dec, z, comp], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
     elif catalog['name'].lower() == 'patchy':       # PATCHY
 
@@ -1026,7 +1033,6 @@ def build_fibercollided(**cat_corr):
         true_ra = orig_true_data[:,0]
         true_dec = orig_true_data[:,1]
         true_z = orig_true_data[:,2]
-        true_wfkp = orig_true_data[:,3]
         true_wfc = orig_true_data[:,4] 
 
         true_comp = orig_true_info_data[:,1]
@@ -1034,10 +1040,9 @@ def build_fibercollided(**cat_corr):
         vetomask = (orig_true_veto == 0)
 
         fc_file = get_galaxy_data_file('data', **cat_corr)
-        np.savetxt(fc_file, np.c_[
-            true_ra[vetomask], true_dec[vetomask], true_z[vetomask], 
-            true_wfkp[vetomask], true_wfc[vetomask], true_comp[vetomask]], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+        np.savetxt(fc_file, 
+                np.c_[true_ra[vetomask], true_dec[vetomask], true_z[vetomask], true_wfc[vetomask], true_comp[vetomask]], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
         fibcollided_cmd = ''
     
@@ -1047,7 +1052,7 @@ def build_fibercollided(**cat_corr):
 
         # original file 
         orig_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.rdzwc']) 
-        orig_ra, orig_dec, orig_z, orig_wfkp, orig_wfc = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,3,4])
+        orig_ra, orig_dec, orig_z, orig_wfc = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,4])
     
         # file with mask completeness
         mask_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.mask_info']) 
@@ -1056,11 +1061,8 @@ def build_fibercollided(**cat_corr):
         # write to file 
         true_file = get_galaxy_data_file('data', **cat_corr) 
         np.savetxt(true_file, 
-                np.c_[
-                    orig_ra, orig_dec, orig_z, 
-                    orig_wfkp, orig_wfc, orig_wcomp
-                    ], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+                np.c_[orig_ra, orig_dec, orig_z, orig_wfc, orig_wcomp], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
         fibcollided_cmd = ''
 
@@ -1132,10 +1134,8 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
         fibcoll_mock = galaxy_data('data', **fibcoll_cat_corr) 
         cosmo = fibcoll_mock.cosmo           # survey comoslogy 
 
-        survey_comdis_min = \
-                cosmos.distance.comoving_distance( survey_zmin, **cosmo ) * cosmo['h']
-        survey_comdis_max = \
-                cosmos.distance.comoving_distance( survey_zmax, **cosmo ) * cosmo['h']
+        survey_comdis_min = cosmos.distance.comoving_distance( survey_zmin, **cosmo ) * cosmo['h']
+        survey_comdis_max = cosmos.distance.comoving_distance( survey_zmax, **cosmo ) * cosmo['h']
 
         # set peak fraction         
         if correction['name'].lower() in ('allpeak', 'allpeakshot'): 
@@ -1283,30 +1283,29 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
         
         cosmo = fibcoll_mock.cosmo  # survey cosmology 
 
-        survey_comdis_min = cosmos.distance.comoving_distance(survey_zmin, 
-                **cosmo)*cosmo['h']         # in units of Mpc/h
-        survey_comdis_max = cosmos.distance.comoving_distance(survey_zmax, 
-                **cosmo)*cosmo['h']         # in units of Mpc/h
-
-        if catalog['name'].lower() in ('qpm', 'patchy', 'nseries'): 
+        survey_comdis_min = cosmos.distance.comoving_distance(survey_zmin, **cosmo)*cosmo['h']         # in units of Mpc/h
+        survey_comdis_max = cosmos.distance.comoving_distance(survey_zmax, **cosmo)*cosmo['h']         # in units of Mpc/h
+    
+        if catalog['name'].lower() != 'tilingmock':
             # only use fiber collision weights
             fibcoll_mock.weight = fibcoll_mock.wfc            
                         
-        # read in the true galaxies for tail portion  
-        # the tail portion of the peak corrections will be generated 
-        # similar to the mksample procedures for assigning the random catalog redshift 
-        true_cat_corr = {'catalog':catalog, 'correction': {'name': 'true'}}
-        true_data = galaxy_data('data', **true_cat_corr)
-        
-        if catalog['name'].lower() in ('qpm',  'patchy', 'nseries'): 
-            true_weight = true_data.wfc
-        else: 
-            true_weight = true_data.weight
-        true_z = true_data.z
+        if correction['name'] == 'peaknbar': 
+            # read in the true galaxies for tail portion  
+            # the tail portion of the peak corrections will be generated 
+            # similar to the mksample procedures for assigning the random catalog redshift 
+            true_cat_corr = {'catalog':catalog, 'correction': {'name': 'true'}}
+            true_data = galaxy_data('data', **true_cat_corr)
+            
+            if catalog['name'].lower() in ('qpm',  'patchy', 'nseries'): 
+                true_weight = true_data.wfc
+            else: 
+                true_weight = true_data.weight
+            true_z = true_data.z
 
-        true_weight_cum = true_weight.cumsum()
-        true_weight_max = true_weight_cum.max()
-        i_true = np.arange(0,len(true_weight_cum))
+            true_weight_cum = true_weight.cumsum()
+            true_weight_max = true_weight_cum.max()
+            i_true = np.arange(0,len(true_weight_cum))
 
         # set peak fraction (f_peak in correction direction reflects the correct fpeak, 
         # but for all peak correction methods this is simply used as weight 
@@ -1318,9 +1317,7 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
         append_ra, append_dec, append_z, append_dlos, append_weight = [], [], [], [], []
 
         if catalog['name'].lower() in ('qpm', 'nseries'): 
-            append_wfkp, append_comp = [], []   # save wfkp and comp
-        elif catalog['name'].lower() == 'patchy': 
-            append_nbar = [] 
+            append_comp = []   # save comp
 
         reupw = []
 
@@ -1334,8 +1331,7 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
                 fibcoll_mock.weight[i_mock] -= 1.0
 
                 # LOS comoving distance of the galaxy 
-                comdis_imock = cosmos.distance.comoving_distance(fibcoll_mock.z[i_mock], 
-                        **cosmo)*cosmo['h']
+                comdis_imock = cosmos.distance.comoving_distance(fibcoll_mock.z[i_mock], **cosmo)*cosmo['h']
                 
                 rand_num = np.random.random(1)  # determine whether galaxy is in the peak
                
@@ -1345,10 +1341,7 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
                     append_dec.append(fibcoll_mock.dec[i_mock])
 
                     if catalog['name'].lower() in ('qpm', 'nseries'): 
-                        append_wfkp.append(fibcoll_mock.wfkp[i_mock]) 
                         append_comp.append(fibcoll_mock.comp[i_mock])
-                    elif catalog['name'].lower() == 'patchy': 
-                        append_nbar.append(fibcoll_mock.nbar[i_mock]) 
 
                     append_weight.append(1.0)       # appended galaxy has weight=1.0 
                     
@@ -1366,7 +1359,7 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
 
                             rand2 = (-3.0+rand2*6.0)*correction['sigma']
                             peakpofr = fit_func(rand2, correction['sigma']) 
-                        #----------------------------------- --------------------------------- 
+                        #-------------------------------------------------------------------- 
 
                     elif correction['fit'].lower() == 'true': 
                         # compute displacements within peak using true distribution ------
@@ -1473,13 +1466,10 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
         fibcoll_mock.dec = np.concatenate([fibcoll_mock.dec, append_dec])
         fibcoll_mock.weight = np.concatenate([fibcoll_mock.weight, append_weight])
 
-        if catalog['name'].lower() == 'qpm': 
-            fibcoll_mock.wfkp = np.concatenate([fibcoll_mock.wfkp, append_wfkp])
+        if catalog['name'].lower() in ('qpm', 'nseries'): 
             fibcoll_mock.comp = np.concatenate([fibcoll_mock.comp, append_comp])
-        elif catalog['name'].lower() == 'patchy': 
-            fibcoll_mock.nbar = np.concatenate([fibcoll_mock.nbar, append_nbar])
 
-        fibcoll_mock.z = np.concatenate([fibcoll_mock.z, appended_z])
+        fibcoll_mock.z = np.concatenate([fibcoll_mock.z, append_z])
         
         if sanitycheck == True:         # output sanitycheck 
             sanitycheck_file = ''.join([
@@ -1494,9 +1484,8 @@ def build_peakcorrected_fibcol(sanitycheck=False, **cat_corr):
     
     if catalog['name'].lower() in ('qpm', 'nseries'): 
         np.savetxt(peakcorr_file, 
-                np.c_[fibcoll_mock.ra, fibcoll_mock.dec, fibcoll_mock.z, 
-                    fibcoll_mock.wfkp, fibcoll_mock.weight, fibcoll_mock.comp], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
+                np.c_[fibcoll_mock.ra, fibcoll_mock.dec, fibcoll_mock.z, fibcoll_mock.weight, fibcoll_mock.comp], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
                 delimiter='\t') 
 
     elif catalog['name'].lower() == 'patchy': 
@@ -1950,13 +1939,13 @@ def build_peak_fpeak_dNN(NN=3, **cat_corr):
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
 def comdis2z(comdis, **cosmo): 
-    '''
-    Given comoving distance and cosmology, determine z 
+    ''' Given comoving distance and cosmology, determine z 
     Comoving distance *has* to be in Mpc/h
     '''
     z_arr = np.array([0.0+0.05*np.float(i) for i in range(21)]) 
     dm_arr = cosmos.distance.comoving_distance(z_arr, **cosmo)*cosmo['h']
 
-    # use numpy interpolate
-    z = np.interp(comdis, dm_arr, z_arr) 
+    dmz_spline = sp.interpolate.interp1d(dm_arr, z_arr, kind='cubic') 
+    
+    z = dmz_spline(comdis)
     return z 

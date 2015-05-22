@@ -10,6 +10,7 @@ Author(s): ChangHoon Hahn
 
 
 import numpy as np 
+import scipy as sp
 import os.path
 import subprocess
 import cosmolopy as cosmos
@@ -56,7 +57,7 @@ def plot_pk_fibcol_comp(catalog_name, n_mock, corr_methods, quad=False, type='ra
         Ngrid = 360         # default Ngrid
 
     # power/bispectrum properties 
-    if catalog_name.lower() in ('lasdamasgeo', 'qpm'): 
+    if catalog_name.lower() in ('lasdamasgeo', 'qpm', 'nseries'): 
         spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 
                 'grid': Ngrid, 'quad': quad} 
 
@@ -70,8 +71,7 @@ def plot_pk_fibcol_comp(catalog_name, n_mock, corr_methods, quad=False, type='ra
 
     for i_corr, correction in enumerate(corr_methods):     # loop through correction methods
 
-        if catalog_name.lower() == 'lasdamasgeo': 
-            # LasDamasGeo 
+        if catalog_name.lower() == 'lasdamasgeo':           # LasDamasGeo 
 
             # compute average[P(k)] for each correction method
             n_file = 0
@@ -118,7 +118,7 @@ def plot_pk_fibcol_comp(catalog_name, n_mock, corr_methods, quad=False, type='ra
 
             n_file = 1          # only one file 
 
-        elif catalog_name.lower() == 'qpm': 
+        elif catalog_name.lower() in ('qpm', 'nseries'): 
             n_file = 0  
             for i_mock in range(1, n_mock+1): 
                 i_catalog = catalog.copy() 
@@ -416,9 +416,7 @@ def plot_pk_fibcol_comp(catalog_name, n_mock, corr_methods, quad=False, type='ra
     else: 
         fig_name = ''.join(['p0k_', catalog_name.lower(), 
             '_fibcoll_', corr_str, resid_str, '_comparison_Ngrid', str(Ngrid), '.png'])     
-    print''.join(['/home/users/hahn/research/figures/boss/fiber_collision/', fig_name]) 
-    fig.savefig(''.join(['/home/users/hahn/research/figures/boss/fiber_collision/', 
-                fig_name]), bbox_inches="tight")
+    fig.savefig(''.join(['figure/', fig_name]), bbox_inches="tight")
 
     fig.clear()
 
@@ -720,6 +718,49 @@ def plot_peakcorrection_check(catalog_name, n_mock, corr_methods):
     sub.set_xlabel(r"$d_{LOS}$ Mpc") 
     plt.show() 
 
+def plot_comdis2z_test(): 
+    ''' Plot to test interpolation of comdis2z
+
+    Notes
+    -----
+    * linear, quadratic, cubic: cubic fits best 
+    '''
+    prettyplot() 
+    pretty_colors = prettycolors()  
+    
+    # comsology 
+    omega_m = 0.31
+    cosmo = {} 
+    cosmo['omega_M_0'] = omega_m 
+    cosmo['omega_lambda_0'] = 1.0 - omega_m 
+    cosmo['h'] = 0.676
+    cosmo = cosmos.distance.set_omega_k_0(cosmo) 
+    
+    z_arr = np.array(np.arange(0.0, 1.05, 0.05))
+    dm_arr = cosmos.distance.comoving_distance(z_arr, **cosmo)*cosmo['h']
+    
+    z_fine_arr = np.array(np.arange(0.43, 0.7, 0.01))
+    dm_fine_arr = cosmos.distance.comoving_distance(z_fine_arr, **cosmo)*cosmo['h']
+
+    fig = plt.figure()
+    sub = fig.add_subplot(111) 
+
+    for i_interp, interp in enumerate(['linear', 'quadratic', 'cubic']): 
+
+        dmz_interp = sp.interpolate.interp1d(dm_arr, z_arr, kind=interp) 
+
+        z_dm_interp = np.array([dmz_interp(dm_fine) for dm_fine in dm_fine_arr])
+
+        sub.plot(dm_fine_arr, z_fine_arr - z_dm_interp, 
+                lw=4, c=pretty_colors[i_interp], label=interp)
+    
+    sub.set_xlabel(r'$D_c$') 
+    sub.set_ylabel(r'$\Delta z$') 
+    sub.legend()
+
+    fig.savefig('figure/comdis2z_test.png')
+    fig.clear()
+    plt.close(fig)
 
 # nbar(z) ------------------------------------------------------------
 def plot_nbar_comparison(cat_corr_list, type='ratio', **kwargs):
@@ -1039,12 +1080,12 @@ def chi_squared():
 
 if __name__=="__main__":
 
-    cat_corr_list = [] 
-    catalog = {'name': 'nseries'}
-    for corr in ['true', 'upweight']: 
-        cat_corr_list.append({'catalog': catalog, 'correction': {'name': corr}}) 
+    #cat_corr_list = [] 
+    #catalog = {'name': 'nseries'}
+    #for corr in ['true', 'upweight']: 
+    #    cat_corr_list.append({'catalog': catalog, 'correction': {'name': corr}}) 
 
-    plot_nbar_comparison(cat_corr_list, type='ratio', xrange=[0.16, 0.4], yrange=[0.95, 1.05])
+    #plot_nbar_comparison(cat_corr_list, type='ratio', xrange=[0.16, 0.4], yrange=[0.95, 1.05])
 
     #cat_corr = {'catalog': {'name': 'lasdamasgeo', 'n_mock': 1, 'letter': 'a'}, 
     #        'correction': {'name': 'upweight'}} 
@@ -1055,10 +1096,17 @@ if __name__=="__main__":
 
     #plot_avg_pk_fibcol('lasdamasgeo', 40, {'name': 'true'}, quad=False)   
     #plot_avg_pk_fibcol('qpm', 100, {'name': 'true'}, quad=False)   
-
-    #qpm_corr_methods = [ {'name': 'true'}, {'name':'upweight'}, {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}]
-    ##        #{'name': 'peakshot_dnn', 'sigma':4.4, 'NN': 3, 'fit': 'gauss'}
-    #plot_pk_fibcol_comp('qpm', 10, qpm_corr_methods, quad=True, Ngrid=960, type='regular', xrange=[0.001, 1.0], yrange=[10**-3, 3*10**5]) 
+    plot_comdis2z_test()
+    
+    '''
+    nseries_corr_methods = [ {'name': 'true'}, {'name':'upweight'}, {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}]
+    plot_pk_fibcol_comp('nseries', 10, nseries_corr_methods, 
+            quad=True, Ngrid=360, type='regular', 
+            xrange=[0.001, 1.0], yrange=[10**3, 3*10**5]) 
+    plot_pk_fibcol_comp('nseries', 10, nseries_corr_methods, 
+            quad=True, Ngrid=360, type='ratio', 
+            xrange=[0.001, 1.0], yrange=[0.0, 2.0]) 
+    '''
     #plot_pk_fibcol_comp('qpm', 10, qpm_corr_methods, quad=True, Ngrid=960, type='ratio', xrange=[0.001, 1.0]) 
     #plot_pk_fibcol_comp('qpm', 10, qpm_corr_methods, quad=True, Ngrid=960, type='residual', yscale='log', xrange=[0.02, 1.0]) 
     ##plot_pk_fibcol_comp('qpm', 100, qpm_corr_methods, quad=True, type='residual', yscale='log', xrange=[0.02, 1.0]) 

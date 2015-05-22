@@ -139,6 +139,9 @@ def build_fibcol_fft(DorR, **cat_corr):
         elif catalog['name'].lower() == 'tilingmock':
             idata = 9 
             ifc = 0 
+        elif catalog['name'].lower() == 'nseries': 
+            idata = 10 
+            ifc = 0 
         else: 
             raise NameError('not included in Quadrupole code') 
             

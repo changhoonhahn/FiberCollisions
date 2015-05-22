@@ -1609,8 +1609,7 @@ def combined_catalog_dlos_fits(catalog, n_mock):
 
         print 'Nseries ------------------------------------------------------'
         cat_corr = {'catalog': {'name':'nseries'}, 'correction': {'name': 'upweight'}}
-        print 'Gauss ', combined_dlos_fit(10, fit='gauss', sanitycheck=True, 
-                clobber=True, **cat_corr) 
+        print 'Gauss ', combined_dlos_fit(10, fit='gauss', sanitycheck=True, clobber=True, **cat_corr) 
 
     elif 'patchy' in catalog: 
         print 'PATCHY ------------------------------------------------------'
@@ -1631,6 +1630,7 @@ if __name__=="__main__":
     #combined_catalog_dlos_fits('patchy', 10)
     #combined_catalog_dlos_fits('lasdamasgeo', 5)
     combined_catalog_dlos_fits('nseries', 10)
+    #combined_catalog_dlos_fits('nseries', 10)
     #cat_corrs = [ {'catalog': {'name': catalog}, 'correction': {'name': 'upweight'}} 
     #        for catalog in ['qpm', 'nseries', 'lasdamasgeo']] 
     #plot_fcpaper_dlos(cat_corrs)

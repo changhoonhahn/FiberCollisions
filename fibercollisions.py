@@ -69,11 +69,11 @@ def fibcoll_data_prep(DorR, silent=True, clobber=False, **cat_corr):
         if silent == False: 
             print corr_rand_file
 
-        if (os.path.isfile(corr_rand_file) == False) or (clobber == True): 
+        if not os.path.isfile(corr_rand_file) or clobber: 
             print "Constructing ", corr_rand_file, ' (Will take a while!)'
             corr_rand = fc_data.galaxy_data('random', clobber=True, **cat_corr) 
         
-        if (catalog['name'].lower() == 'tilingmock') or (clobber == True): 
+        if (catalog['name'].lower() == 'tilingmock') and (clobber == True): 
             # does append corrected nbar corrected random file exist? 
             if os.path.isfile(corr_rand.file_name+'.corrnbar') == False: 
                 # if not 
@@ -282,7 +282,7 @@ def build_fibcol_pk(cat, i_mock, corr, quad=False, clobber=False, **kwargs):
 
         i_cat_corr = {'catalog': i_catalog, 'correction': correction, 'spec': spec}
         # random data ------------------------------------------------
-        fibcoll_data_prep('random', silent=False, **i_cat_corr) 
+        fibcoll_data_prep('random', silent=False, clobber=clobber, **i_cat_corr) 
 
         # build random FFT  
         rand_fft_file = fc_fft.build_fibcol_fft('random', **i_cat_corr)
@@ -496,6 +496,10 @@ def avg_Pk_file(n_mock, quad=False, **cat_corr):            # avg P(k) file name
 
     if 'spec' not in cat_corr.keys(): 
         if catalog['name'].lower() == 'qpm': 
+            spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':360, 
+                    'quad': quad} 
+            (cat_corr['catalog'])['n_mock'] = 1
+        if catalog['name'].lower() == 'nseries': 
             spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':360, 
                     'quad': quad} 
             (cat_corr['catalog'])['n_mock'] = 1
@@ -863,31 +867,29 @@ def build_pk(catalog, n_mocks):
     '''
     # correction method list 
     corrections = [ {'name': 'true'}, {'name': 'upweight'}, {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}]
-
     spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid': 360, 'quad': False}
 
     for i_mock in range(1, n_mocks+1): 
         for corr in corrections: 
-            build_fibcol_pk(catalog, i_mock, corr, spec=spec, clobber=False) 
+            build_fibcol_pk(catalog, i_mock, corr, spec=spec, clobber=True) 
 
 if __name__=='__main__': 
-    build_pk('nseries', 1)
+    #build_pk('nseries', 1)
     #for corr in ['true', 'upweight', 'noweight']: 
     #    cat_corr = {'catalog': {'name':'lasdamasgeo', 'n_mock':1, 'letter':'a'}, 
     #            'correction': {'name': corr}} 
     #    fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     #cat_corr = {'catalog': {'name':'lasdamasgeo', 'n_mock':1, 'letter':'a'}, 'correction': {'name': 'true'}} 
     #fc_data.build_true(**cat_corr) 
-    #build_qpm(10) 
-    #build_patchy()
 
-    #for i_mock in np.arange(1,2): 
-    #    fc_data.galaxy_data('data', readdata=True, clobber=True, **cat_corr) 
+    corrections = [{'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}]
+    for corr in corrections: 
+        for i_mock in np.arange(1,85): 
+            cat_corr = {'catalog': {'name': 'nseries', 'n_mock': i_mock}, 'correction': corr} 
+            fc_data.galaxy_data('data', clobber=True, **cat_corr) 
 
-    #pk_ldg_peakshot_expon_grid()
     #qpm_avgP(45, {'name':'true'})
     #qpm_deltaP(45, {'name':'true'})
-    #pk_tm_peakshot_expon_grid()
     
     #corr = {'name': 'upweight'}
     #qpm_fibcoll_pk(2, corr) 
@@ -900,28 +902,3 @@ if __name__=='__main__':
     #cat_corr = {'catalog': {'name': 'qpm'}, 'correction': {'name': 'true'}} 
     #build_avg_Pk(100, **cat_corr)
     #deltaP(100, **cat_corr)
-    #[{'name': 'vlospeakshot', 'fpeak': 0.6, 'fit':'real'}, {'name': 'vlospeakshot', 'fpeak': 0.7, 'fit':'real'}, {'name': 'vlospeakshot', 'fpeak': 0.8, 'fit':'real'}] #{'name': 'hectorsn'}, {'name': 'floriansn'}, 
-    #corrections = [{'name': 'peaknbar', 'sigma': 6.5, 'fpeak': 1.0, 'fit': 'gauss'}, {'name': 'shotnoise'}]
-    #{'name': 'floriansn'}, {'name': 'hectorsn'}, {'name': 'true'}, {'name': 'upweight'}, 
-
-    #corrections = [{'name': 'true'}, {'name': 'upweight'}, {'name': 'peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}, {'name': 'floriansn'}, {'name': 'hectorsn'}]
-    #for i_mock in range(1,41): 
-    #    for corr in corrections: 
-    #        lasdamasgeo_fibcoll_pk(i_mock, corr, quad=False) 
-    #corr = {'name': 'peakshot', 'sigma':6.9, 'fpeak':0.7, 'fit':'expon'}
-    #lasdamasgeo_fibcoll_pk(40, corr) 
-    #corr = {'name': 'peakshot', 'sigma':5.9, 'fpeak':0.7, 'fit':'gauss'}
-    #lasdamasgeo_fibcoll_pk(1, corr) 
-    
-    ############################################################################################# Tiling Mock 
-    #corr = {'name': 'peakshot', 'sigma':4.6, 'fpeak':0.53, 'fit':'gauss'}
-    #tilingmock_fibcoll_pk(corr) 
-    #corr = {'name': 'vlospeakshot', 'sigma':700, 'fpeak':0.65, 'fit':'expon'}
-    #tilingmock_fibcoll_pk(corr) 
-    #corrections = [{'name': 'shotnoise'}, {'name': 'peaknbar', 'sigma':4.8, 'fpeak':1.0, 'fit':'gauss'}]   #[{'name': 'peakshot', 'sigma':4.8, 'fpeak':0.63, 'fit':'gauss'}]#{'name': 'true'}
-    #[{'name': 'floriansn'}, {'name': 'hectorsn'}]
-    #{'name': 'upweight'}, {'name': 'peakshot', 'sigma':4.8, 'fpeak':0.62, 'fit':'gauss'}]#{'name': 'true'}
-    #corrections = [{'name': 'peakshot', 'sigma':4.8, 'fpeak':0.63, 'fit':'gauss'}]
-    #corrections = [{'name': 'true'}, {'name': 'upweight'}, {'name': 'peakshot', 'sigma':4.8, 'fpeak':0.0, 'fit':'gauss'}, {'name': 'floriansn'}, {'name': 'hectorsn'}]
-    ##for corr in corrections: 
-    #    tilingmock_fibcoll_pk(corr, quad=False)
