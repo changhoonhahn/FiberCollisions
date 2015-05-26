@@ -196,7 +196,7 @@ class Spec:
             self.columns = ['k', 'Pk']
             self.k  = file[:,0]
 
-            if spec['quad'] == True: 
+            if spec['quad']: 
                 if correction['name'].lower() in ('peakshot'): 
                     self.Pk = file[:,5]
                 else: 

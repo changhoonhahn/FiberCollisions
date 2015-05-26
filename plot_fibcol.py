@@ -1096,9 +1096,8 @@ if __name__=="__main__":
 
     #plot_avg_pk_fibcol('lasdamasgeo', 40, {'name': 'true'}, quad=False)   
     #plot_avg_pk_fibcol('qpm', 100, {'name': 'true'}, quad=False)   
-    plot_comdis2z_test()
+    #plot_comdis2z_test()
     
-    '''
     nseries_corr_methods = [ {'name': 'true'}, {'name':'upweight'}, {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}]
     plot_pk_fibcol_comp('nseries', 10, nseries_corr_methods, 
             quad=True, Ngrid=360, type='regular', 
@@ -1106,7 +1105,9 @@ if __name__=="__main__":
     plot_pk_fibcol_comp('nseries', 10, nseries_corr_methods, 
             quad=True, Ngrid=360, type='ratio', 
             xrange=[0.001, 1.0], yrange=[0.0, 2.0]) 
-    '''
+    plot_pk_fibcol_comp('nseries', 10, nseries_corr_methods, 
+            quad=True, Ngrid=360, type='residual', 
+            xrange=[0.001, 1.0], yrange=[0.0, 2.0]) 
     #plot_pk_fibcol_comp('qpm', 10, qpm_corr_methods, quad=True, Ngrid=960, type='ratio', xrange=[0.001, 1.0]) 
     #plot_pk_fibcol_comp('qpm', 10, qpm_corr_methods, quad=True, Ngrid=960, type='residual', yscale='log', xrange=[0.02, 1.0]) 
     ##plot_pk_fibcol_comp('qpm', 100, qpm_corr_methods, quad=True, type='residual', yscale='log', xrange=[0.02, 1.0]) 

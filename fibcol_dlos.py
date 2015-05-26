@@ -880,6 +880,75 @@ def combined_dlos_fit(n_mocks, fit='gauss', sanitycheck=False, clobber=False, **
 
     return [sigma, fpeak]
 
+def nseries_idl_python_dlos_test(n_mocks, clobber=False):
+    ''' Compare dLOS calculated from IDL versus Python 
+
+    Parameters
+    ----------
+    n_mocks : number of mock dLOS files to include 
+    
+    '''
+    catalog = {'name': 'nseries'} 
+    correction = {'name': 'upweight'} 
+
+    for i_mock in range(1, n_mocks+1): 
+        # individual catalog_correction dictonary 
+        i_catalog = catalog.copy() 
+        i_catalog['n_mock'] = i_mock 
+        i_cat_corr = {'catalog':i_catalog, 'correction': correction} 
+
+        los_disp_i = dlos(clobber=clobber, **i_cat_corr)   # import DLOS of each mock 
+
+        nseries_dlos = np.loadtxt(los_disp_i.file_name+'_test', unpack=True, usecols=[0])
+
+        dlos_doublecheck = np.loadtxt('/mount/riachuelo1/hahn/data/Nseries/CutskyN'+str(i_mock)+'.fibcoll.gauss.peakshot.sigma4.0.fpeak0.7_fidcosmo.dat.dlosvalues', 
+                unpack=True, usecols=[0])
+
+        # Combine dLOS values 
+        try: 
+            combined_idl_dlos
+        except NameError: 
+            combined_idl_dlos = los_disp_i.dlos
+            combined_py_dlos = nseries_dlos
+            combined_check_dlos = dlos_doublecheck 
+        else: 
+            combined_idl_dlos = np.concatenate([combined_idl_dlos, los_disp_i.dlos]) 
+            combined_py_dlos = np.concatenate([combined_py_dlos, nseries_dlos])
+            combined_check_dlos = np.concatenate([combined_check_dlos, dlos_doublecheck]) 
+
+    # Determine appropriate binsize for dist (not too important)
+    # Create histogram for combined dLOS values  (binsize is just guessed)
+    x_min = -1000.0
+    x_max = 1000.0
+    binsize = 0.1 
+    n_bins = int((x_max-x_min)/binsize) 
+    
+    idl_dlos_hist, mpc_binedges = np.histogram(combined_idl_dlos, bins=n_bins, range=[x_min, x_max])
+    py_dlos_hist, mpc_binedges = np.histogram(combined_py_dlos, bins=n_bins, range=[x_min, x_max])
+    check_dlos_hist, mpc_binedges = np.histogram(combined_check_dlos, bins=n_bins, range=[x_min, x_max])
+    xlow = mpc_binedges[:-1]
+    xhigh = mpc_binedges[1:] 
+    xmid = np.array([0.5*(xlow[i]+xhigh[i]) for i in range(len(xlow))])
+    
+    prettyplot() 
+    pretty_colors = prettycolors() 
+    fig = plt.figure(1, figsize=[14,5]) 
+    sub = fig.add_subplot(111) 
+
+    sub.plot(xmid, idl_dlos_hist, lw=4, color=pretty_colors[1], label=r"IDL $d_{LOS}$")
+    sub.plot(xmid, py_dlos_hist, lw=4, color=pretty_colors[3], label=r"Python $d_{LOS}$")
+    sub.plot(xmid, check_dlos_hist, ls='--', lw=4, color=pretty_colors[5], label=r"Generated $d_{LOS}$")
+
+    sub.set_xlabel(r"$d_{LOS}$ (Mpc/h)", fontsize=20) 
+    sub.set_xlim([-50.0, 50.0])
+    sub.set_ylim([0.0, 1.25*np.max(idl_dlos_hist)])
+    sub.legend(loc='upper right', scatterpoints=1, prop={'size':14}) 
+
+    fig_file = ''.join(['figure/nseries_', str(n_mocks), 'mocks_dlos_idl_python_test.png']) 
+    fig.savefig(fig_file, bbox_inches="tight")
+    fig.clear() 
+    plt.close(fig) 
+
 def combined_dlos_angsep_fit(n_mocks, fit='gauss', sanitycheck=False, **cat_corr):
     ''' Using combined dLOS values from entire catalog, we divide the dLOS values into bins of angular separation.  Then calculate appropriate binsize using Freedman-Diaconis rule, then fits the histogram
     Returns [sigma, fpeak]
@@ -1629,7 +1698,8 @@ if __name__=="__main__":
     #        build_dlos(**cat_corr) 
     #combined_catalog_dlos_fits('patchy', 10)
     #combined_catalog_dlos_fits('lasdamasgeo', 5)
-    combined_catalog_dlos_fits('nseries', 10)
+    nseries_idl_python_dlos_test(9)
+    #combined_catalog_dlos_fits('nseries', 10)
     #combined_catalog_dlos_fits('nseries', 10)
     #cat_corrs = [ {'catalog': {'name': catalog}, 'correction': {'name': 'upweight'}} 
     #        for catalog in ['qpm', 'nseries', 'lasdamasgeo']] 

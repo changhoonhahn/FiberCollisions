@@ -109,6 +109,66 @@ class nbar:
                 np.c_[self.zmid, self.zlow, self.zhigh, self.nbar], 
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5e'], delimiter='\t')
 
+def build_averaged_nbar(n_mock, **cat_corr): 
+    ''' Build averaged nbar(z) file for survey
+    
+    Parameters
+    ----------
+    n_mock : number of mock catalogs
+    cat_corr : catalog correction dictionary
+
+    Notes
+    -----
+
+    '''
+    catalog = cat_corr['catalog'] 
+    correction = cat_corr['correction'] 
+    
+    # redshift bins 
+    zlow = np.arange(0.0, 1.0, 0.005) 
+    zhigh = zlow + 0.005
+    zmid = zlow + 0.0025
+    
+    comp_area = 7341./41252.96
+    
+    # loop through mocks
+    for i_mock in range(1, n_mock+1): 
+
+        i_catalog = catalog.copy()  
+        i_catalog['n_mock'] = i_mock 
+    
+        i_cat_corr = {'catalog': i_catalog, 'correction': correction}
+        # import galaxy data 
+        data = fc_data.galaxy_data('data', **i_cat_corr)
+        cosmo = data.cosmo  # survey cosmology 
+
+        nbar = [] 
+        for i_z in range(len(zmid)): 
+
+            z_range = (data.z >= zlow[i_z]) & (data.z < zhigh[i_z])
+
+            shell_weight = np.sum(data.wfc[z_range])
+            shell_volume = comp_area * (cosmos.distance.comoving_volume(zhigh[i_z], **cosmo) - 
+                cosmos.distance.comoving_volume(zlow[i_z], **cosmo))*cosmo['h']**3
+            shell_nbar = shell_weight/shell_volume
+            nbar.append(shell_nbar)
+
+        nbar = np.array(nbar)
+
+        if i_mock == 1: 
+            sum_nbar = nbar
+        else: 
+            sum_nbar += nbar 
+
+    avg_nbar = sum_nbar/np.float(n_mock)
+
+    # zcen,zlow,zhigh,nbar,wfkp,shell_vol,total weighted gals
+    nbar_file = get_nbar_file(**cat_corr) 
+    print nbar_file
+    np.savetxt(nbar_file,
+            np.c_[zmid, zlow, zhigh, avg_nbar],
+            fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e'], delimiter='\t')
+
 # Functions -----------------------------------------------------------------
 def get_nbar_file(**cat_corr): 
     ''' Return nbar file name
@@ -128,7 +188,7 @@ def get_nbar_file(**cat_corr):
     if catalog['name'].lower() == 'lasdamasgeo': 
         catalog['n_mock'] = 1
         catalog['letter'] = 'a' 
-    elif catalog['name'].lower() == 'qpm': 
+    elif catalog['name'].lower() in ('qpm', 'nseries'): 
         catalog['n_mock'] = 1
     else: 
         raise NameError('not yet coded!')
@@ -142,6 +202,8 @@ def get_nbar_file(**cat_corr):
         corr_str = '.'.join(data_file_name.split('.')[2:])
     elif catalog['name'].lower() == 'qpm': 
         corr_str = '.'.join(data_file_name.split('.')[4:])
+    elif catalog['name'].lower() == 'nseries':
+        corr_str = '.'.join(data_file_name.split('.')[1:])
     else: 
         raise NameError('not yet coded!')
 
@@ -411,6 +473,7 @@ def append_corr_nbar(DorR, **cat_corr):
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5e'], delimiter='\t')
 
 if __name__=='__main__':
-    cat_corr = {'catalog': {'name': 'lasdamasgeo'}, 
-            'correction': {'name': 'noweight'}} 
-    nbar(**cat_corr) 
+    cat_corr = {'catalog': {'name': 'nseries'}, 
+            'correction': {'name': 'upweight'}} 
+    build_averaged_nbar(20, **cat_corr)
+    #nbar(**cat_corr) 

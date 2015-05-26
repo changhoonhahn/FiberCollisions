@@ -66,7 +66,7 @@ def fibcoll_data_prep(DorR, silent=True, clobber=False, **cat_corr):
         # corrected random file 
         corr_rand_file = fc_data.get_galaxy_data_file('random', **cat_corr) 
         
-        if silent == False: 
+        if not silent: 
             print corr_rand_file
 
         if not os.path.isfile(corr_rand_file) or clobber: 
@@ -282,7 +282,7 @@ def build_fibcol_pk(cat, i_mock, corr, quad=False, clobber=False, **kwargs):
 
         i_cat_corr = {'catalog': i_catalog, 'correction': correction, 'spec': spec}
         # random data ------------------------------------------------
-        fibcoll_data_prep('random', silent=False, clobber=clobber, **i_cat_corr) 
+        fibcoll_data_prep('random', silent=False, clobber=False, **i_cat_corr) 
 
         # build random FFT  
         rand_fft_file = fc_fft.build_fibcol_fft('random', **i_cat_corr)
@@ -412,7 +412,7 @@ def build_avg_Pk(n_mock, quad=False, **cat_corr):
         spec = cat_corr['spec']
     
     # Compute total( P(k) )
-    if catalog['name'].lower() == 'qpm': 
+    if catalog['name'].lower() in ('qpm', 'nseries'): 
         # QPM 
         for i_mock in range(1, n_mock+1): 
             i_cat_corr = {'catalog': catalog, 'correction': correction, 'spec':spec}
@@ -515,7 +515,7 @@ def avg_Pk_file(n_mock, quad=False, **cat_corr):            # avg P(k) file name
             raise NameError("error error") 
         cat_corr['spec'] = spec
     else: 
-        if catalog['name'].lower() == 'qpm': 
+        if catalog['name'].lower() in ('qpm', 'nseries'): 
             (cat_corr['catalog'])['n_mock'] = 1
 
         elif catalog['name'].lower() == 'lasdamasgeo': 
@@ -533,6 +533,14 @@ def avg_Pk_file(n_mock, quad=False, **cat_corr):            # avg P(k) file name
 
         # get average P(k) file name 
         avg_file_name = indiv_filename.split('6452_')[0]+'6452_'+str(n_mock)+'mockavg.dr12d'+(indiv_filename.split('6452_')[1]).split('.dr12d')[1]
+
+    elif catalog['name'].lower() == 'nseries':
+
+        # CutskyN1.fibcoll.gauss.peakshot.sigma4.0.fpeak0.7_fidcosmo.dat
+        indiv_filename = power_i.file_name           
+
+        # get average P(k) file name 
+        avg_file_name = indiv_filename.split('CutskyN')[0]+'CutskyN'+str(n_mock)+'mockavg.'+'.'.join(indiv_filename.split('.')[1:])
 
     elif catalog['name'].lower() == 'lasdamasgeo': 
 
@@ -595,6 +603,8 @@ def deltaP_file(n_mock, **cat_corr):
 
     if catalog['name'].lower() == 'qpm':    # QPM 
         Pk_var_file_name = (delP_str+'a0').join(avg_power_file_name.split('power_'+quad_str+'a0')) 
+    elif catalog['name'].lower() == 'nseries':  # N series
+        Pk_var_file_name = (delP_str+'Cut').join(avg_power_file_name.split('power_'+quad_str+'Cut')) 
     elif catalog['name'].lower() == 'lasdamasgeo':  # LasDamasGeo
         Pk_var_file_name = (delP_str+'sdssmock').join(avg_power_file_name.split('power_'+quad_str+'sdssmock')) 
     elif catalog['name'].lower() == 'tilingmock': 
@@ -628,7 +638,7 @@ def build_deltaP(n_mock, quad=False, **cat_corr):
         spec = cat_corr['spec']
 
     # Calculate DeltaP for QPM 
-    if catalog['name'].lower() == 'qpm': 
+    if catalog['name'].lower() in ('qpm', 'nseries'): 
 
         for i_mock in range(1, n_mock+1): 
             i_cat_corr = cat_corr.copy() 
@@ -724,7 +734,7 @@ def deltaP(n_mock, clobber=False, **cat_corr):
     avgP_file_name = avg_Pk_file(n_mock, **cat_corr)
     deltaP_file_name = deltaP_file(n_mock, **cat_corr)  
     
-    if os.path.isfile(avgP_file_name) == True: 
+    if os.path.isfile(avgP_file_name): 
         avgP_file_mod_time = os.path.getmtime(avgP_file_name)
     else: 
         build_avg_Pk(n_mock, **cat_corr)
@@ -871,10 +881,10 @@ def build_pk(catalog, n_mocks):
 
     for i_mock in range(1, n_mocks+1): 
         for corr in corrections: 
-            build_fibcol_pk(catalog, i_mock, corr, spec=spec, clobber=True) 
+            build_fibcol_pk(catalog, i_mock, corr, spec=spec, clobber=False) 
 
 if __name__=='__main__': 
-    #build_pk('nseries', 1)
+    build_pk('nseries', 10)
     #for corr in ['true', 'upweight', 'noweight']: 
     #    cat_corr = {'catalog': {'name':'lasdamasgeo', 'n_mock':1, 'letter':'a'}, 
     #            'correction': {'name': corr}} 
@@ -882,11 +892,11 @@ if __name__=='__main__':
     #cat_corr = {'catalog': {'name':'lasdamasgeo', 'n_mock':1, 'letter':'a'}, 'correction': {'name': 'true'}} 
     #fc_data.build_true(**cat_corr) 
 
-    corrections = [{'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}]
-    for corr in corrections: 
-        for i_mock in np.arange(1,85): 
-            cat_corr = {'catalog': {'name': 'nseries', 'n_mock': i_mock}, 'correction': corr} 
-            fc_data.galaxy_data('data', clobber=True, **cat_corr) 
+    #corrections = [{'name': 'true'}, {'name': 'upweight'}, {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}]
+    #for i_mock in np.arange(11,85): 
+    #    for corr in corrections: 
+    #        cat_corr = {'catalog': {'name': 'nseries', 'n_mock': i_mock}, 'correction': corr} 
+    #        fc_data.galaxy_data('data', clobber=True, **cat_corr) 
 
     #qpm_avgP(45, {'name':'true'})
     #qpm_deltaP(45, {'name':'true'})
