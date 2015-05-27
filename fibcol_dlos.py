@@ -901,7 +901,7 @@ def nseries_idl_python_dlos_test(n_mocks, clobber=False):
 
         nseries_dlos = np.loadtxt(los_disp_i.file_name+'_test', unpack=True, usecols=[0])
 
-        dlos_doublecheck = np.loadtxt('/mount/riachuelo1/hahn/data/Nseries/CutskyN'+str(i_mock)+'.fibcoll.gauss.peakshot.sigma4.0.fpeak0.7_fidcosmo.dat.dlosvalues', 
+        dlos_doublecheck = np.loadtxt('/mount/riachuelo1/hahn/data/Nseries/CutskyN'+str(i_mock)+'.fibcoll.gauss.peakshot.sigma4.0.fpeak0.6_fidcosmo.dat.dlosvalues', 
                 unpack=True, usecols=[0])
 
         # Combine dLOS values 

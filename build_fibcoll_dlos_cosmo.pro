@@ -22,6 +22,7 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
         red_nocp = mock_redshift[nocp_indx]
 
         spherematch, ra_nocp, dec_nocp, ra_upcp, dec_upcp, fib_angscale, m_nocp, m_upcp, d12, maxmatch=0
+
     endif else if (strlowcase(catalog) EQ 'tilingmock') then begin 
         omega_m = 0.274
         readcol, mock_file, mock_ra, mock_dec, mock_redshift, mock_w
@@ -59,6 +60,7 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
         red_nocp = mock_redshift[nocp_indx]
 
         spherematch, ra_nocp, dec_nocp, ra_upcp, dec_upcp, fib_angscale, m_nocp, m_upcp, d12, maxmatch=0
+
     endif else if (strlowcase(catalog) EQ 'qpm') then begin 
         omega_m = 0.31
         readcol,mock_file, mock_ra, mock_dec, mock_redshift, w_fkp, w_cp
@@ -78,7 +80,7 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
     
     endif else if (strlowcase(catalog) EQ 'nseries') then begin 
 
-        omega_m = 0.286
+        omega_m = 0.31
         GOTO, nseries
 
     endif else if (strlowcase(catalog) EQ 'patchy') then begin 
@@ -190,24 +192,21 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
     free_lun, lun 
     
     ; Nseries code that uses the Nseries information 
-    nseries: mock_file = strmid(mock_file, strpos(mock_file,' CutskyN')) 
-    print, mock_file
-    n_mock = strmid(mock_file, strsplit(mock_file,' CutskyN')) 
-    print, n_mock
-    n_mock = strmid(n_mock, 0, strpos(n_mock, '.fibcoll.dat')) 
+    nseries: n_mock = strmid(mock_file, 0, strpos(mock_file, '.fibcoll.dat')) 
 
-    orig_file = 'CutskyN'+n_mock+'.rdzwc'
+    orig_file = n_mock+'.rdzwc'
     readcol, orig_file, mock_ra, mock_dec, mock_redshift, w_fkp, w_cp, z_upw
         
-    nocp_index = where(w_cp eq 0)
+    nocp_indx = where(w_cp eq 0)
 
     ra_nocp  = mock_ra[nocp_indx]
     dec_nocp = mock_dec[nocp_indx]
     red_nocp = mock_redshift[nocp_indx]
-    z_upw_neigh = z_upw[nocp_index]
+    z_upw_neigh = z_upw[nocp_indx]
         
-    all_dlos  = 3000.0*(comdis(red_nocp, omega_m, 1.0-omega_m)-comdis(z_up_neigh, omega_m, 1.0-omega_m))         ; Mpc/h 
+    all_dlos  = 3000.0*(comdis(red_nocp, omega_m, 1.0-omega_m)-comdis(z_upw_neigh, omega_m, 1.0-omega_m))         ; Mpc/h 
     
+    openw, lun, dlos_file, /get_lun
     for j=0L,n_elements(all_dlos)-1L do begin
         printf, lun, all_dlos[j], format='(f)'   ; d_LOS
     endfor

@@ -1,19 +1,20 @@
       implicit none  !as FFT_FKP_SDSS_LRG_new but removes some hard-cored choices
       integer Nsel,Nran,i,iwr,Ngal,Nmax,n,kx,ky,kz,Lm,Ngrid,ix,iy,iz,j,k
       integer Ng,Nr,iflag,ic,Nbin,l,ipoly,wb,wcp,wred,flag
-      real n_bar,wfkp,wfc,wcomp
+      real n_bar,wfkp,wfc,xps,wcomp
       integer*8 planf
       real pi,cspeed,Om0,OL0,redtru,m1,m2,zlo,zhi,garb1,garb2,garb3,veto
       parameter(Nsel=181,Nmax=2*10**8,Ngrid=360,Nbin=151,pi=3.141592654)
-      parameter(Om0=0.31,OL0=0.69)          ! hardcoded for Nseries
+      parameter(xps=0.58)
+      parameter(Om0=0.31,OL0=0.69)      ! hardcoded for QPM mock 
       integer grid
       dimension grid(3)
       parameter(cspeed=299800.0)
       integer, allocatable :: ig(:),ir(:)
       real zbin(Nbin),dbin(Nbin),sec3(Nbin),zt,dum,gfrac
       real cz,sec2(Nsel),chi,nbar,Rbox
-      real*8 Ngsys,Nrsys
-      real, allocatable :: nbg(:),nbr(:),rg(:,:),rr(:,:),wg(:),wr(:)
+      real*8 Nrsys,Ngsys
+      real, allocatable :: nbg(:),nbr(:),rg(:,:),rr(:,:),wg(:),wr(:) 
       real, allocatable :: cmp(:)
       real selfun(Nsel),z(Nsel),sec(Nsel),zmin,zmax,az,ra,dec,rad,numden
       real alpha,P0,nb,weight,ar,akf,Fr,Fi,Gr,Gi
@@ -86,10 +87,10 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
             rg(2,i)=rad*cos(dec)*sin(ra)
             rg(3,i)=rad*sin(dec)
             nbg(i)=nbar(az)
-            cmp(i)=wcomp    ! comp weight 
-            wg(i)=wfc/wcomp ! remove comp variations
+            cmp(i)=wcomp
+            wg(i)=wfc/wcomp
             Ngal=Ngal+1
-            Ngsys=Ngsys+dble(wg(i))           ! contains comp upweighting
+            Ngsys=Ngsys+dble(wg(i))
          enddo
  13      continue
          close(4)
@@ -100,7 +101,6 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          call PutIntoBox(Ngal,rg,Rbox,ig,Ng,Nmax)
          gfrac=100. *float(Ng)/float(Ngal)
          WRITE(*,*) 'Ngal,box=',Ng,'Ngal=',Ngal,gfrac,'percent'
-
          Ngsys=Ngsys*dble(Ng)/dble(Ngal)
 
          gI10=0.d0
@@ -110,10 +110,10 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          gI23=0.d0
          gI33=0.d0
          do i=1,Ng
-            nb=nbg(i)*cmp(i)                    ! yes comp variation 
-            weight=dble(wg(i))/(1.d0+nbg(i)*P0) ! no comp variation
+            nb=nbg(i)*cmp(i) 
+            weight=1.d0/(1.d0+nbg(i)*P0) 
             gI10=gI10+1.d0
-            gI12=gI12+dble(weight**2)
+            gI12=gI12+dble(weight**2*(wg(i)**2*xps+(1.d0-xps)*wg(i)))
             gI22=gI22+dble(nb*weight**2)
             gI13=gI13+dble(weight**3)
             gI23=gI23+dble(nb*weight**3 )
@@ -144,12 +144,12 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
             ra=ra*(pi/180.)
             dec=dec*(pi/180.)
             rad=chi(az)
-            wr(i)=1.0/wcomp         
             rr(1,i)=rad*cos(dec)*cos(ra)
             rr(2,i)=rad*cos(dec)*sin(ra)
             rr(3,i)=rad*sin(dec)
-            nbr(i)=nbar(az)            ! nbar_true no comp variation
-            cmp(i)=wcomp            ! save comp weights
+            nbr(i)=nbar(az)
+            cmp(i)=wcomp
+            wr(i)=1.0/wcomp
             Nrsys=Nrsys+dble(wr(i))
             Nran=Nran+1
          enddo
@@ -167,8 +167,8 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          I23=0.d0
          I33=0.d0
          do i=1,Nr
-            nb=nbr(i)*cmp(i)            ! yes comp variations
-            weight=dble(wr(i))/(1.d0+nbr(i)*P0)  ! no comp variations
+            nb=nbr(i)*cmp(i)
+            weight=dble(wr(i))/(1.d0+nbr(i)*P0) 
             I10=I10+1.d0
             I12=I12+dble(weight**2)
             I22=I22+dble(nb*weight**2)
@@ -177,7 +177,7 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
             I33=I33+dble(nb**2 *weight**3)
          enddo
 
-         WRITE(*,*) 'N_r,sys=',Nrsys,'N_r,sys/Nr=',Nrsys/float(Nran)
+         WRITE(*,*) 'W_r,sys=',Nrsys,'Ngal,sys=',Nrsys/float(Nran)
          allocate(dcr(Ngrid,Ngrid,Ngrid))
          call assign(Nran,rr,rm,Lm,dcr,P0,nbr,ir,wr)
          call fftwnd_f77_one(planf,dcr,dcr)      
@@ -458,7 +458,7 @@ c
       return
       end
 c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      REAL function nbar(QQ) !nbar(z)
+      REAL function nbar(QQ,iflag) !nbar(z)
 c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       parameter(Nsel=181)!80)
       integer iflag
@@ -475,6 +475,15 @@ c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
          call splint(z,selfun,sec,Nsel,az,self)
          nbar=self 
       endif
+      RETURN
+      END
+c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      REAL function zdis(ar) !interpolation redshift(distance)
+c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      parameter(Nbin=151)
+      common /interp3/dbin,zbin,sec3
+      real dbin(Nbin),zbin(Nbin),sec3(Nbin)
+      call splint(dbin,zbin,sec3,Nbin,ar,zdis)
       RETURN
       END
 c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -499,7 +508,7 @@ c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       real*8 function rdi(z) !radial distance integrand
 c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       real Om0,OL0
-      parameter (Om0=0.31,OL0=0.69)  
+      parameter (Om0=0.31,OL0=0.69)             ! hardcoded for QPM mock 
       real*8 z
       rdi=3000.d0/dsqrt(OL0+(1.d0-Om0-OL0)*(1.d0+z)**2+Om0*(1.d0+z)**3)
       return

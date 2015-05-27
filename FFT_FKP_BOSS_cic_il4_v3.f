@@ -20,7 +20,7 @@
       real selfun(Nsel),z(Nsel),sec(Nsel),az,ra,dec,rad,numden,zend
       real w, nbb, xcm, ycm, zcm, rcm, bias, wboss, veto
       real thetaobs,phiobs, selfun2(Nsel2),z2(Nsel2),sec2(Nsel2)
-      real alpha,P0,nb,weight,ar,akf,Fr,Fi,Gr,Gi,wsys,wred,comp
+      real alpha,P0,nb,weight,ar,akf,Fr,Fi,Gr,Gi,wsys,wred,comp,wfkp
       real*8 I10,I12,I22,I13,I23,I33,I12F
       real*8 compavg,Nrsys,Nrsyscomp,Ngsys,Ngsyscomp,Ngsystot,Nrsystot
       real rsq,xr,yr,zr,xg,yg,zg
@@ -78,6 +78,8 @@ c      read(Omstr,*)Om0
          Om0=0.274
       elseif (idata.eq.9) then ! TILING MOCK 
          Om0=0.274
+      elseif (idata.eq.10) then !Nseries
+         Om0=0.31 ! fiducial cosmology
       else
          write(*,*)'specify which dataset you want!'
          stop
@@ -103,6 +105,9 @@ c      read(Omstr,*)Om0
          dir='/mount/riachuelo2/rs123/BOSS/PTHalos/'
          selfunfile=dir(1:len_trim(dir))//
      $    'nzfit_dr11_vm22_south.txt'
+      elseif (idata.eq.10) then ! Nseries
+         selfunfile='/mount/riachuelo1/hahn/data/Nseries'//
+     $    '/nbar-nseries-fibcoll.dat'
       else !just to have z(Nsel)            
          dir='/mount/riachuelo2/rs123/BOSS/QPM/cmass/'
          ! directy has been changed in order to remove header
@@ -125,6 +130,13 @@ c      read(Omstr,*)Om0
          enddo
          do i=1,Nsel
             read(4,*)z(i),selfun(i)
+         enddo   
+         close(4)
+         call spline(z,selfun,Nsel,3e30,3e30,sec)
+      elseif (idata.eq.10) then ! Nseries fiducial cosmology
+         open(unit=4,file=selfunfile,status='old',form='formatted')
+         do i=1,Nsel
+            read(4,*)z(i),dum,dum,selfun(i)
          enddo   
          close(4)
          call spline(z,selfun,Nsel,3e30,3e30,sec)
@@ -241,8 +253,8 @@ c         fname='/mount/chichipio2/hahn/data/'//lssfile
                wsys=1.
                comp=1.
                nbg(i)=nbb*comp
-            elseif (idata.eq.3 .or. idata.eq.4) then ! QPM
- 33            read(4,*,end=13)ra,dec,az,dum,wred,comp
+            elseif (idata.eq.3 .or. idata.eq.4 .or. idata.eq.10) then ! QPM and Nseries
+ 33            read(4,*,end=13)ra,dec,az,wred,comp
                !read(5,*,end=13)dum,comp,dum,az2,dum,dum,dum
                !if (abs(az2/az-1.).gt.1.e-5) then
                !   write(*,*)'problem matching info to std mock file'
@@ -259,7 +271,7 @@ c         fname='/mount/chichipio2/hahn/data/'//lssfile
                !   wred=1. !take it, and set unit weight
                !endif
                nbb=nbar(az)
-               wsys=1.
+               wsys=1
                nbg(i)=nbb*comp
             elseif (idata.eq.5) then
                read(4,*,end=13)ra,dec,az,wsys,wnoz,wcp,nbb,comp
@@ -538,14 +550,14 @@ c               read(4,*,end=15)ra,dec,az,nbb
                wred=1.
                comp=1.
                nbr(i)=nbb*comp ! number density as given in randoms (comp weighted)
-            elseif (idata.eq.3 .or. idata.eq.4) then !QPM
- 17            read(4,*,end=15)ra,dec,az,dum,comp
+            elseif (idata.eq.3 .or. idata.eq.4 .or. idata.eq.10) then !QPM and Nseries
+ 17            read(4,*,end=15)ra,dec,az,comp
                !17            read(4,*,end=15)ra,dec,az,comp,iveto
                !if (ifc.eq.1) then ! fiber colls + veto mask
                !   if (iveto.eq.1) then  
                !      goto 17 !in veto mask, read another entry
                !   endif   
-               !endif  
+               !endif 
                nbb=nbar(az)
                wsys=1.
                wred=1.

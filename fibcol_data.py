@@ -258,7 +258,7 @@ class galaxy_data:
 
                     elif correction['name'].lower() in ('peaknbar', 'peakshot'): 
                         # peak corrected mocks 
-                        build_peakcorrected_fibcol(**cat_corr)  # build peak corrected file 
+                        build_peakcorrected_fibcol(doublecheck=True, **cat_corr)  # build peak corrected file 
 
                         #elif correction['name'].lower() in ('noweight'): 
                         #    # n oweight 

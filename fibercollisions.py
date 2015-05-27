@@ -876,8 +876,9 @@ def build_pk(catalog, n_mocks):
 
     '''
     # correction method list 
-    corrections = [ {'name': 'true'}, {'name': 'upweight'}, {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}]
-    spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid': 360, 'quad': False}
+    #corrections = [ {'name': 'true'}, {'name': 'upweight'}, {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.6, 'fit': 'gauss'}]
+    corrections = [{'name': 'peakshot', 'sigma': 3.9, 'fpeak': 0.65, 'fit': 'gauss'}]
+    spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid': 360, 'quad': True}
 
     for i_mock in range(1, n_mocks+1): 
         for corr in corrections: 

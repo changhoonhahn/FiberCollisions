@@ -128,7 +128,7 @@ def plot_pk_fibcol_comp(catalog_name, n_mock, corr_methods, quad=False, type='ra
                 power_i = fc_spec.Spec('power', **i_cat_corr)
                 power_i.readfile()
 
-                if quad == True: 
+                if quad: 
                     PK = power_i.P2k
                 else: 
                     PK = power_i.Pk
@@ -1098,7 +1098,12 @@ if __name__=="__main__":
     #plot_avg_pk_fibcol('qpm', 100, {'name': 'true'}, quad=False)   
     #plot_comdis2z_test()
     
-    nseries_corr_methods = [ {'name': 'true'}, {'name':'upweight'}, {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}]
+
+    nseries_corr_methods = [{'name': 'true'}, {'name':'upweight'}, 
+            {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.0, 'fit': 'gauss'}, 
+            {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.4, 'fit': 'gauss'}, 
+            {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.5, 'fit': 'gauss'}, 
+            ]
     plot_pk_fibcol_comp('nseries', 10, nseries_corr_methods, 
             quad=True, Ngrid=360, type='regular', 
             xrange=[0.001, 1.0], yrange=[10**3, 3*10**5]) 
