@@ -263,6 +263,10 @@ class galaxy_data:
                         #elif correction['name'].lower() in ('noweight'): 
                         #    # n oweight 
                         #    build_noweight(**cat_corr) 
+                    elif 'scratch' in correction['name'].lower():           # scratch pad for different methods 
+
+                        build_nseries_scratch(**cat_corr) 
+
                     else: 
                         raise NotImplementedError() 
 
@@ -276,8 +280,8 @@ class galaxy_data:
             elif DorR == 'random':              # Random ------------------------------------
 
                 catalog_columns = ['ra', 'dec', 'z', 'comp']    # catalog columns 
-
-                if (os.path.isfile(file_name) == False) or (clobber == True):
+                
+                if not os.path.isfile(file_name) or clobber:
                     print 'Constructing ', file_name 
                     build_random(**cat_corr) 
 
@@ -579,6 +583,7 @@ def get_galaxy_data_file(DorR, cosmology='fidcosmo', **cat_corr):
             file_name = ''.join([data_dir, 'a0.6452_rand50x.dr12d_cmass_ngc.vetoed.dat'])             # hardcoded to 50x so it does'nt take forever
 
     elif catalog['name'].lower() == 'patchy':               # PATHCY mocks -------------
+
         data_dir = '/mount/riachuelo1/hahn/data/PATCHY/dr12/v6c/'   # data directory
 
         if DorR == 'data': 
@@ -638,6 +643,7 @@ def get_galaxy_data_file(DorR, cosmology='fidcosmo', **cat_corr):
             file_name = ''.join([data_dir, 'Random-DR12CMASS-N-V6C-x50.vetoed.dat'])
     
     elif catalog['name'].lower() == 'nseries':              # N-series ------------------
+
         data_dir = '/mount/riachuelo1/hahn/data/Nseries/'
         
         if DorR == 'data':  # mock catalogs 
@@ -679,12 +685,16 @@ def get_galaxy_data_file(DorR, cosmology='fidcosmo', **cat_corr):
                 file_name = ''.join([data_dir, 
                     'CutskyN', str(catalog['n_mock']), '.fibcoll', corr_str, cosmo_str, '.dat' ]) 
 
+            elif 'scratch' in correction['name'].lower():
+                
+                file_name = ''.join([data_dir, 
+                    'CutskyN', str(catalog['n_mock']), '.fibcoll.', correction['name'].lower(), cosmo_str, '.dat' ]) 
+
             else: 
                 raise NameError('not yet coded') 
 
         elif DorR == 'random': 
             # random catalog 
-
             file_name = ''.join([data_dir, 'Nseries_cutsky_randoms_50x_redshifts_comp.dat']) 
 
     return file_name 
@@ -1719,6 +1729,49 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
 
     if doublecheck == True: 
         np.savetxt(peakcorr_file+'.dlosvalues', np.c_[dlos_values], fmt=['%10.5f'], delimiter='\t') 
+
+"""
+def build_nseries_scratch(**cat_corr): 
+    ''' Quick function to test fiber collision correction methods on Nseries mocks
+        
+
+    Parameters
+    ----------
+    cat_corr : catalog and correction dictionary
+
+    Notes
+    -----
+    * scratch_peak_ang : Instead of using the
+
+    '''
+    catalog = cat_corr['catalog']
+    correction = cat_corr['correction']
+
+    if correction['name'].lower() in ('scratch_peakknown'): 
+
+        # read rdzw file 
+        data_dir = '/mount/riachuelo1/hahn/data/Nseries/'
+        orig_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.rdzwc']) 
+        orig_ra, orig_dec, orig_z, orig_wfc, z_upw = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,4,5])
+    
+        # file with completeness
+        mask_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.mask_info']) 
+        orig_wcomp = np.loadtxt(mask_file, unpack=True, usecols=[0]) 
+
+        now_index = range(len(orig_ra))[orig_wfc == 0.]
+        upw_index = range(len(orig_ra))[orig_wfc > 1.]
+
+        match_now, match_upw, d = pysph.spherematch(
+                orig_ra[now_index], orig_dec[now_index], 
+                orig_ra[upw_index], orig_dec[upw_index], 
+                nnearest=1)
+    elif correction['name'].lower() in ('scratch_peak_ang'):
+
+    file = get_galaxy_data_file('data', **cat_corr) 
+    np.savetxt(true_file, 
+            np.c_[orig_ra, orig_dec, orig_z, true_wfc, orig_wcomp], 
+            fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+"""
 
 def build_corrected_randoms(sanitycheck=False, **cat_corr): 
     ''' 

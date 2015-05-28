@@ -876,16 +876,16 @@ def build_pk(catalog, n_mocks):
 
     '''
     # correction method list 
-    #corrections = [ {'name': 'true'}, {'name': 'upweight'}, {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.6, 'fit': 'gauss'}]
-    corrections = [{'name': 'peakshot', 'sigma': 3.9, 'fpeak': 0.65, 'fit': 'gauss'}]
-    spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid': 360, 'quad': True}
+    #corrections = [ {'name': 'true'}, {'name': 'upweight'}, {'name': 'hectorsn'}, 
+    corrections = [{'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}]
+    spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid': 360, 'quad': False}
 
-    for i_mock in range(1, n_mocks+1): 
+    for i_mock in range(11, n_mocks+1): 
         for corr in corrections: 
             build_fibcol_pk(catalog, i_mock, corr, spec=spec, clobber=False) 
 
 if __name__=='__main__': 
-    build_pk('nseries', 10)
+    build_pk('nseries', 50)
     #for corr in ['true', 'upweight', 'noweight']: 
     #    cat_corr = {'catalog': {'name':'lasdamasgeo', 'n_mock':1, 'letter':'a'}, 
     #            'correction': {'name': corr}} 

@@ -81,7 +81,19 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
     endif else if (strlowcase(catalog) EQ 'nseries') then begin 
 
         omega_m = 0.31
-        GOTO, nseries
+        readcol, mock_file, mock_ra, mock_dec, mock_redshift, w_cp, comp
+        
+        upcp_index = where(w_cp gt 1) 
+        ra_upcp  = mock_ra[upcp_indx]
+        dec_upcp = mock_dec[upcp_indx]
+        red_upcp = mock_redshift[upcp_indx]
+
+        nocp_indx = where(w_cp eq 0)
+        ra_nocp  = mock_ra[nocp_indx]
+        dec_nocp = mock_dec[nocp_indx]
+        red_nocp = mock_redshift[nocp_indx]
+        
+        spherematch, ra_nocp, dec_nocp, ra_upcp, dec_upcp, fib_angscale, m_nocp, m_upcp, d12, maxmatch=0
 
     endif else if (strlowcase(catalog) EQ 'patchy') then begin 
         omega_m = 0.31
@@ -187,28 +199,6 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
     for j=0L,n_elements(all_dlos)-1L do begin
         printf, lun, all_dlos[j], all_targ_ra[j], all_targ_dec[j], all_targ_red[j], $
             all_neigh_ra[j], all_neigh_dec[j], all_neigh_red[j], format='(f, f, f, f, f, f, f)'   ; d_LOS, target_ra, target_dec, target redshift, neighbor_ra, neighbor_dec, neighbor redshift
-    endfor
-    
-    free_lun, lun 
-    
-    ; Nseries code that uses the Nseries information 
-    nseries: n_mock = strmid(mock_file, 0, strpos(mock_file, '.fibcoll.dat')) 
-
-    orig_file = n_mock+'.rdzwc'
-    readcol, orig_file, mock_ra, mock_dec, mock_redshift, w_fkp, w_cp, z_upw
-        
-    nocp_indx = where(w_cp eq 0)
-
-    ra_nocp  = mock_ra[nocp_indx]
-    dec_nocp = mock_dec[nocp_indx]
-    red_nocp = mock_redshift[nocp_indx]
-    z_upw_neigh = z_upw[nocp_indx]
-        
-    all_dlos  = 3000.0*(comdis(red_nocp, omega_m, 1.0-omega_m)-comdis(z_upw_neigh, omega_m, 1.0-omega_m))         ; Mpc/h 
-    
-    openw, lun, dlos_file, /get_lun
-    for j=0L,n_elements(all_dlos)-1L do begin
-        printf, lun, all_dlos[j], format='(f)'   ; d_LOS
     endfor
     
     free_lun, lun 

@@ -1,5 +1,6 @@
-pro build_wcp_assign, catalog, catalog_param=catalog_parm 
+pro build_wcp_assign, catalog, catalog_param=catalog_param 
 ; Assign fiber collision weights for mock catalogs taht do not have them 
+    fib_angscale = 0.01722
     if strtrim(catalog,2) eq 'tilingmock' then begin 
         ; import tiling mock catalog
         mock_dir     = '/mount/riachuelo1/hahn/data/tiling_mocks/'
@@ -9,7 +10,6 @@ pro build_wcp_assign, catalog, catalog_param=catalog_parm
         print, Ngal, ' galaxies'
 
         ; Fiber collision angular scales 
-        fib_angscale = 0.01722
         spherematch, mock_ra, mock_dec, mock_ra, mock_dec, fib_angscale, match1, match2, d12, maxmatch=0
         overlap_indx = where(d12 GT 0.0, overlap_count)
         match1 = match1[overlap_indx]
@@ -46,6 +46,46 @@ pro build_wcp_assign, catalog, catalog_param=catalog_parm
         output_file = 'cmass-boss5003sector-icoll012.zlim.fibcoll.dat'
         openw, lun, mock_dir+output_file, /get_lun
         for i=0L,Ngal-1L do printf, lun, mock_ra[i], mock_dec[i], mock_redshift[i], wcp[i], format='(4F)'
+        free_lun, lun 
+        return 
+    endif else if strtrim(catalog, 2) EQ 'nseries' then begin ; N series mocks 
+        data_dir = '/mount/riachuelo1/hahn/data/Nseries/'
+        orig_file = 'CutskyN'+string(catalog_param)+'.rdzwc'
+        info_file = 'CutskyN'+string(catalog_param)+'.mask_info'
+
+        readcol, data_dir+orig_file, mock_ra, mock_dec, mock_z, dum, wfc, z_upw
+        readcol, data_dir+info_file, mock_comp
+        ngal = n_elements(mock_ra)
+
+        no_fib = where(wfc eq 0, n_no_fib)      ; galaxies without fibers
+        fib = where(wfc ge 1, n_fib)            ; galaxies with fibers
+
+        spherematch, mock_ra[no_fib], mock_dec[no_fib], mock_ra[fib], mock_dec[fib], fib_angscale, $
+            match_nofib, match_fib, d12, maxmatch=0
+
+        gal_nofib = match_nofib[uniq(match_nofib, sort(match_nofib))]       ; unique no-fiber galaxies
+    
+        upw_ra = replicate(0.0, ngal)
+        upw_dec = replicate(0.0, ngal)
+        upw_z = replicate(0.0, ngal)
+
+        for i=0L,n_elements(gal_nofib)-1L do begin 
+            collision_index = where(match_nofib eq gal_nofib[i], n_coll)
+            if n_coll gt 1 then begin
+                print, n_coll, ' should be 1'
+                print, wfc[fib[match_fib[collision_index]]]
+                stop 
+            endif 
+
+            upw_ra[no_fib[match_nofib[collision_index]]] = mock_ra[fib[match_fib[collision_index]]]
+            upw_dec[no_fib[match_nofib[collision_index]]] = mock_dec[fib[match_fib[collision_index]]]
+            upw_z[no_fib[match_nofib[collision_index]]] = mock_z[fib[match_fib[collision_index]]]
+        endfor 
+
+        output_file  = 'CutskyN'+string(catalog_param)+'.rdzwc.dat'
+        openw, lun, data_dir+output_file, /get_lun
+        for i=0L,Ngal-1L do printf, lun, mock_ra[i], mock_dec[i], mock_z[i], wfc[i], z_upw[i], $
+            upw_ra[i], upw_dec[i], upw_z[i], format='(8F)'
         free_lun, lun 
         return 
     endif else if strtrim(catalog,2) eq 'lasdamasgeo' then begin 
