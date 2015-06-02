@@ -102,19 +102,16 @@ class dlos:
                     print 'Constructing ', file_name 
                     
                     build_dlos(**cat_corr)  
-                    build_dlos_nseries_test(**cat_corr) 
+                    #build_dlos_nseries_test(**cat_corr) 
 
-                readin_data = np.loadtxt(file_name, unpack=True, usecols=[0]) 
-                self.dlos = readin_data
-
-                #readin_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4,5,6]) 
-                #self.dlos = readin_data[0]
-                #self.targ_ra = readin_data[1]
-                #self.targ_dec = readin_data[2]
-                #self.targ_z = readin_data[3]
-                #self.neigh_ra = readin_data[4] 
-                #self.neigh_dec = readin_data[5] 
-                #self.neigh_z = readin_data[6]
+                readin_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4,5,6]) 
+                self.dlos = readin_data[0]
+                self.targ_ra = readin_data[1]
+                self.targ_dec = readin_data[2]
+                self.targ_z = readin_data[3]
+                self.neigh_ra = readin_data[4] 
+                self.neigh_dec = readin_data[5] 
+                self.neigh_z = readin_data[6]
 
         elif catalog['name'].lower() =='patchy': 
             # PATCHY mocks --------------------------------------------------- 
@@ -743,20 +740,9 @@ def combined_dlos_fit(n_mocks, fit='gauss', sanitycheck=False, clobber=False, **
             else: 
                 combined_dlos = np.concatenate([combined_dlos, los_disp_i.dlos]) 
 
-    elif catalog['name'].lower() == 'cmass': 
-        los_disp = dlos(**cat_corr)
-        combined_dlos = los_disp.dlos
-        n_mocks = 1
-
     else: 
         raise NameError("not yet coded") 
 
-    # ---------------------------------------------------------------------------------------------------------------------
-    # delete this later
-    # write combined dlos 
-    #np.savetxt(catalog['name'].lower()+str(n_mocks)+'mocks_combined_dlos.dat',            
-    #        np.c_[combined_dlos], fmt=['%10.10f'], delimiter='\t')
-    #------------------------------------------------------------------------------------------------------------------------------------ 
     # Determine appropriate binsize for dist (not too important)
     # Create histogram for combined dLOS values  (binsize is just guessed)
     x_min = -1000.0
@@ -779,7 +765,7 @@ def combined_dlos_fit(n_mocks, fit='gauss', sanitycheck=False, clobber=False, **
     
     binsize = 2.0*iqr*(2.0*n_sample)**(-1.0/3.0)        # appropriate bin size 
     print 'Freedman-Diaconis binsize = ', binsize
-    #---------------------------------------------------------------------------------------------------------------------------------------
+    #----------------------------------------------------------------------------------------------
     # recompute histogram using freedman-diaconis binsize 
     n_bins = int((x_max-x_min)/binsize) 
 
@@ -788,7 +774,7 @@ def combined_dlos_fit(n_mocks, fit='gauss', sanitycheck=False, clobber=False, **
     xhigh = mpc_binedges[1:] 
     xmid = np.array([0.5*(xlow[i]+xhigh[i]) for i in range(len(xlow))])
 
-    # fitting ------------------------------------------------------------------------------------------------------------------------------------
+    # fitting ---------------------------------------------------------------------------------------
     #if fit.lower() == 'gauss': 
     #elif fit.lower() == 'expon': 
     #    peak_xrange = (xmid > -25.0) & (xmid < 25.0) 
@@ -899,21 +885,26 @@ def nseries_idl_python_dlos_test(n_mocks, clobber=False):
 
         los_disp_i = dlos(clobber=clobber, **i_cat_corr)   # import DLOS of each mock 
 
-        nseries_dlos = np.loadtxt(los_disp_i.file_name+'_test', unpack=True, usecols=[0])
-
-        dlos_doublecheck = np.loadtxt('/mount/riachuelo1/hahn/data/Nseries/CutskyN'+str(i_mock)+'.fibcoll.gauss.peakshot.sigma4.0.fpeak0.6_fidcosmo.dat.dlosvalues', 
+        #nseries_dlos = np.loadtxt(los_disp_i.file_name+'_test', unpack=True, usecols=[0])
+    
+        #dlos_doublecheck = np.loadtxt('/mount/riachuelo1/hahn/data/Nseries/CutskyN'+str(i_mock)+'.fibcoll.gauss.peakshot.sigma4.0.fpeak0.6_fidcosmo.dat.dlosvalues', 
+        #        unpack=True, usecols=[0])
+        dlos_doublecheck = np.loadtxt(
+                ''.join(['/mount/riachuelo1/hahn/data/Nseries/', 
+                    'CutskyN', str(i_mock), '.fibcoll.gauss.peakshot.sigma3.8.fpeak0.7_fidcosmo.dat.dlosvalues']),
                 unpack=True, usecols=[0])
+        #'CutskyN', str(i_mock), '.fibcoll.true.peakshot.fpeak0.7_fidcosmo.dat.dlosvalues']), 
 
         # Combine dLOS values 
         try: 
             combined_idl_dlos
         except NameError: 
             combined_idl_dlos = los_disp_i.dlos
-            combined_py_dlos = nseries_dlos
+            #combined_py_dlos = nseries_dlos
             combined_check_dlos = dlos_doublecheck 
         else: 
             combined_idl_dlos = np.concatenate([combined_idl_dlos, los_disp_i.dlos]) 
-            combined_py_dlos = np.concatenate([combined_py_dlos, nseries_dlos])
+            #combined_py_dlos = np.concatenate([combined_py_dlos, nseries_dlos])
             combined_check_dlos = np.concatenate([combined_check_dlos, dlos_doublecheck]) 
 
     # Determine appropriate binsize for dist (not too important)
@@ -924,7 +915,7 @@ def nseries_idl_python_dlos_test(n_mocks, clobber=False):
     n_bins = int((x_max-x_min)/binsize) 
     
     idl_dlos_hist, mpc_binedges = np.histogram(combined_idl_dlos, bins=n_bins, range=[x_min, x_max])
-    py_dlos_hist, mpc_binedges = np.histogram(combined_py_dlos, bins=n_bins, range=[x_min, x_max])
+    #py_dlos_hist, mpc_binedges = np.histogram(combined_py_dlos, bins=n_bins, range=[x_min, x_max])
     check_dlos_hist, mpc_binedges = np.histogram(combined_check_dlos, bins=n_bins, range=[x_min, x_max])
     xlow = mpc_binedges[:-1]
     xhigh = mpc_binedges[1:] 
@@ -936,7 +927,7 @@ def nseries_idl_python_dlos_test(n_mocks, clobber=False):
     sub = fig.add_subplot(111) 
 
     sub.plot(xmid, idl_dlos_hist, lw=4, color=pretty_colors[1], label=r"IDL $d_{LOS}$")
-    sub.plot(xmid, py_dlos_hist, lw=4, color=pretty_colors[3], label=r"Python $d_{LOS}$")
+    #sub.plot(xmid, py_dlos_hist, lw=4, color=pretty_colors[3], label=r"Python $d_{LOS}$")
     sub.plot(xmid, check_dlos_hist, ls='--', lw=4, color=pretty_colors[5], label=r"Generated $d_{LOS}$")
 
     sub.set_xlabel(r"$d_{LOS}$ (Mpc/h)", fontsize=20) 
@@ -1149,8 +1140,16 @@ def combined_dlos_angsep_fit(n_mocks, fit='gauss', sanitycheck=False, **cat_corr
 
     #return [sigma, fpeak]
 
-def combined_dlos_dist(**cat_corr):
-    ''' Combine dLOS values and output the normalized histogram for the peak of the distribution
+def combined_dlos_dist(n_mock, **cat_corr):
+    ''' Combine dLOS values and calculate the normalized histogram for the peak of the distribution
+
+    Parameters
+    ----------
+
+    Notes
+    -----
+    * The output normalized histogram is used for the True Peak Shot correction method 
+
     '''
     catalog = cat_corr['catalog']
     correction = cat_corr['correction']
@@ -1182,8 +1181,8 @@ def combined_dlos_dist(**cat_corr):
         combined_dlos = los_d_i.dlos
         n_mocks = 1 
 
-    elif catalog['name'].lower() == 'qpm':                      # QPM ------------------------------------------------------------
-        for i_mock in range(1,101): 
+    elif catalog['name'].lower() in ('qpm', 'nseries'):         # QPM, N series ------------------------------------------
+        for i_mock in range(1, n_mock+1): 
             # individual catalog_correction dictonary 
             i_catalog = catalog.copy() 
             i_catalog['n_mock'] = i_mock 
@@ -1197,7 +1196,7 @@ def combined_dlos_dist(**cat_corr):
                 combined_dlos = los_d_i.dlos
             else: 
                 combined_dlos = np.concatenate([combined_dlos, los_d_i.dlos]) 
-            n_mocks = n_mocks+1
+            n_mocks += 1
 
     elif catalog['name'].lower() == 'patchy':                      
         # PATCHY ------------------------------------------------------------
@@ -1246,6 +1245,9 @@ def combined_dlos_dist(**cat_corr):
     
     binsize = 2.0*iqr*(2.0*n_sample)**(-1.0/3.0)        # appropriate bin size 
     print 'Freedman-Diaconis binsize = ', binsize
+
+    if binsize > 0.1: 
+        binsize = 0.1
    
     # recompute histogram using appropriate binsize 
     # get normalized histogram ONLY near the peak
@@ -1675,10 +1677,9 @@ def combined_catalog_dlos_fits(catalog, n_mock):
                 clobber=True, **cat_corr) 
 
     elif 'nseries' in catalog: 
-
         print 'Nseries ------------------------------------------------------'
         cat_corr = {'catalog': {'name':'nseries'}, 'correction': {'name': 'upweight'}}
-        print 'Gauss ', combined_dlos_fit(10, fit='gauss', sanitycheck=True, clobber=True, **cat_corr) 
+        print 'Gauss ', combined_dlos_fit(n_mock, fit='gauss', sanitycheck=True, clobber=True, **cat_corr) 
 
     elif 'patchy' in catalog: 
         print 'PATCHY ------------------------------------------------------'
@@ -1690,17 +1691,18 @@ def combined_catalog_dlos_fits(catalog, n_mock):
         raise NameError('asdfasdfasdf')  
 
 if __name__=="__main__": 
+    #cat_corr = {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}} 
+    #combined_dlos_dist(1, **cat_corr)
+    #combined_catalog_dlos_fits('nseries', 1)
     #for i in np.arange(1, 11): 
     #    for letter in ['a', 'b', 'c', 'd']: 
     #        cat_corr = {'catalog': {'name': 'lasdamasgeo', 'n_mock': i, 'letter': letter}, 
     #                'correction': {'name': 'upweight'}} 
     #        fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     #        build_dlos(**cat_corr) 
+    #for i in np.arange(1,2): 
+    #    cat_corr = {'catalog': {'name': 'nseries', 'n_mock': i}, 'correction': {'name': 'upweight'}} 
+    #    build_dlos(**cat_corr) 
     #combined_catalog_dlos_fits('patchy', 10)
     #combined_catalog_dlos_fits('lasdamasgeo', 5)
-    nseries_idl_python_dlos_test(9)
-    #combined_catalog_dlos_fits('nseries', 10)
-    #combined_catalog_dlos_fits('nseries', 10)
-    #cat_corrs = [ {'catalog': {'name': catalog}, 'correction': {'name': 'upweight'}} 
-    #        for catalog in ['qpm', 'nseries', 'lasdamasgeo']] 
-    #plot_fcpaper_dlos(cat_corrs)
+    nseries_idl_python_dlos_test(1)

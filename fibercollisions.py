@@ -859,7 +859,7 @@ def pk_fibcol_comp(catalog_name, n_mock, corr_methods):
 
     print corr_methods[min_index+1]
 
-def build_pk(catalog, n_mocks): 
+def build_pk(catalog, n_mocks, quad=False): 
     ''' 
     Wrapper to build powerspectrum (monopole or quadrupole) for mock catalogs (QPM, Nseries, LasDamasGeo, TilingMock) 
 
@@ -876,28 +876,31 @@ def build_pk(catalog, n_mocks):
 
     '''
     # correction method list 
-    #corrections = [ {'name': 'true'}, {'name': 'upweight'}, {'name': 'hectorsn'}, 
-    corrections = [{'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}]
-    spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid': 360, 'quad': False}
+    #corrections = [ {'name': 'true'}, {'name': 'upweight'}]
+    corrections = [{'name': 'peakshot', 'sigma': 3.8, 'fpeak': 0.7, 'fit': 'gauss'}]
+    #corrections = [{'name': 'peakshot', 'fpeak': 0.7, 'fit': 'true'}]
+    spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid': 360, 'quad': quad}
 
-    for i_mock in range(11, n_mocks+1): 
+    for i_mock in range(1, n_mocks+1): 
         for corr in corrections: 
             build_fibcol_pk(catalog, i_mock, corr, spec=spec, clobber=False) 
 
 if __name__=='__main__': 
-    build_pk('nseries', 50)
     #for corr in ['true', 'upweight', 'noweight']: 
     #    cat_corr = {'catalog': {'name':'lasdamasgeo', 'n_mock':1, 'letter':'a'}, 
     #            'correction': {'name': corr}} 
     #    fc_data.galaxy_data('data', clobber=True, **cat_corr) 
-    #cat_corr = {'catalog': {'name':'lasdamasgeo', 'n_mock':1, 'letter':'a'}, 'correction': {'name': 'true'}} 
-    #fc_data.build_true(**cat_corr) 
 
-    #corrections = [{'name': 'true'}, {'name': 'upweight'}, {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}]
-    #for i_mock in np.arange(11,85): 
-    #    for corr in corrections: 
-    #        cat_corr = {'catalog': {'name': 'nseries', 'n_mock': i_mock}, 'correction': corr} 
-    #        fc_data.galaxy_data('data', clobber=True, **cat_corr) 
+    #corrections = [{'name': 'true'}, {'name': 'upweight'}]#, {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}]
+    #corrections = [{'name': 'peakshot', 'sigma': 3.8, 'fpeak': 0.7, 'fit': 'gauss'}]
+    corrections = [{'name': 'scratch_peakknown'}]
+    for i_mock in np.arange(1,2): 
+        for corr in corrections: 
+            cat_corr = {'catalog': {'name': 'nseries', 'n_mock': i_mock}, 'correction': corr} 
+            fc_data.galaxy_data('data', clobber=True, **cat_corr) 
+
+    #build_pk('nseries', 1, quad=False)
+    #build_pk('nseries', 1, quad=True)
 
     #qpm_avgP(45, {'name':'true'})
     #qpm_deltaP(45, {'name':'true'})

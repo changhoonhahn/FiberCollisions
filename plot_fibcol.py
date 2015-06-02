@@ -411,10 +411,10 @@ def plot_pk_fibcol_comp(catalog_name, n_mock, corr_methods, quad=False, type='ra
     
     # fig file name 
     if quad == True: 
-        fig_name = ''.join(['p2k_', catalog_name.lower(), 
+        fig_name = ''.join(['p2k_', catalog_name.lower(), '_', str(n_mock), 'mock',
             '_fibcoll_', corr_str, resid_str, '_comparison_Ngrid', str(Ngrid) , '.png'])     
     else: 
-        fig_name = ''.join(['p0k_', catalog_name.lower(), 
+        fig_name = ''.join(['p0k_', catalog_name.lower(), '_', str(n_mock), 'mock',
             '_fibcoll_', corr_str, resid_str, '_comparison_Ngrid', str(Ngrid), '.png'])     
     fig.savefig(''.join(['figure/', fig_name]), bbox_inches="tight")
 
@@ -1098,18 +1098,23 @@ if __name__=="__main__":
     #plot_avg_pk_fibcol('qpm', 100, {'name': 'true'}, quad=False)   
     #plot_comdis2z_test()
     
-    nseries_corr_methods = [{'name': 'true'}, {'name':'upweight'}, {'name': 'hectorsn'},
-            {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}, 
+    nseries_corr_methods = [{'name': 'true'}, {'name':'upweight'},
+            {'name': 'peakshot', 'sigma':3.8, 'fpeak': 0.7, 'fit': 'gauss'} 
             ]
-    plot_pk_fibcol_comp('nseries', 25, nseries_corr_methods, 
+            #{'name': 'peakshot', 'fpeak': 0.7, 'fit': 'true'} 
+            #]
+
+    plot_pk_fibcol_comp('nseries', 1, nseries_corr_methods, 
             quad=False, Ngrid=360, type='regular', 
-            xrange=[0.001, 1.0], yrange=[10**3, 3*10**5]) 
-    plot_pk_fibcol_comp('nseries', 25, nseries_corr_methods, 
+            xrange=[0.001, 1.0], yrange=[10**3, 3*10**5])
+    plot_pk_fibcol_comp('nseries', 1, nseries_corr_methods, 
             quad=False, Ngrid=360, type='ratio', 
-            xrange=[0.001, 1.0], yrange=[0.9, 1.2]) 
-    plot_pk_fibcol_comp('nseries', 25, nseries_corr_methods, 
+            xrange=[0.001, 1.0], yrange=[0.2, 2.0]) 
+    '''
+    plot_pk_fibcol_comp('nseries', 1, nseries_corr_methods, 
             quad=False, Ngrid=360, type='residual', yscale='log', 
             xrange=[0.001, 1.0], yrange=[0.02, 2.0]) 
+    '''
     #plot_pk_fibcol_comp('qpm', 10, qpm_corr_methods, quad=True, Ngrid=960, type='ratio', xrange=[0.001, 1.0]) 
     #plot_pk_fibcol_comp('qpm', 10, qpm_corr_methods, quad=True, Ngrid=960, type='residual', yscale='log', xrange=[0.02, 1.0]) 
     ##plot_pk_fibcol_comp('qpm', 100, qpm_corr_methods, quad=True, type='residual', yscale='log', xrange=[0.02, 1.0]) 
@@ -1130,37 +1135,3 @@ if __name__=="__main__":
     #        quad=False, Ngrid=960, type='residual', yscale='log', xrange=[0.02, 1.0]) 
     #plot_pk_fibcol_comp('lasdamasgeo', 40, ldg_corr_methods, 
     #        quad=True, type='residual', yscale='log', xrange=[0.02, 1.0]) 
-
-    '''
-    # --------------------------------------------------------------------------------------------------------------------------------------------
-    #qpm_corr_methods = [{'name': 'true'}, {'name':'upweight'}, {'name':'shotnoise'}, {'name': 'peaknbar', 'sigma': 4.4, 'fpeak': 1.0, 'fit': 'gauss'}, {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}]#, {'name': 'vlospeakshot', 'sigma':580, 'fpeak':0.62, 'fit':'gauss'}]#, {'name': 'vlospeakshot', 'sigma':580, 'fpeak':0.65, 'fit':'gauss'}] 
-    qpm_corr_methods = [{'name': 'true'}, {'name':'upweight'}, {'name': 'floriansn'}, {'name': 'hectorsn'}, {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}, {'name': 'peakshot', 'fit': 'true', 'fpeak': 0.65}]
-    #, {'name': 'peaknbar', 'sigma': 4.4, 'fpeak': 1.0, 'fit': 'gauss'}, 
-    #, {'name': 'vlospeakshot', 'sigma':580, 'fpeak':0.62, 'fit':'gauss'}]#, {'name': 'vlospeakshot', 'sigma':580, 'fpeak':0.65, 'fit':'gauss'}] 
-    #plot_pk_fibcol_comp('qpm', 100, qpm_corr_methods, resid='True') 
-    #qpm_corr_methods = [{'name': 'true'}, {'name':'upweight'}, {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}, {'name': 'floriansn'}, {'name': 'hectorsn'}]
-    qpm_corr_methods = [{'name': 'true'}, {'name':'upweight'}]#, {'name':'tailupw'}]#{'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'true'}]#, {'name': 'peakshot', 'fit': 'true', 'fpeak': 0.63}]
-    #plot_pk_fibcol_comp('qpm', 49, qpm_corr_methods, resid='True') 
-    qpm_corr_methods = [{'name': 'true'}, {'name':'upweight'}, {'name': 'floriansn'}]
-    #plot_pk_fibcol_comp('qpm', 49, qpm_corr_methods, resid='True') 
-
-    #plot_p2k_fibcol_comp('qpm', 100, corr_methods, resid='False') 
-    ldg_corr_methods = [{'name': 'true'}, {'name':'upweight'}, {'name': 'peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}, {'name': 'floriansn'}, {'name': 'hectorsn'}]
-    #ldg_corr_methods = [{'name': 'true'},  {'name': 'shotnoise'}, {'name': 'peaknbar', 'sigma': 6.5, 'fpeak': 1.0, 'fit': 'gauss'}] #, {'name': 'floriansn'}, {'name': 'hectorsn'}]
-    #plot_pk_fibcol_comp('lasdamasgeo', 39, ldg_corr_methods, resid='True') 
-    #plot_p2k_fibcol_comp('lasdamasgeo', 1, ldg_corr_methods, resid='True') 
-    #plot_pk_fibcol_comp('qpm', 100, corr_methods, resid='True', quad=True) 
-    #plot_pk_fibcol_comp('lasdamasgeo', 1, corr_methods, resid='True') 
-    #
-    tm_corr_methods = [{'name': 'true'}, {'name':'upweight'}, {'name': 'peakshot', 'sigma':4.8, 'fpeak':0.63, 'fit':'gauss'}, {'name': 'peakshot', 'sigma':4.8, 'fpeak':1.0, 'fit':'gauss'}, {'name': 'peakshot', 'sigma':4.8, 'fpeak':0.0, 'fit':'gauss'}]#, {'name': 'floriansn'}, {'name': 'hectorsn'}]
-    ##{'name':'floriansn'}, {'name':'hectorsn'}, {'name': 'peakshot', 'sigma':5.4, 'fpeak':0.57, 'fit':'expon'}, {'name': 'vlospeakshot', 'sigma':620, 'fpeak':0.58, 'fit':'gauss'}] 
-    #plot_pk_fibcol_comp('tilingmock',1, corr_methods, resid='True') 
-    #plot_p2k_fibcol_comp('tilingmock',1, tm_corr_methods, resid='True') 
-    #plot_p2k_fibcol_comp('tilingmock',1, tm_corr_methods, resid='False') 
-    
-    #plot_z_dist_fcpaper(cat_corrs)
-    #plot_pk_fcpaper(['lasdamasgeo', 'qpm', 'tilingmock', 'cmass']) 
-    #plot_pk_shotnoiseonly_fcpaper(['lasdamasgeo', 'qpm', 'tilingmock'])
-    #corr_methods = [{'name': 'true'}, {'name':'upweight'}, {'name':'floriansn'}, {'name':'hectorsn'}, {'name': 'peakshot', 'sigma':5.4, 'fpeak':0.57, 'fit':'expon'}, {'name': 'vlospeakshot', 'sigma':700, 'fpeak':0.65, 'fit':'expon'}]
-    #plot_pk_fibcol_comp('tilingmock', 1, corr_methods, resid='True')
-    '''

@@ -71,10 +71,28 @@ pro build_wcp_assign, catalog, catalog_param=catalog_param
 
         for i=0L,n_elements(gal_nofib)-1L do begin 
             collision_index = where(match_nofib eq gal_nofib[i], n_coll)
+
             if n_coll gt 1 then begin
                 print, n_coll, ' should be 1'
                 print, wfc[fib[match_fib[collision_index]]]
-                stop 
+                upw_index = where(wfc[fib[match_fib[collision_index]]] gt 1, n_upw)
+                notupw_index = where(wfc[fib[match_fib[collision_index]]] eq 1, n_notupw)
+
+                print, 'downweighted' 
+                print, 'ra', mock_ra[no_fib[match_nofib[collision_index[0]]]]
+                print, 'dec', mock_dec[no_fib[match_nofib[collision_index[0]]]]
+                print, 'upweighted galaxies' 
+                print, 'ra', (mock_ra[fib[match_fib[collision_index[upw_index]]]])
+                print, 'dec', (mock_dec[fib[match_fib[collision_index[upw_index]]]])
+                print, 'wfc', (wfc[fib[match_fib[collision_index[upw_index]]]])
+                if (n_notupw gt 0) then begin 
+                    print, 'fibered galaxies'
+                    print, 'ra', (mock_ra[fib[match_fib[collision_index[notupw_index]]]])
+                    print, 'dec', (mock_dec[fib[match_fib[collision_index[notupw_index]]]])
+                    print, 'wfc', (wfc[fib[match_fib[collision_index[notupw_index]]]])
+                    print, 'ang dist', djs_diff_angle((mock_ra[fib[match_fib[collision_index]]])[upw_index], (mock_dec[fib[match_fib[collision_index]]])[upw_index], $
+                        (mock_ra[fib[match_fib[collision_index]]])[notupw_index], (mock_dec[fib[match_fib[collision_index]]])[notupw_index]) 
+                endif 
             endif 
 
             upw_ra[no_fib[match_nofib[collision_index]]] = mock_ra[fib[match_fib[collision_index]]]
@@ -88,6 +106,7 @@ pro build_wcp_assign, catalog, catalog_param=catalog_param
             upw_ra[i], upw_dec[i], upw_z[i], format='(8F)'
         free_lun, lun 
         return 
+
     endif else if strtrim(catalog,2) eq 'lasdamasgeo' then begin 
         print, 'not yet coded'
         return 

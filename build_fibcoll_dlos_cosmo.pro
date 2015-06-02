@@ -79,9 +79,9 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
         spherematch, ra_nocp, dec_nocp, ra_upcp, dec_upcp, fib_angscale, m_nocp, m_upcp, d12, maxmatch=0
     
     endif else if (strlowcase(catalog) EQ 'nseries') then begin 
-
+    
         omega_m = 0.31
-        readcol, mock_file, mock_ra, mock_dec, mock_redshift, w_cp, comp
+        GOTO, nseries_jump 
         
         upcp_index = where(w_cp gt 1) 
         ra_upcp  = mock_ra[upcp_indx]
@@ -201,6 +201,32 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
             all_neigh_ra[j], all_neigh_dec[j], all_neigh_red[j], format='(f, f, f, f, f, f, f)'   ; d_LOS, target_ra, target_dec, target redshift, neighbor_ra, neighbor_dec, neighbor redshift
     endfor
     
+    free_lun, lun 
+
+    nseries_jump: orig_file = strmid(mock_file, 0, strpos(mock_file, 'fibcoll.dat'))+'rdzwc'
+    readcol, orig_file , mock_ra, mock_dec, mock_redshift, wfkp, w_fc, z_upw, upw_index 
+
+    noupw_index = where(w_fc eq 0, n_noupw) 
+     
+    ;; check z_upw with upw_index 
+    ;for i=0L,n_noupw-1L do begin 
+    ;    if (z_upw[noupw_index[i]] NE mock_redshift[upw_index[noupw_index[i]]]) then begin 
+    ;        print, z_upw[noupw_index[i]], mock_redshift[upw_index[noupw_index[i]]]
+    ;    endif 
+    ;endfor 
+
+    dlos = 3000.0*(comdis(mock_redshift[noupw_index], omega_m, 1.-omega_m)-$
+        comdis(z_upw[noupw_index], omega_m, 1.-omega_m))
+
+    print, dlos_file 
+    openw, lun, dlos_file, /get_lun
+
+    for j=0L,n_noupw-1L do begin
+        i_targ = upw_index[noupw_index[j]]
+        ; d_LOS, target_ra, target_dec, target redshift, neighbor_ra, neighbor_dec, neighbor redshift
+        printf, lun, dlos[j], mock_ra[i_targ], mock_dec[i_targ], mock_redshift[i_targ], $
+            mock_ra[j], mock_dec[j], mock_redshift[j], format='(f, f, f, f, f, f, f)'   
+    endfor
     free_lun, lun 
 return 
 end 
