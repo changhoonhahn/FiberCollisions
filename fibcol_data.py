@@ -10,6 +10,7 @@ Author(s): ChangHoon Hahn
 import numpy as np
 import scipy as sp 
 import time 
+import random
 import os.path
 import subprocess
 import cosmolopy as cosmos
@@ -1779,20 +1780,28 @@ def build_nseries_scratch(**cat_corr):
         dLOS = now_Dc - upw_Dc 
         
         peak_index = np.where(np.abs(dLOS) < 15)        # peak of the dLOS distribution
-        now_peak_index = now_index[peak_index] 
+        now_peak_index = (now_index[0])[peak_index] 
+
         
-        for i_now_peak in now_peak_index: 
+        np.random.shuffle(dLOS[peak_index])     # shuffle the dLOS in the peak
+        shuffle_dlos = dLOS[peak_index]
+        
+        #print len(shuffle_dlos), np.float(len(shuffle_dlos))/np.float(len(orig_z[now_index]))
+
+        for j, i_now_peak in enumerate(now_peak_index): 
             orig_ra[i_now_peak] = orig_ra[upw_index[i_now_peak]]
             orig_dec[i_now_peak] = orig_dec[upw_index[i_now_peak]]
-            orig_z[i_now_peak] = 
+
+            comdis_upw = cosmos.distance.comoving_distance(z_upw[i_now_peak], **cosmo)*cosmo['h']
+
+            orig_z[i_now_peak] = comdis2z(comdis_upw + shuffle_dlos[j], **cosmo)
             orig_wfc[i_now_peak] = 1.0
             orig_wfc[upw_index[i_now_peak]] -= 1.0
 
 
-
-        file = get_galaxy_data_file('data', **cat_corr) 
-        np.savetxt(true_file, 
-                np.c_[orig_ra, orig_dec, orig_z, true_wfc, orig_wcomp], 
+        scratch_file = get_galaxy_data_file('data', **cat_corr) 
+        np.savetxt(scratch_file, 
+                np.c_[orig_ra, orig_dec, orig_z, orig_wfc, orig_wcomp], 
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
     elif correction['name'].lower() in ('scratch_peak_ang'):

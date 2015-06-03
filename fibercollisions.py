@@ -894,7 +894,7 @@ if __name__=='__main__':
     #corrections = [{'name': 'true'}, {'name': 'upweight'}]#, {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}]
     #corrections = [{'name': 'peakshot', 'sigma': 3.8, 'fpeak': 0.7, 'fit': 'gauss'}]
     corrections = [{'name': 'scratch_peakknown'}]
-    for i_mock in np.arange(1,2): 
+    for i_mock in np.arange(2,11): 
         for corr in corrections: 
             cat_corr = {'catalog': {'name': 'nseries', 'n_mock': i_mock}, 'correction': corr} 
             fc_data.galaxy_data('data', clobber=True, **cat_corr) 
