@@ -180,7 +180,7 @@ def plot_pk_fibcol_comp(catalog_name, n_mock, corr_methods, quad=False, type='ra
 
             else: 
                 sub.scatter(avg_k, avg_Pk, 
-                        color=pretty_colors[i_corr], label=correction['name'])
+                        color=pretty_colors[i_corr+1], label=correction['name'])
 
         elif type == 'ratio':                       # P_corr(k)/P_true comparison 
             if correction['name'].lower() == 'true':        
@@ -232,7 +232,7 @@ def plot_pk_fibcol_comp(catalog_name, n_mock, corr_methods, quad=False, type='ra
                     resid_label = correction['name']
 
                     sub.scatter(avg_k, residual(avg_Pk, avg_Pk_true), \
-                            color=pretty_colors[i_corr], label=resid_label)
+                            color=pretty_colors[i_corr+1], label=resid_label)
                     '''
                     print resid_label 
                     print residual(avg_P2k, avg_P2k_true)[(avg_k > 0.15) & (avg_k < 0.2)]
@@ -286,7 +286,7 @@ def plot_pk_fibcol_comp(catalog_name, n_mock, corr_methods, quad=False, type='ra
                             for i in range(len(avg_Pk)) ] 
                     
                     sub.scatter(avg_k, resids, \
-                            color=pretty_colors[i_corr], label=resid_label)
+                            color=pretty_colors[i_corr+1], label=resid_label)
 
         else: 
             raise NotImplementedError('asdfasdfasdfadf') 
@@ -1082,7 +1082,7 @@ if __name__=="__main__":
 
     #cat_corr_list = [] 
     #catalog = {'name': 'nseries'}
-    #for corr in ['true', 'upweight']: 
+    #for corr in ['true', 'upweight', 'scratch_peakknown']: 
     #    cat_corr_list.append({'catalog': catalog, 'correction': {'name': corr}}) 
 
     #plot_nbar_comparison(cat_corr_list, type='ratio', xrange=[0.16, 0.4], yrange=[0.95, 1.05])
@@ -1099,16 +1099,18 @@ if __name__=="__main__":
     #plot_comdis2z_test()
     
     nseries_corr_methods = [{'name': 'true'}, {'name':'upweight'},
-            {'name': 'peakshot', 'sigma':3.8, 'fpeak': 0.7, 'fit': 'gauss'} 
+            {'name': 'peakshot', 'sigma':3.8, 'fpeak': 0.7, 'fit': 'gauss'}, 
+            {'name': 'scratch_peakknown'},  
+            {'name': 'scratch_peakknown_ang'} 
             ]
             #{'name': 'peakshot', 'fpeak': 0.7, 'fit': 'true'} 
             #]
 
-    plot_pk_fibcol_comp('nseries', 1, nseries_corr_methods, 
-            quad=False, Ngrid=360, type='regular', 
+    plot_pk_fibcol_comp('nseries', 10, nseries_corr_methods, 
+            quad=True, Ngrid=360, type='regular', 
             xrange=[0.001, 1.0], yrange=[10**3, 3*10**5])
-    plot_pk_fibcol_comp('nseries', 1, nseries_corr_methods, 
-            quad=False, Ngrid=360, type='ratio', 
+    plot_pk_fibcol_comp('nseries', 10, nseries_corr_methods, 
+            quad=True, Ngrid=360, type='ratio', 
             xrange=[0.001, 1.0], yrange=[0.2, 2.0]) 
     '''
     plot_pk_fibcol_comp('nseries', 1, nseries_corr_methods, 

@@ -1804,12 +1804,48 @@ def build_nseries_scratch(**cat_corr):
                 np.c_[orig_ra, orig_dec, orig_z, orig_wfc, orig_wcomp], 
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
-    elif correction['name'].lower() in ('scratch_peak_ang'):
-        pass
-    #file = get_galaxy_data_file('data', **cat_corr) 
-    #np.savetxt(true_file, 
-    #        np.c_[orig_ra, orig_dec, orig_z, true_wfc, orig_wcomp], 
-    #        fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+    elif correction['name'].lower() in ('scratch_peakknown_ang'):
+
+        # read rdzw file 
+        data_dir = '/mount/riachuelo1/hahn/data/Nseries/'
+        orig_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.rdzwc']) 
+        orig_ra, orig_dec, orig_z, orig_wfc, z_upw, upw_index = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,4,5,6], 
+                dtype={'names': ('ra', 'dec', 'z', 'wfc', 'zupw', 'upw_index'), 
+                    'formats': (np.float64, np.float64, np.float64, np.float64, np.float64, np.int32)})
+
+        # file with completeness
+        mask_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.mask_info']) 
+        orig_wcomp = np.loadtxt(mask_file, unpack=True, usecols=[0]) 
+
+        now_index = np.where(orig_wfc == 0)   # galaxies with w_fc = 0 
+        
+        now_Dc = cosmos.distance.comoving_distance(orig_z[now_index], **cosmo)*cosmo['h']  # in units of Mpc/h
+        upw_Dc = cosmos.distance.comoving_distance(z_upw[now_index], **cosmo)*cosmo['h']  # in units of Mpc/h
+
+        dLOS = now_Dc - upw_Dc 
+        
+        peak_index = np.where(np.abs(dLOS) < 15)        # peak of the dLOS distribution
+        now_peak_index = (now_index[0])[peak_index] 
+
+        
+        np.random.shuffle(dLOS[peak_index])     # shuffle the dLOS in the peak
+        shuffle_dlos = dLOS[peak_index]
+        
+        #print len(shuffle_dlos), np.float(len(shuffle_dlos))/np.float(len(orig_z[now_index]))
+
+        for j, i_now_peak in enumerate(now_peak_index): 
+
+            comdis_upw = cosmos.distance.comoving_distance(z_upw[i_now_peak], **cosmo)*cosmo['h']
+
+            orig_z[i_now_peak] = comdis2z(comdis_upw + shuffle_dlos[j], **cosmo)
+            orig_wfc[i_now_peak] = 1.0
+            orig_wfc[upw_index[i_now_peak]] -= 1.0
+
+
+        scratch_file = get_galaxy_data_file('data', **cat_corr) 
+        np.savetxt(scratch_file, 
+                np.c_[orig_ra, orig_dec, orig_z, orig_wfc, orig_wcomp], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
 def build_corrected_randoms(sanitycheck=False, **cat_corr): 
     ''' 

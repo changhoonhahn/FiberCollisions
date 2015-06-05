@@ -184,6 +184,14 @@ def fortran_code(fft_power, **cat_corr):
                     # Igal Irand shot noise correction 
                     f_code = code_dir+'power-nseries-fkp-w-nbar-Igal-Irand-960grid-480bin.f'
 
+            elif 'scratch' in correction['name'].lower(): 
+                if spec['grid'] == 360: 
+                    # Igal Irand shot noise correction 
+                    f_code = code_dir+'power-nseries-fkp-w-nbar-Igal-Irand-360grid-180bin.f'
+                elif spec['grid'] == 960: 
+                    # Igal Irand shot noise correction 
+                    f_code = code_dir+'power-nseries-fkp-w-nbar-Igal-Irand-960grid-480bin.f'
+
         # quadrupole codes --------------------------------------------
         # regardess of catalog or correction TEMPORARILY HARDCODED HERE FOR TEST RUN 
         elif fft_power.lower() == 'quadfft': 

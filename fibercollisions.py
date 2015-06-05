@@ -877,8 +877,10 @@ def build_pk(catalog, n_mocks, quad=False):
     '''
     # correction method list 
     #corrections = [ {'name': 'true'}, {'name': 'upweight'}]
-    corrections = [{'name': 'peakshot', 'sigma': 3.8, 'fpeak': 0.7, 'fit': 'gauss'}]
+    #corrections = [{'name': 'peakshot', 'sigma': 3.8, 'fpeak': 0.7, 'fit': 'gauss'}]
     #corrections = [{'name': 'peakshot', 'fpeak': 0.7, 'fit': 'true'}]
+    #corrections = [{'name': 'scratch_peakknown'}]
+    corrections = [{'name': 'scratch_peakknown_ang'}]
     spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid': 360, 'quad': quad}
 
     for i_mock in range(1, n_mocks+1): 
@@ -893,13 +895,13 @@ if __name__=='__main__':
 
     #corrections = [{'name': 'true'}, {'name': 'upweight'}]#, {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}]
     #corrections = [{'name': 'peakshot', 'sigma': 3.8, 'fpeak': 0.7, 'fit': 'gauss'}]
-    corrections = [{'name': 'scratch_peakknown'}]
-    for i_mock in np.arange(2,11): 
-        for corr in corrections: 
-            cat_corr = {'catalog': {'name': 'nseries', 'n_mock': i_mock}, 'correction': corr} 
-            fc_data.galaxy_data('data', clobber=True, **cat_corr) 
+    #corrections = [{'name': 'scratch_peakknown_ang'}]
+    #for i_mock in np.arange(1,11): 
+    #    for corr in corrections: 
+    #        cat_corr = {'catalog': {'name': 'nseries', 'n_mock': i_mock}, 'correction': corr} 
+    #        fc_data.galaxy_data('data', clobber=True, **cat_corr) 
 
-    #build_pk('nseries', 1, quad=False)
+    build_pk('nseries', 10, quad=True)
     #build_pk('nseries', 1, quad=True)
 
     #qpm_avgP(45, {'name':'true'})
