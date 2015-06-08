@@ -1841,11 +1841,152 @@ def build_nseries_scratch(**cat_corr):
             orig_wfc[i_now_peak] = 1.0
             orig_wfc[upw_index[i_now_peak]] -= 1.0
 
+    elif correction['name'].lower() in ('scratch_peakknown_gauss'): 
 
-        scratch_file = get_galaxy_data_file('data', **cat_corr) 
-        np.savetxt(scratch_file, 
-                np.c_[orig_ra, orig_dec, orig_z, orig_wfc, orig_wcomp], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+        # read rdzw file 
+        data_dir = '/mount/riachuelo1/hahn/data/Nseries/'
+        orig_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.rdzwc']) 
+        orig_ra, orig_dec, orig_z, orig_wfc, z_upw, upw_index = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,4,5,6], 
+                dtype={'names': ('ra', 'dec', 'z', 'wfc', 'zupw', 'upw_index'), 
+                    'formats': (np.float64, np.float64, np.float64, np.float64, np.float64, np.int32)})
+
+        # file with completeness
+        mask_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.mask_info']) 
+        orig_wcomp = np.loadtxt(mask_file, unpack=True, usecols=[0]) 
+
+        now_index = np.where(orig_wfc == 0)   # galaxies with w_fc = 0 
+        
+        now_Dc = cosmos.distance.comoving_distance(orig_z[now_index], **cosmo)*cosmo['h']  # in units of Mpc/h
+        upw_Dc = cosmos.distance.comoving_distance(z_upw[now_index], **cosmo)*cosmo['h']  # in units of Mpc/h
+
+        dLOS = now_Dc - upw_Dc  # dLOS values for the pairs 
+
+        peak_index = np.where(np.abs(dLOS) < 15)        # peak of the dLOS distribution
+        now_peak_index = (now_index[0])[peak_index] 
+
+        fit_func = lambda x, sig: np.exp(-0.5 *x**2/sig**2)     # gaussian fit to dLOS distribution 
+
+        for j, i_now_peak in enumerate(now_peak_index): 
+
+            orig_ra[i_now_peak] = orig_ra[upw_index[i_now_peak]]
+            orig_dec[i_now_peak] = orig_dec[upw_index[i_now_peak]]
+
+            rand1 = np.random.random(1) 
+            rand2 = np.random.random(1) 
+
+            rand2 = -15.0 + 30.0 * rand1
+            peakpofr = fit_func(rand2, 3.8) 
+            
+            while peakpofr <= rand1: 
+                rand1 = np.random.random(1) 
+                rand2 = np.random.random(1) 
+
+                rand2 = -15.0 + 30.0 * rand1
+                peakpofr = fit_func(rand2, 3.8) 
+            
+            comdis_upw = cosmos.distance.comoving_distance(z_upw[i_now_peak], **cosmo)*cosmo['h']
+
+            orig_z[i_now_peak] = comdis2z(comdis_upw + rand2, **cosmo)
+            orig_wfc[i_now_peak] = 1.0
+            orig_wfc[upw_index[i_now_peak]] -= 1.0
+        
+    elif correction['name'].lower() in ('scratch_allpeak_gauss'): 
+
+        # read rdzw file 
+        data_dir = '/mount/riachuelo1/hahn/data/Nseries/'
+        orig_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.rdzwc']) 
+        orig_ra, orig_dec, orig_z, orig_wfc, z_upw, upw_index = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,4,5,6], 
+                dtype={'names': ('ra', 'dec', 'z', 'wfc', 'zupw', 'upw_index'), 
+                    'formats': (np.float64, np.float64, np.float64, np.float64, np.float64, np.int32)})
+
+        # file with completeness
+        mask_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.mask_info']) 
+        orig_wcomp = np.loadtxt(mask_file, unpack=True, usecols=[0]) 
+
+        now_index = np.where(orig_wfc == 0)   # galaxies with w_fc = 0 
+        now_indices = (now_index[0])
+
+        fit_func = lambda x, sig: np.exp(-0.5 *x**2/sig**2)     # gaussian fit to dLOS distribution 
+
+        for j, i_now in enumerate(now_indices): 
+
+            orig_ra[i_now] = orig_ra[upw_index[i_now]]
+            orig_dec[i_now] = orig_dec[upw_index[i_now]]
+
+            rand1 = np.random.random(1) 
+            rand2 = np.random.random(1) 
+
+            rand2 = -12.0 + 24.0 * rand1
+            peakpofr = fit_func(rand2, 3.8) 
+            
+            while peakpofr <= rand1: 
+                rand1 = np.random.random(1) 
+                rand2 = np.random.random(1) 
+
+                rand2 = -12.0 + 24.0 * rand1
+                peakpofr = fit_func(rand2, 3.8) 
+            
+            comdis_upw = cosmos.distance.comoving_distance(z_upw[i_now], **cosmo)*cosmo['h']
+            
+            if z_upw[i_now] < 0.: 
+                print z_upw[i_now], comdis_upw, rand2, comdis_upw + rand2
+                continue
+
+            orig_z[i_now] = comdis2z(comdis_upw + rand2, **cosmo)
+            orig_wfc[i_now] = 1.0
+            orig_wfc[upw_index[i_now]] -= 1.0
+    
+    elif correction['name'].lower() in ('scratch_dividedw_gauss'): 
+
+        # read rdzw file 
+        data_dir = '/mount/riachuelo1/hahn/data/Nseries/'
+        orig_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.rdzwc']) 
+        orig_ra, orig_dec, orig_z, orig_wfc, z_upw, upw_index = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,4,5,6], 
+                dtype={'names': ('ra', 'dec', 'z', 'wfc', 'zupw', 'upw_index'), 
+                    'formats': (np.float64, np.float64, np.float64, np.float64, np.float64, np.int32)})
+
+        # file with completeness
+        mask_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.mask_info']) 
+        orig_wcomp = np.loadtxt(mask_file, unpack=True, usecols=[0]) 
+
+        now_index = np.where(orig_wfc == 0)   # galaxies with w_fc = 0 
+        now_indices = (now_index[0])
+
+        fit_func = lambda x, sig: np.exp(-0.5 *x**2/sig**2)     # gaussian fit to dLOS distribution 
+
+        for j, i_now in enumerate(now_indices): 
+
+            orig_ra[i_now] = orig_ra[upw_index[i_now]]
+            orig_dec[i_now] = orig_dec[upw_index[i_now]]
+
+            rand1 = np.random.random(1) 
+            rand2 = np.random.random(1) 
+
+            rand2 = -12.0 + 24.0 * rand1
+            peakpofr = fit_func(rand2, 3.8) 
+            
+            while peakpofr <= rand1: 
+                rand1 = np.random.random(1) 
+                rand2 = np.random.random(1) 
+
+                rand2 = -12.0 + 24.0 * rand1
+                peakpofr = fit_func(rand2, 3.8) 
+            
+            comdis_upw = cosmos.distance.comoving_distance(z_upw[i_now], **cosmo)*cosmo['h']
+            
+            if z_upw[i_now] < 0.: 
+                print z_upw[i_now], comdis_upw, rand2, comdis_upw + rand2
+                continue
+
+            orig_z[i_now] = comdis2z(comdis_upw + rand2, **cosmo)
+            orig_wfc[i_now] = 0.7
+            orig_wfc[upw_index[i_now]] -= 0.7
+        
+    # save to file 
+    scratch_file = get_galaxy_data_file('data', **cat_corr) 
+    np.savetxt(scratch_file, 
+            np.c_[orig_ra, orig_dec, orig_z, orig_wfc, orig_wcomp], 
+            fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
 def build_corrected_randoms(sanitycheck=False, **cat_corr): 
     ''' 

@@ -1101,7 +1101,7 @@ if __name__=="__main__":
     nseries_corr_methods = [{'name': 'true'}, {'name':'upweight'},
             {'name': 'peakshot', 'sigma':3.8, 'fpeak': 0.7, 'fit': 'gauss'}, 
             {'name': 'scratch_peakknown'},  
-            {'name': 'scratch_peakknown_ang'} 
+            {'name': 'scratch_dividedw_gauss'} 
             ]
             #{'name': 'peakshot', 'fpeak': 0.7, 'fit': 'true'} 
             #]
