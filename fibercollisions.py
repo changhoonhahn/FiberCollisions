@@ -882,11 +882,12 @@ def build_pk(catalog, n_mocks, quad=False):
     #corrections = [{'name': 'scratch_peakknown'}]
     #corrections = [{'name': 'scratch_peakknown_ang'}]
     #corrections = [{'name': 'scratch_peakknown_gauss'}]
-    corrections = [{'name': 'scratch_dividedw_gauss'}]
+    corrections = [{'name': 'scratch_peakknown_gauss_divide'}]
+    #corrections = [{'name': 'scratch_dividedw_gauss'}]
 
     spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid': 360, 'quad': quad}
 
-    for i_mock in range(1, n_mocks+1): 
+    for i_mock in range(8, n_mocks+1): 
         for corr in corrections: 
             build_fibcol_pk(catalog, i_mock, corr, spec=spec, clobber=False) 
 
@@ -898,7 +899,7 @@ if __name__=='__main__':
 
     #corrections = [{'name': 'true'}, {'name': 'upweight'}]#, {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}]
     #corrections = [{'name': 'peakshot', 'sigma': 3.8, 'fpeak': 0.7, 'fit': 'gauss'}]
-    corrections = [{'name': 'scratch_dividedw_gauss'}]
+    corrections = [{'name': 'scratch_peakknown_gauss_divide'}]
     for i_mock in np.arange(1, 11): 
         for corr in corrections: 
             cat_corr = {'catalog': {'name': 'nseries', 'n_mock': i_mock}, 'correction': corr} 
