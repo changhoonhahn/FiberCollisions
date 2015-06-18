@@ -1126,10 +1126,10 @@ if __name__=="__main__":
             #{'name': 'peakshot', 'fpeak': 0.7, 'fit': 'true'} 
             #]
 
-    plot_pk_fibcol_comp('lasdamasgeo', 10, ldg_corr_methods, 
+    plot_pk_fibcol_comp('lasdamasgeo', 2, ldg_corr_methods, 
             quad=True, Ngrid=360, type='regular', 
             xrange=[0.001, 1.0], yrange=[10**3, 3*10**5])
-    plot_pk_fibcol_comp('lasdamasgeo', 10, ldg_corr_methods, 
+    plot_pk_fibcol_comp('lasdamasgeo', 2, ldg_corr_methods, 
             quad=True, Ngrid=360, type='ratio', 
             xrange=[0.001, 1.0], yrange=[0.2, 2.0]) 
     #plot_pk_fibcol_comp('qpm', 10, qpm_corr_methods, quad=True, Ngrid=960, type='ratio', xrange=[0.001, 1.0]) 

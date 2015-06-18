@@ -1781,21 +1781,21 @@ def build_ldg_scratch(**cat_corr):
 
     if correction['name'].lower() in ('scratch_peakknown'): 
 
-        now_index = np.where(orig_wfc == 0)   # galaxies with w_fc = 0 
+        now_index = np.where(orig_wfc < 1)   # galaxies with w_fc = 0 
         
         now_Dc = cosmos.distance.comoving_distance(orig_z[now_index], **cosmo)*cosmo['h']  # in units of Mpc/h
         upw_Dc = cosmos.distance.comoving_distance(z_upw[now_index], **cosmo)*cosmo['h']  # in units of Mpc/h
 
         dLOS = now_Dc - upw_Dc 
         
-        peak_index = np.where(np.abs(dLOS) < 15)        # peak of the dLOS distribution
+        peak_index = np.where(np.abs(dLOS) < 21.0)        # peak of the dLOS distribution
         now_peak_index = (now_index[0])[peak_index] 
 
         
         np.random.shuffle(dLOS[peak_index])     # shuffle the dLOS in the peak
         shuffle_dlos = dLOS[peak_index]
         
-        #print len(shuffle_dlos), np.float(len(shuffle_dlos))/np.float(len(orig_z[now_index]))
+        print len(shuffle_dlos), np.float(len(shuffle_dlos))/np.float(len(orig_z[now_index]))
 
         for j, i_now_peak in enumerate(now_peak_index): 
             orig_ra[i_now_peak] = orig_ra[upw_index[i_now_peak]]
@@ -1816,10 +1816,9 @@ def build_ldg_scratch(**cat_corr):
 
         dLOS = now_Dc - upw_Dc 
         
-        peak_index = np.where(np.abs(dLOS) < 15)        # peak of the dLOS distribution
+        peak_index = np.where(np.abs(dLOS) < 21)        # peak of the dLOS distribution
         now_peak_index = (now_index[0])[peak_index] 
 
-        
         np.random.shuffle(dLOS[peak_index])     # shuffle the dLOS in the peak
         shuffle_dlos = dLOS[peak_index]
         
@@ -1842,7 +1841,7 @@ def build_ldg_scratch(**cat_corr):
 
         dLOS = now_Dc - upw_Dc  # dLOS values for the pairs 
 
-        peak_index = np.where(np.abs(dLOS) < 15)        # peak of the dLOS distribution
+        peak_index = np.where(np.abs(dLOS) < 21)        # peak of the dLOS distribution
         now_peak_index = (now_index[0])[peak_index] 
 
         fit_func = lambda x, sig: np.exp(-0.5 *x**2/sig**2)     # gaussian fit to dLOS distribution 
@@ -1855,15 +1854,15 @@ def build_ldg_scratch(**cat_corr):
             rand1 = np.random.random(1) 
             rand2 = np.random.random(1) 
 
-            rand2 = -15.0 + 30.0 * rand1
-            peakpofr = fit_func(rand2, 3.8) 
+            rand2 = -21.0 + 42.0 * rand1
+            peakpofr = fit_func(rand2, 6.5) 
             
             while peakpofr <= rand1: 
                 rand1 = np.random.random(1) 
                 rand2 = np.random.random(1) 
 
-                rand2 = -15.0 + 30.0 * rand1
-                peakpofr = fit_func(rand2, 3.8) 
+                rand2 = -21.0 + 42.0 * rand1
+                peakpofr = fit_func(rand2, 6.5) 
             
             comdis_upw = cosmos.distance.comoving_distance(z_upw[i_now_peak], **cosmo)*cosmo['h']
 

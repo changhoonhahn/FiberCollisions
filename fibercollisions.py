@@ -330,8 +330,8 @@ def build_fibcol_pk(cat, i_mock, corr, quad=False, clobber=False, **kwargs):
 
             # in order to safe memory delete data FFT file which can be generated quickly
             cleanup_cmd = ''. join(['rm ', fft_file])
-            print cleanup_cmd 
-            os.system(cleanup_cmd) 
+            #print cleanup_cmd 
+            #os.system(cleanup_cmd) 
     else: 
         raise NotImplementedError() 
     
@@ -880,9 +880,10 @@ def build_pk(catalog, n_mocks, quad=False):
     #corrections = [ {'name': 'true'}, {'name': 'upweight'}]
     #corrections = [{'name': 'peakshot', 'sigma': 3.8, 'fpeak': 0.7, 'fit': 'gauss'}]
     #corrections = [{'name': 'peakshot', 'fpeak': 0.7, 'fit': 'true'}]
-    corrections = [{'name': 'scratch_peakknown'}]
+    #corrections = [{'name': 'scratch_peakknown'}]
     #corrections = [{'name': 'scratch_peakknown_ang'}]
     #corrections = [{'name': 'scratch_peakknown_gauss'}]
+    corrections = [{'name': 'scratch_peakknown_ang'}, {'name': 'scratch_peakknown_gauss'}]
     #corrections = [{'name': 'scratch_peakknown_gauss_divide'}]
     #corrections = [{'name': 'scratch_dividedw_gauss'}]
 
@@ -906,15 +907,17 @@ if __name__=='__main__':
         for corr in corrections: 
             cat_corr = {'catalog': {'name': 'nseries', 'n_mock': i_mock}, 'correction': corr} 
             fc_data.galaxy_data('data', clobber=True, **cat_corr) 
-    ''' 
-    corrections = [{'name': 'upweight'}]
-    for i_mock in np.arange(2, 11): 
+    #corrections = [{'name': 'upweight'}]
+
+    corrections = [{'name': 'scratch_peakknown'}]
+    for i_mock in np.arange(1, 3): 
         for letter in ['a', 'b', 'c', 'd']: 
             for corr in corrections: 
                 cat_corr = {'catalog': {'name': 'lasdamasgeo', 'n_mock': i_mock, 'letter': letter}, 'correction': corr} 
                 fc_data.galaxy_data('data', clobber=True, **cat_corr) 
+    '''
 
-    build_pk('lasdamasgeo', 10, quad=True)
+    build_pk('lasdamasgeo', 2, quad=True)
     #build_pk('nseries', 1, quad=True)
 
     #qpm_avgP(45, {'name':'true'})

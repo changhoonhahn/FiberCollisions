@@ -265,7 +265,6 @@ def build_dlos(**cat_corr):
 
 def build_dlos_nseries_test(**cat_corr): 
     # Nseries has fiber collided galaxy redshifts
-
     catalog = cat_corr['catalog']
     # import original file 
     data_dir = '/mount/riachuelo1/hahn/data/Nseries/'   # directory
@@ -289,6 +288,35 @@ def build_dlos_nseries_test(**cat_corr):
 
     np.savetxt(dlos_file, np.c_[LOS_d], fmt=['%10.5f'], delimiter='\t') 
 
+def build_dlos_ldg_test(**cat_corr): 
+    ''' Calculate dLOS values for LasDamasGeo using z_upw and upw_index values from 
+    the assign wcp routine 
+
+    '''
+    # LasDamasGeo has fiber collided galaxy redshifts
+    catalog = cat_corr['catalog']
+    # import original file 
+    data_dir = '/mount/riachuelo1/hahn/data/LasDamas/Geo/'   # directory
+
+    # original file 
+    orig_file = ''.join([data_dir, 'sdssmock_gamma_lrgFull_zm_oriana', 
+        str("%02d" % catalog['n_mock']), catalog['letter'], '_no.rdcz.fibcoll.dat']) 
+    orig_z, orig_wfc, orig_zneigh = np.loadtxt(orig_file, unpack=True, usecols=[2,3,4])
+
+    mock = fc_data.galaxy_data('data', **cat_corr)      # import mock file 
+    cosmo = mock.cosmo  # survey cosmology 
+
+    collided = orig_wfc < 1
+    
+    Dc_coll = cosmos.distance.comoving_distance(orig_z[collided], **cosmo) * cosmo['h']
+    Dc_upw = cosmos.distance.comoving_distance(orig_zneigh[collided], **cosmo) * cosmo['h']
+
+    LOS_d = Dc_coll - Dc_upw
+    
+    los_disp = dlos(readdata=False, **cat_corr)  
+    dlos_file = los_disp.file_name+'_test'
+
+    np.savetxt(dlos_file, np.c_[LOS_d], fmt=['%10.5f'], delimiter='\t') 
 # ------------------------------------------------------------------------------------
 # Derived quantities 
 # ------------------------------------------------------------------------------------
@@ -936,6 +964,78 @@ def nseries_idl_python_dlos_test(n_mocks, clobber=False):
     sub.legend(loc='upper right', scatterpoints=1, prop={'size':14}) 
 
     fig_file = ''.join(['figure/nseries_', str(n_mocks), 'mocks_dlos_idl_python_test.png']) 
+    fig.savefig(fig_file, bbox_inches="tight")
+    fig.clear() 
+    plt.close(fig) 
+
+def ldg_idl_python_dlos_test(n_mocks, clobber=False):
+    ''' Compare dLOS calculated from IDL versus Python 
+
+    Parameters
+    ----------
+    n_mocks : number of mock dLOS files to include 
+    
+    '''
+    catalog = {'name': 'lasdamasgeo'} 
+    correction = {'name': 'upweight'} 
+
+    for i_mock in range(1, n_mocks+1): 
+        for letter in ['a', 'b', 'c', 'd']: 
+            # individual catalog_correction dictonary 
+            i_catalog = catalog.copy() 
+            i_catalog['n_mock'] = i_mock 
+            i_catalog['letter'] = letter
+            i_cat_corr = {'catalog':i_catalog, 'correction': correction} 
+
+            los_disp_i = dlos(clobber=clobber, **i_cat_corr)   # import DLOS of each mock 
+
+            ldg_dlos = np.loadtxt(los_disp_i.file_name+'_test', unpack=True, usecols=[0])
+        
+            #dlos_doublecheck = np.loadtxt('/mount/riachuelo1/hahn/data/Nseries/CutskyN'+str(i_mock)+'.fibcoll.gauss.peakshot.sigma4.0.fpeak0.6_fidcosmo.dat.dlosvalues', 
+            #        unpack=True, usecols=[0])
+            #dlos_doublecheck = np.loadtxt(
+            #        ''.join(['/mount/riachuelo1/hahn/data/Nseries/', 
+            #            'CutskyN', str(i_mock), '.fibcoll.gauss.peakshot.sigma3.8.fpeak0.7_fidcosmo.dat.dlosvalues']),
+            #        unpack=True, usecols=[0])
+            #'CutskyN', str(i_mock), '.fibcoll.true.peakshot.fpeak0.7_fidcosmo.dat.dlosvalues']), 
+
+            # Combine dLOS values 
+            try: 
+                combined_idl_dlos
+            except NameError: 
+                combined_idl_dlos = los_disp_i.dlos
+                combined_py_dlos = ldg_dlos
+            else: 
+                combined_idl_dlos = np.concatenate([combined_idl_dlos, los_disp_i.dlos]) 
+                combined_py_dlos = np.concatenate([combined_py_dlos, ldg_dlos])
+
+    # Determine appropriate binsize for dist (not too important)
+    # Create histogram for combined dLOS values  (binsize is just guessed)
+    x_min = -1000.0
+    x_max = 1000.0
+    binsize = 0.1 
+    n_bins = int((x_max-x_min)/binsize) 
+    
+    idl_dlos_hist, mpc_binedges = np.histogram(combined_idl_dlos, bins=n_bins, range=[x_min, x_max])
+    py_dlos_hist, mpc_binedges = np.histogram(combined_py_dlos, bins=n_bins, range=[x_min, x_max])
+    xlow = mpc_binedges[:-1]
+    xhigh = mpc_binedges[1:] 
+    xmid = np.array([0.5*(xlow[i]+xhigh[i]) for i in range(len(xlow))])
+    
+    prettyplot() 
+    pretty_colors = prettycolors() 
+    fig = plt.figure(1, figsize=[14,5]) 
+    sub = fig.add_subplot(111) 
+
+    sub.plot(xmid, idl_dlos_hist, lw=4, color=pretty_colors[1], label=r"IDL $d_{LOS}$")
+    sub.plot(xmid, py_dlos_hist, lw=4, color=pretty_colors[3], label=r"Python $d_{LOS}$")
+
+    sub.set_xlabel(r"$d_{LOS}$ (Mpc/h)", fontsize=20) 
+    sub.set_xlim([-50.0, 50.0])
+    sub.set_ylim([0.0, 1.25*np.max(idl_dlos_hist)])
+    sub.legend(loc='upper right', scatterpoints=1, prop={'size':14}) 
+
+    fig_file = ''.join(['figure/ldg_', str(n_mocks), 'mocks_dlos_idl_python_test.png']) 
     fig.savefig(fig_file, bbox_inches="tight")
     fig.clear() 
     plt.close(fig) 
@@ -1698,6 +1798,7 @@ if __name__=="__main__":
     #    for letter in ['a', 'b', 'c', 'd']: 
     #        cat_corr = {'catalog': {'name': 'lasdamasgeo', 'n_mock': i, 'letter': letter}, 
     #                'correction': {'name': 'upweight'}} 
+    #        build_dlos_ldg_test(**cat_corr)
     #        fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     #        build_dlos(**cat_corr) 
     #for i in np.arange(1,2): 
@@ -1705,4 +1806,5 @@ if __name__=="__main__":
     #    build_dlos(**cat_corr) 
     #combined_catalog_dlos_fits('patchy', 10)
     #combined_catalog_dlos_fits('lasdamasgeo', 5)
-    nseries_idl_python_dlos_test(1)
+    #nseries_idl_python_dlos_test(1)
+    ldg_idl_python_dlos_test(10)
