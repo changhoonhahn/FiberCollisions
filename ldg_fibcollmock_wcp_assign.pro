@@ -18,7 +18,7 @@ pro ldg_fibcollmock_wcp_assign, n, letter
     gal1 = m1[uniq(m1, sort(m1))]
 
     wcp  = replicate(1.0, Ngal)         ; close pair weights (fiber collision weights) 
-    z_upw = replicate(-1, Ngal)         ; redshift of upweighted galaxy 
+    z_upw = replicate(-1.0, Ngal)         ; redshift of upweighted galaxy 
     upw_index = replicate(-1, Ngal)     ; index of upweighted galaxy 
     print, 'unique galaxies in match', n_elements(gal1)
 
@@ -40,7 +40,7 @@ pro ldg_fibcollmock_wcp_assign, n, letter
 
             if (notzerocount GT 0) then begin 
 
-                ;print, 'B ', wcp[targ_index], '---', wcp[neigh_index[notzero]]
+                print, 'B ', wcp[targ_index], '---', wcp[neigh_index[notzero]]
                 if (targ_wcp GE neigh_max_wcp) then begin  
                     ; add up galaxy weights of galaxies that have weights
                     wcp[targ_index] = wcp[targ_index]+float(notzerocount)
@@ -50,6 +50,7 @@ pro ldg_fibcollmock_wcp_assign, n, letter
 
                     ; redshift of upweighted galaxy
                     z_upw[neigh_index[notzero]] = mock_redshift[targ_index]
+                    print, mock_redshift[targ_index]
                     
                     ; index of upweighted galaxy 
                     upw_index[neigh_index[notzero]] = targ_index
@@ -67,7 +68,7 @@ pro ldg_fibcollmock_wcp_assign, n, letter
                     z_upw[targ_index] = mock_redshift[neigh_index[notzero[neigh_max_index]]]
                     upw_index[targ_index] = neigh_index[notzero[neigh_max_index]]
                 endelse 
-                ;print, 'A ', wcp[targ_index], '---', wcp[neigh_index[notzero]]
+                print, 'A ', wcp[targ_index], '---', wcp[neigh_index[notzero]]
             endif 
         endif 
     endfor
@@ -79,7 +80,7 @@ pro ldg_fibcollmock_wcp_assign, n, letter
     ; write mocks with fibercollision weights
     openw, lun, '/mount/riachuelo1/hahn/data/LasDamas/Geo/sdssmock_gamma_lrgFull_zm_oriana'+strmid(strtrim(string(n+100),1),1)+$
         letter+'_no.rdcz.fibcoll.dat', /get_lun
-
+    
     for i=0L,Ngal-1L do begin 
         printf, lun, mock_ra[i], mock_dec[i], mock_redshift[i], wcp[i], z_upw[i], upw_index[i], format='(5F, I)'
     endfor

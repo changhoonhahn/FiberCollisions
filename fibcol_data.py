@@ -82,6 +82,10 @@ class galaxy_data:
                         catalog_columns = ['ra', 'dec', 'z', 'weight'] 
                         build_noweight(**cat_corr) 
 
+                    elif 'scratch' in correction['name'].lower():           # scratch pad for different methods 
+
+                        build_ldg_scratch(**cat_corr) 
+
                     else: 
                         raise NameError('Correction Name Unknown') 
 
@@ -402,21 +406,22 @@ def get_galaxy_data_file(DorR, cosmology='fidcosmo', **cat_corr):
     correction = cat_corr['correction'] 
     
     if catalog['name'].lower() == 'lasdamasgeo':    # LasDamasGeo -----------------------
+        
+        data_dir = '/mount/riachuelo1/hahn/data/LasDamas/Geo/'
+
         if DorR.lower() == 'data':                  # data
 
             if correction['name'].lower() == 'true':            # true
 
-                file_name = ''.join(['/mount/riachuelo1/hahn/data/LasDamas/Geo/',
-                    'sdssmock_gamma_lrgFull_zm_oriana', 
+                file_name = ''.join([data_dir, 'sdssmock_gamma_lrgFull_zm_oriana', 
                     str("%02d" % catalog['n_mock']), catalog['letter'], '_no.rdcz.dat']) 
 
             elif correction['name'].lower() in ('upweight', 'fibcol', 
                     'shotnoise', 'hectorsn', 'floriansn'): 
-                ''' LDG mocks with fiber collision weights 
-                '''
-                file_name = ''.join(['/mount/riachuelo1/hahn/data/LasDamas/Geo/', 
-                    'sdssmock_gamma_lrgFull_zm_oriana', str("%02d" % catalog['n_mock']), 
-                    catalog['letter'], '_no.rdcz.fibcoll.dat']) 
+                # LDG mocks with fiber collision weights 
+                
+                file_name = ''.join([data_dir, 'sdssmock_gamma_lrgFull_zm_oriana', 
+                    str("%02d" % catalog['n_mock']), catalog['letter'], '_no.rdcz.fibcoll.dat']) 
 
             elif correction['name'].lower() in ('peak', 'peaknbar', 'peakshot', 'peaktest'): 
 
@@ -434,13 +439,12 @@ def get_galaxy_data_file(DorR, cosmology='fidcosmo', **cat_corr):
                 else: 
                     raise NameError('peak fit has to be specified: gauss, expon, true') 
                 
-                file_name = ''.join(['/mount/riachuelo1/hahn/data/LasDamas/Geo/', 
-                    'sdssmock_gamma_lrgFull_zm_oriana', str("%02d" % catalog['n_mock']), 
-                    catalog['letter'], '_no.rdcz.fibcoll.dat'+corr_str]) 
+                file_name = ''.join([data_dir, 'sdssmock_gamma_lrgFull_zm_oriana', 
+                    str("%02d" % catalog['n_mock']), catalog['letter'], '_no.rdcz.fibcoll.dat'+corr_str]) 
+
             elif correction['name'].lower() in ('peakshot_dnn'): 
-                ''' Peak Correction (with dNN env) + Shotnoise 
-                Correction needs to specify: fit, nth NN, and sigma 
-                '''
+                # Peak Correction (with dNN env) + Shotnoise 
+                # Correction needs to specify: fit, nth NN, and sigma 
 
                 # specify peak correction fit (expon, gauss) 
                 if correction['fit'].lower() in ('gauss', 'expon'): 
@@ -458,6 +462,13 @@ def get_galaxy_data_file(DorR, cosmology='fidcosmo', **cat_corr):
                 file_name = ''.join(['/mount/riachuelo1/hahn/data/LasDamas/Geo/', 
                     'sdssmock_gamma_lrgFull_zm_oriana', str("%02d" % catalog['n_mock']), 
                     catalog['letter'], '_no.rdcz.noweight.dat']) 
+
+            elif 'scratch' in correction['name'].lower(): 
+    
+                # easily adjustable methods 
+                file_name = ''.join([data_dir, 'sdssmock_gamma_lrgFull_zm_oriana', 
+                    str("%02d" % catalog['n_mock']), catalog['letter'], '_no.rdcz.fibcoll.', 
+                    correction['name'].lower(), '.dat']) 
 
             else: 
                 raise NotImplementedError('asdfasdf') 
@@ -1761,27 +1772,12 @@ def build_ldg_scratch(**cat_corr):
         
     # read rdzw file 
     data_dir = '/mount/riachuelo1/hahn/data/LasDamas/Geo/'
-    sdssmock_gamma_lrgFull_zm_oriana01a_no.rdcz.fibcoll.dat
-    orig_file = ''.join([data_dir, 
-        'sdssmock_gamma_lrgFull_zm_oriana', str(catalog['n_mock']), '.rdzwc']) 
-    #### CONTINUE CODING HERE
-    #### CONTINUE CODING HERE
-    #### CONTINUE CODING HERE
-    #### CONTINUE CODING HERE
-    #### CONTINUE CODING HERE
-    #### CONTINUE CODING HERE
-    #### CONTINUE CODING HERE
-    #### CONTINUE CODING HERE
-    #### CONTINUE CODING HERE
+    orig_file = ''.join([data_dir, 'sdssmock_gamma_lrgFull_zm_oriana', 
+        str("%02d" % catalog['n_mock']), catalog['letter'], '_no.rdcz.fibcoll.dat']) 
 
-
-    orig_ra, orig_dec, orig_z, orig_wfc, z_upw, upw_index = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,4,5,6], 
+    orig_ra, orig_dec, orig_z, orig_wfc, z_upw, upw_index = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,3,4,5], 
             dtype={'names': ('ra', 'dec', 'z', 'wfc', 'zupw', 'upw_index'), 
                 'formats': (np.float64, np.float64, np.float64, np.float64, np.float64, np.int32)})
-
-    # file with completeness
-    mask_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.mask_info']) 
-    orig_wcomp = np.loadtxt(mask_file, unpack=True, usecols=[0]) 
 
     if correction['name'].lower() in ('scratch_peakknown'): 
 
@@ -1810,12 +1806,6 @@ def build_ldg_scratch(**cat_corr):
             orig_z[i_now_peak] = comdis2z(comdis_upw + shuffle_dlos[j], **cosmo)
             orig_wfc[i_now_peak] = 1.0
             orig_wfc[upw_index[i_now_peak]] -= 1.0
-
-
-        scratch_file = get_galaxy_data_file('data', **cat_corr) 
-        np.savetxt(scratch_file, 
-                np.c_[orig_ra, orig_dec, orig_z, orig_wfc, orig_wcomp], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
     elif correction['name'].lower() in ('scratch_peakknown_ang'):
 
@@ -2008,8 +1998,8 @@ def build_ldg_scratch(**cat_corr):
     # save to file 
     scratch_file = get_galaxy_data_file('data', **cat_corr) 
     np.savetxt(scratch_file, 
-            np.c_[orig_ra, orig_dec, orig_z, orig_wfc, orig_wcomp], 
-            fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+            np.c_[orig_ra, orig_dec, orig_z, orig_wfc ], 
+            fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
 def build_nseries_scratch(**cat_corr): 
     ''' Quick function to test fiber collision correction methods on Nseries mocks

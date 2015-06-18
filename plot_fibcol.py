@@ -1098,6 +1098,7 @@ if __name__=="__main__":
     #plot_avg_pk_fibcol('qpm', 100, {'name': 'true'}, quad=False)   
     #plot_comdis2z_test()
     
+    '''
     nseries_corr_methods = [{'name': 'true'}, {'name':'upweight'},
             {'name': 'peakshot', 'sigma':3.8, 'fpeak': 0.7, 'fit': 'gauss'}, 
             {'name': 'scratch_peakknown'},  
@@ -1113,11 +1114,24 @@ if __name__=="__main__":
     plot_pk_fibcol_comp('nseries', 10, nseries_corr_methods, 
             quad=True, Ngrid=360, type='ratio', 
             xrange=[0.001, 1.0], yrange=[0.2, 2.0]) 
+        
+    #plot_pk_fibcol_comp('nseries', 1, nseries_corr_methods, 
+    #        quad=False, Ngrid=360, type='residual', yscale='log', 
+    #        xrange=[0.001, 1.0], yrange=[0.02, 2.0]) 
     '''
-    plot_pk_fibcol_comp('nseries', 1, nseries_corr_methods, 
-            quad=False, Ngrid=360, type='residual', yscale='log', 
-            xrange=[0.001, 1.0], yrange=[0.02, 2.0]) 
-    '''
+    
+    ldg_corr_methods = [{'name': 'true'}, {'name':'upweight'},
+            {'name': 'peakshot', 'sigma':6.5, 'fpeak': 0.76, 'fit': 'gauss'}, 
+            {'name': 'scratch_peakknown'}]
+            #{'name': 'peakshot', 'fpeak': 0.7, 'fit': 'true'} 
+            #]
+
+    plot_pk_fibcol_comp('lasdamasgeo', 10, ldg_corr_methods, 
+            quad=True, Ngrid=360, type='regular', 
+            xrange=[0.001, 1.0], yrange=[10**3, 3*10**5])
+    plot_pk_fibcol_comp('lasdamasgeo', 10, ldg_corr_methods, 
+            quad=True, Ngrid=360, type='ratio', 
+            xrange=[0.001, 1.0], yrange=[0.2, 2.0]) 
     #plot_pk_fibcol_comp('qpm', 10, qpm_corr_methods, quad=True, Ngrid=960, type='ratio', xrange=[0.001, 1.0]) 
     #plot_pk_fibcol_comp('qpm', 10, qpm_corr_methods, quad=True, Ngrid=960, type='residual', yscale='log', xrange=[0.02, 1.0]) 
     ##plot_pk_fibcol_comp('qpm', 100, qpm_corr_methods, quad=True, type='residual', yscale='log', xrange=[0.02, 1.0]) 
