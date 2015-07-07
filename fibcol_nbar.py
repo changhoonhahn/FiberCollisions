@@ -131,12 +131,24 @@ def build_averaged_nbar(n_mock, **cat_corr):
     
     comp_area = 7341./41252.96
     
+    mock_flags = [] 
+    if catalog['name'].lower() == 'lasdamasgeo': 
+        for i_mock in range(1, n_mock+1): 
+            for letter in ['a', 'b', 'c', 'd']: 
+                mock_flags.append({'n_mock': i_mock, 'letter': letter})
+    else: 
+        for i_mock in range(1, n_mock+1): 
+            mock_flags.append({'n_mock': i_mock})
+
+    
     # loop through mocks
-    for i_mock in range(1, n_mock+1): 
+    for i_m, mock_flag in enumerate(mock_flags): 
 
         i_catalog = catalog.copy()  
-        i_catalog['n_mock'] = i_mock 
-    
+        i_catalog['n_mock'] = mock_flag['n_mock'] 
+        if catalog['name'].lower() == 'lasdamasgeo': 
+            i_catalog['letter'] = mock_flag['letter'] 
+
         i_cat_corr = {'catalog': i_catalog, 'correction': correction}
         # import galaxy data 
         data = fc_data.galaxy_data('data', **i_cat_corr)
@@ -146,16 +158,20 @@ def build_averaged_nbar(n_mock, **cat_corr):
         for i_z in range(len(zmid)): 
 
             z_range = (data.z >= zlow[i_z]) & (data.z < zhigh[i_z])
+            
+            if catalog['name'].lower() == 'lasdamasgeo': 
+                shell_weight =  np.sum(data.weight[z_range]) 
+            else: 
+                shell_weight = np.sum(data.wfc[z_range])
 
-            shell_weight = np.sum(data.wfc[z_range])
             shell_volume = comp_area * (cosmos.distance.comoving_volume(zhigh[i_z], **cosmo) - 
                 cosmos.distance.comoving_volume(zlow[i_z], **cosmo))*cosmo['h']**3
             shell_nbar = shell_weight/shell_volume
             nbar.append(shell_nbar)
 
         nbar = np.array(nbar)
-
-        if i_mock == 1: 
+            
+        if i_m == 0: 
             sum_nbar = nbar
         else: 
             sum_nbar += nbar 
@@ -473,7 +489,7 @@ def append_corr_nbar(DorR, **cat_corr):
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5e'], delimiter='\t')
 
 if __name__=='__main__':
-    cat_corr = {'catalog': {'name': 'nseries'}, 
-            'correction': {'name': 'upweight'}} 
-    build_averaged_nbar(20, **cat_corr)
+    cat_corr = {'catalog': {'name': 'lasdamasgeo'}, 
+            'correction': {'name': 'true'}} 
+    build_averaged_nbar(10, **cat_corr)
     #nbar(**cat_corr) 

@@ -877,27 +877,29 @@ def build_pk(catalog, n_mocks, quad=False):
 
     '''
     # correction method list 
-    #corrections = [ {'name': 'true'}, {'name': 'upweight'}]
+    corrections = [ {'name': 'true'}, {'name': 'upweight'}]
     #corrections = [{'name': 'peakshot', 'sigma': 3.8, 'fpeak': 0.7, 'fit': 'gauss'}]
     #corrections = [{'name': 'peakshot', 'fpeak': 0.7, 'fit': 'true'}]
     #corrections = [{'name': 'scratch_peakknown'}]
     #corrections = [{'name': 'scratch_peakknown_ang'}]
     #corrections = [{'name': 'scratch_peakknown_gauss'}]
-    corrections = [{'name': 'scratch_peakknown_ang'}, {'name': 'scratch_peakknown_gauss'}]
+    #corrections = [{'name': 'scratch_peakknown'}, {'name': 'scratch_peakknown_ang'}, {'name': 'scratch_peakknown_gauss'}]
     #corrections = [{'name': 'scratch_peakknown_gauss_divide'}]
     #corrections = [{'name': 'scratch_dividedw_gauss'}]
 
     spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid': 360, 'quad': quad}
 
-    for i_mock in range(1, n_mocks+1): 
+    for i_mock in range(11, n_mocks+1): 
         for corr in corrections: 
-            build_fibcol_pk(catalog, i_mock, corr, spec=spec, clobber=False) 
+            build_fibcol_pk(catalog, i_mock, corr, spec=spec, clobber=True) 
 
 if __name__=='__main__': 
-    #for corr in ['true', 'upweight', 'noweight']: 
-    #    cat_corr = {'catalog': {'name':'lasdamasgeo', 'n_mock':1, 'letter':'a'}, 
-    #            'correction': {'name': corr}} 
-    #    fc_data.galaxy_data('data', clobber=True, **cat_corr) 
+    for corr in ['true']: #, 'upweight', 'noweight']: 
+        cat_corr = {
+                'catalog': {'name':'bigmd'}, 
+                'correction': {'name': corr}
+                } 
+        fc_data.galaxy_data('data', clobber=True, **cat_corr) 
 
     #corrections = [{'name': 'true'}, {'name': 'upweight'}]#, {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}]
     #corrections = [{'name': 'peakshot', 'sigma': 3.8, 'fpeak': 0.7, 'fit': 'gauss'}]
@@ -909,16 +911,16 @@ if __name__=='__main__':
             fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     #corrections = [{'name': 'upweight'}]
 
-    corrections = [{'name': 'scratch_peakknown'}]
-    for i_mock in np.arange(1, 3): 
+    corrections = [{'name': 'upweight'}]
+    for i_mock in np.arange(1, 11): 
         for letter in ['a', 'b', 'c', 'd']: 
             for corr in corrections: 
                 cat_corr = {'catalog': {'name': 'lasdamasgeo', 'n_mock': i_mock, 'letter': letter}, 'correction': corr} 
                 fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     '''
 
-    build_pk('lasdamasgeo', 2, quad=True)
-    #build_pk('nseries', 1, quad=True)
+    #build_pk('lasdamasgeo', 10, quad=True)
+    #build_pk('nseries', 84, quad=True)
 
     #qpm_avgP(45, {'name':'true'})
     #qpm_deltaP(45, {'name':'true'})
@@ -929,8 +931,3 @@ if __name__=='__main__':
     #avg_Pk(40, **cat_corr)
     #corr = {'name': 'peaknbar', 'sigma':6.9, 'fpeak':1.0, 'fit':'expon'}
     #lasdamasgeo_fibcoll_pk(40, corr) 
-
-    ############################################################################################# LasDamasGeo  
-    #cat_corr = {'catalog': {'name': 'qpm'}, 'correction': {'name': 'true'}} 
-    #build_avg_Pk(100, **cat_corr)
-    #deltaP(100, **cat_corr)

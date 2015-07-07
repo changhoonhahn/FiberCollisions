@@ -235,7 +235,7 @@ class galaxy_data:
                 for i_col, catalog_column in enumerate(catalog_columns): 
                     setattr(self, catalog_column, file_data[i_col])
         
-        elif catalog['name'].lower() == 'nseries':                      # N-series -------------------------------
+        elif catalog['name'].lower() == 'nseries':                          # N-series -------------------------------
                 
             if cosmology == 'fidcosmo': 
                 omega_m = 0.31 # fiducial cosmology  
@@ -296,8 +296,7 @@ class galaxy_data:
                 for i_col, catalog_column in enumerate(catalog_columns): 
                     setattr(self, catalog_column, file_data[i_col])
 
-        elif catalog['name'].lower() == 'patchy': 
-            # PATCHY Mocks --------------------------------------------------
+        elif catalog['name'].lower() == 'patchy':                           # PATCHY Mocks --------------------------------------------------
             omega_m = 0.31              # survey cosmology 
 
             if DorR == 'data':                      
@@ -343,9 +342,71 @@ class galaxy_data:
                 for i_col, catalog_column in enumerate(catalog_columns):    
                     # assign to object data columns
                     setattr(self, catalog_column, file_data[i_col])
+    
+        elif catalog['name'].lower() == 'bigmd':                            # Big MultiDark ------------------------
+            
+            if cosmology == 'fidcosmo': 
+                omega_m = 0.31 # fiducial cosmology  
+            else: 
+                raise NotImplementedError('You should use fiducial cosmology') 
+
+            if DorR == 'data':                          # Data ------------------------------
+                
+                # catalog columns 
+                catalog_columns = ['ra', 'dec', 'z', 'wfc', 'comp'] 
+                self.columns = catalog_columns
+
+                if not os.path.isfile(file_name) or clobber:
+                    # File does not exist or Clobber = True!
+                    print 'Constructing ', file_name 
+
+                    if correction['name'].lower() == 'true':  
+                        # true mocks 
+                        # all weights = 1 (fibercollisions *not* imposed) 
+                        build_true(**cat_corr) 
+                    
+                        ''' #COMMENTED OUT FOR NOW 
+                        elif correction['name'].lower() in ('upweight', 'shotnoise', 'floriansn', 'hectorsn'): 
+                            # upweighted mocks
+                            build_fibercollided(**cat_corr) 
+
+                        elif correction['name'].lower() in ('peaknbar', 'peakshot'): 
+                            # peak corrected mocks 
+                            build_peakcorrected_fibcol(doublecheck=True, **cat_corr)  # build peak corrected file 
+
+                            #elif correction['name'].lower() in ('noweight'): 
+                            #    # n oweight 
+                            #    build_noweight(**cat_corr) 
+                        elif 'scratch' in correction['name'].lower():           # scratch pad for different methods 
+
+                            build_nseries_scratch(**cat_corr) 
+                        '''
+                    else: 
+                        raise NotImplementedError() 
+
+                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])         # ra, dec, z, wfc, comp
+
+                # assign to data columns class
+                for i_col, catalog_column in enumerate(catalog_columns): 
+                    setattr(self, catalog_column, file_data[i_col]) 
+            
+            elif DorR == 'random':              # Random ------------------------------------
+
+                catalog_columns = ['ra', 'dec', 'z']    # catalog columns 
+                
+                if not os.path.isfile(file_name) or clobber:
+                    print 'Constructing ', file_name 
+                    build_random(**cat_corr) 
+
+                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2])   # ra, dec, z, comp
+
+                # assign to object data columns
+                for i_col, catalog_column in enumerate(catalog_columns): 
+                    setattr(self, catalog_column, file_data[i_col])
 
         else: 
             raise NameError('not yet coded') 
+
         ''' COMMENTED OUT FOR NOW 
         # CMASS --------------------------------------------------------------------------------------------------------
         elif catalog['name'].lower() == 'cmass':
@@ -405,7 +466,7 @@ def get_galaxy_data_file(DorR, cosmology='fidcosmo', **cat_corr):
     catalog = cat_corr['catalog'] 
     correction = cat_corr['correction'] 
     
-    if catalog['name'].lower() == 'lasdamasgeo':    # LasDamasGeo -----------------------
+    if catalog['name'].lower() == 'lasdamasgeo':                # LasDamasGeo -----------------------
         
         data_dir = '/mount/riachuelo1/hahn/data/LasDamas/Geo/'
 
@@ -476,8 +537,7 @@ def get_galaxy_data_file(DorR, cosmology='fidcosmo', **cat_corr):
         if DorR.lower() == 'random': 
             file_name = '/mount/riachuelo1/hahn/data/LasDamas/Geo/sdssmock_gamma_lrgFull.rand_200x_no.rdcz.dat'
 
-    elif catalog['name'].lower() == 'tilingmock':   
-        # Tiling Mock ---------------------------------
+    elif catalog['name'].lower() == 'tilingmock':               # Tiling Mock -----------------------
         if DorR == 'data': 
             data_dir = '/mount/riachuelo1/hahn/data/tiling_mocks/'      # data directory
 
@@ -708,6 +768,62 @@ def get_galaxy_data_file(DorR, cosmology='fidcosmo', **cat_corr):
         elif DorR == 'random': 
             # random catalog 
             file_name = ''.join([data_dir, 'Nseries_cutsky_randoms_50x_redshifts_comp.dat']) 
+    
+    elif catalog['name'].lower() == 'bigmd':                # Big MD ---------------------
+
+        data_dir = '/mount/riachuelo1/hahn/data/BigMD/'
+        
+        if DorR == 'data':  # mock catalogs 
+
+            cosmo_str = '_' + cosmology   # specify cosmology (should be fiducial for most analysis) 
+
+            if correction['name'].lower() == 'true':    # true mocks
+
+                file_name = ''.join([data_dir, 'bigMD-cmass-dr12v4_vetoed.dat']) # hardcoded
+
+                ''' 
+                elif correction['name'].lower() in ('upweight', 'shotnoise', 
+                        'floriansn', 'hectorsn'): 
+                    # upweighted mocks 
+                    file_name = ''.join([data_dir, 
+                        'CutskyN', str(catalog['n_mock']), '.fibcoll.dat']) 
+
+                elif correction['name'].lower() in ('peaknbar', 'peakshot'): 
+                    # peak corrected mocks 
+                    if correction['name'].lower() == 'peaknbar': 
+                        pass
+
+                    # specify fit (expon or gauss) to peak 
+                    if correction['fit'].lower() in ('gauss', 'expon'): 
+                        # correction specifier string 
+                        corr_str = ''.join(['.', correction['fit'].lower(), 
+                            '.', correction['name'].lower(), 
+                            '.sigma', str(correction['sigma']), 
+                            '.fpeak', str(correction['fpeak'])]) 
+
+                    elif correction['fit'].lower() in ('true'): 
+                        # correction specifier string 
+                        corr_str = ''.join(['.', correction['fit'].lower(), 
+                            '.', correction['name'].lower(), 
+                            '.fpeak', str(correction['fpeak'])]) 
+                    else: 
+                        raise NameError('peak fit has to be specified: gauss or expon') 
+
+                    file_name = ''.join([data_dir, 
+                        'CutskyN', str(catalog['n_mock']), '.fibcoll', corr_str, cosmo_str, '.dat' ]) 
+
+                elif 'scratch' in correction['name'].lower():
+                    
+                    file_name = ''.join([data_dir, 
+                        'CutskyN', str(catalog['n_mock']), '.fibcoll.', correction['name'].lower(), cosmo_str, '.dat' ]) 
+                '''
+            else: 
+                raise NotImplementedError('not yet coded') 
+
+        elif DorR == 'random':                  # random catalog 
+
+            # vetomask-ed random catalog 
+            file_name = ''.join([data_dir, 'bigMD-cmass-dr12v4_vetoed.ran'])
 
     return file_name 
 
@@ -850,6 +966,26 @@ def build_true(**cat_corr):
                     ], 
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e', '%10.5f'], 
                 delimiter='\t') 
+    
+    elif catalog['name'].lower() == 'bigmd':                                # Big MultiDark 
+
+        # read rdzw file 
+        data_dir = '/mount/riachuelo1/hahn/data/BigMD/'
+        orig_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-wcp-veto.dat'])  # hardcoded
+        orig_ra, orig_dec, orig_z, orig_veto, orig_wfc = np.loadtxt(orig_file, 
+                skiprows=1, unpack=True, usecols=[0,1,2,4,5])
+
+        # true wfc = 1 for all galaxies 
+        true_wfc = np.array([ 1.0 for i in range(len(orig_wfc)) ]) 
+
+        vetomask = np.where(orig_veto == 1)     # if veto = 1 then keep; otherwise discard 
+        
+        # write to file 
+        true_file = get_galaxy_data_file('data', **cat_corr) 
+        np.savetxt(true_file, 
+                np.c_[orig_ra[vetomask], orig_dec[vetomask], orig_z[vetomask], true_wfc[vetomask]], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+
     else: 
         raise NameError('not yet coded') 
 
@@ -913,6 +1049,23 @@ def build_random(**cat_corr):
                 np.c_[
                     orig_ra[vetomask], orig_dec[vetomask], orig_z[vetomask], orig_nbar[vetomask]
                     ], fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e'], delimiter='\t') 
+
+    elif catalog['name'].lower() == 'bigmd': 
+
+        # original random catalog 
+        data_dir = '/mount/riachuelo1/hahn/data/BigMD/'
+        orig_rand_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-wcp-veto.ran']) 
+
+        # RA, Decl, Redhsift, veto  
+        ra, dec, z, veto = np.loadtxt(orig_rand_file, unpack=True, usecols=[0,1,2,4]) 
+
+        vetomask = np.where(veto == 1)  # impose vetomask 
+    
+        # save rnadom file (write RA, Decl, Redshift) 
+        true_random_file = get_galaxy_data_file('random', **{'catalog':{'name':'bigmd'}, 'correction':{'name':'true'}})
+        np.savetxt(true_random_file, 
+                np.c_[ra[vetomask], dec[vetomask], z[vetomask]], 
+                fmt=['%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
     else:
         raise NotImplementedError('asdfasdfasdfasdfadf') 
 
@@ -1769,6 +1922,8 @@ def build_ldg_scratch(**cat_corr):
     cosmo['omega_lambda_0'] = 1.0 - omega_m 
     cosmo['h'] = 0.676
     cosmo = cosmos.distance.set_omega_k_0(cosmo) 
+
+    d_peak = 21.0
         
     # read rdzw file 
     data_dir = '/mount/riachuelo1/hahn/data/LasDamas/Geo/'
@@ -1788,7 +1943,7 @@ def build_ldg_scratch(**cat_corr):
 
         dLOS = now_Dc - upw_Dc 
         
-        peak_index = np.where(np.abs(dLOS) < 21.0)        # peak of the dLOS distribution
+        peak_index = np.where(np.abs(dLOS) < d_peak)        # peak of the dLOS distribution
         now_peak_index = (now_index[0])[peak_index] 
 
         
@@ -1809,20 +1964,20 @@ def build_ldg_scratch(**cat_corr):
 
     elif correction['name'].lower() in ('scratch_peakknown_ang'):
 
-        now_index = np.where(orig_wfc == 0)   # galaxies with w_fc = 0 
+        now_index = np.where(orig_wfc < 1)   # galaxies with w_fc = 0 
         
         now_Dc = cosmos.distance.comoving_distance(orig_z[now_index], **cosmo)*cosmo['h']  # in units of Mpc/h
         upw_Dc = cosmos.distance.comoving_distance(z_upw[now_index], **cosmo)*cosmo['h']  # in units of Mpc/h
 
         dLOS = now_Dc - upw_Dc 
         
-        peak_index = np.where(np.abs(dLOS) < 21)        # peak of the dLOS distribution
+        peak_index = np.where(np.abs(dLOS) < d_peak)        # peak of the dLOS distribution
         now_peak_index = (now_index[0])[peak_index] 
 
         np.random.shuffle(dLOS[peak_index])     # shuffle the dLOS in the peak
         shuffle_dlos = dLOS[peak_index]
         
-        #print len(shuffle_dlos), np.float(len(shuffle_dlos))/np.float(len(orig_z[now_index]))
+        print len(shuffle_dlos), np.float(len(shuffle_dlos))/np.float(len(orig_z[now_index]))
 
         for j, i_now_peak in enumerate(now_peak_index): 
 
@@ -1834,14 +1989,14 @@ def build_ldg_scratch(**cat_corr):
 
     elif correction['name'].lower() in ('scratch_peakknown_gauss'): 
 
-        now_index = np.where(orig_wfc == 0)   # galaxies with w_fc = 0 
+        now_index = np.where(orig_wfc < 1)   # galaxies with w_fc = 0 
         
         now_Dc = cosmos.distance.comoving_distance(orig_z[now_index], **cosmo)*cosmo['h']  # in units of Mpc/h
         upw_Dc = cosmos.distance.comoving_distance(z_upw[now_index], **cosmo)*cosmo['h']  # in units of Mpc/h
 
         dLOS = now_Dc - upw_Dc  # dLOS values for the pairs 
 
-        peak_index = np.where(np.abs(dLOS) < 21)        # peak of the dLOS distribution
+        peak_index = np.where(np.abs(dLOS) < d_peak)        # peak of the dLOS distribution
         now_peak_index = (now_index[0])[peak_index] 
 
         fit_func = lambda x, sig: np.exp(-0.5 *x**2/sig**2)     # gaussian fit to dLOS distribution 
@@ -1854,14 +2009,14 @@ def build_ldg_scratch(**cat_corr):
             rand1 = np.random.random(1) 
             rand2 = np.random.random(1) 
 
-            rand2 = -21.0 + 42.0 * rand1
+            rand2 = -1.0*d_peak + 2.0 * d_peak * rand1
             peakpofr = fit_func(rand2, 6.5) 
             
             while peakpofr <= rand1: 
                 rand1 = np.random.random(1) 
                 rand2 = np.random.random(1) 
 
-                rand2 = -21.0 + 42.0 * rand1
+                rand2 = -1.0*d_peak + 2.0 * d_peak * rand1
                 peakpofr = fit_func(rand2, 6.5) 
             
             comdis_upw = cosmos.distance.comoving_distance(z_upw[i_now_peak], **cosmo)*cosmo['h']
@@ -1999,6 +2154,11 @@ def build_ldg_scratch(**cat_corr):
     np.savetxt(scratch_file, 
             np.c_[orig_ra, orig_dec, orig_z, orig_wfc ], 
             fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+
+def build_ldg_nbarz(**cat_corr): 
+    ''' Downsample LasDamas mocks to give nbar(z) redshift dependence
+
+    '''
 
 def build_nseries_scratch(**cat_corr): 
     ''' Quick function to test fiber collision correction methods on Nseries mocks
