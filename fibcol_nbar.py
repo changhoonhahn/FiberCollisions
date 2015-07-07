@@ -150,9 +150,11 @@ def build_averaged_nbar(n_mock, **cat_corr):
             i_catalog['letter'] = mock_flag['letter'] 
 
         i_cat_corr = {'catalog': i_catalog, 'correction': correction}
+        
         # import galaxy data 
         data = fc_data.galaxy_data('data', **i_cat_corr)
         cosmo = data.cosmo  # survey cosmology 
+        print data.file_name
 
         nbar = [] 
         for i_z in range(len(zmid)): 
@@ -488,8 +490,144 @@ def append_corr_nbar(DorR, **cat_corr):
                 np.c_[gal_data.ra, gal_data.dec, gal_data.z, nbar_arr],
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5e'], delimiter='\t')
 
+def build_nbar_zdep_ratio(plot=False, **cat_corr): 
+    ''' Calculate nbar(z) ratio to characterize ratio 
+    
+    Parameters
+    ----------
+    cat_corr : catalog correction dictionary
+
+    '''
+    
+    # get nbar file 
+    nbar_file = get_nbar_file(**cat_corr) 
+    print nbar_file 
+    zmid, zlow, zhigh, nbar = np.loadtxt(nbar_file, unpack=True, usecols=[0,1,2,3])
+    
+    max_zmid = zmid[np.where(nbar == max(nbar))]
+    if len(max_zmid) == 1: 
+        max_zmin = max_zmid[0] - 0.01
+        max_zmax = max_zmid[0] + 0.01
+    else: 
+        print max_zmid
+        raise NameError('asldkfjadf') 
+    max_zrange = np.where( (zmid > max_zmin) & (zmid <= max_zmax) ) 
+    mean_max_nbar = np.average(nbar[max_zrange])
+    
+    belowmax_ratio = nbar/mean_max_nbar
+
+    if plot: 
+        prettyplot()        # set up plot 
+        pretty_colors = prettycolors()
+
+        fig = plt.figure(1)
+        sub = fig.add_subplot(111)
+        sub.plot(zmid, nbar/mean_max_nbar, color=pretty_colors[2], lw=4) 
+
+        sub.set_xlim([0.43, 0.7]) 
+        sub.set_ylim([0.0, 1.0]) 
+
+        sub.set_xlabel('Redshift (z)') 
+        sub.set_ylabel(r'$\mathtt{\bar{n}(z)}$ Ratio') 
+        fig_name = ''.join(['figure/', 
+            'ratio_overmax_', (nbar_file.split('/')[-1]).split('dat')[0], '.png'])
+        fig.savefig(fig_name, bbox_inches='tight')
+
+    #### KEEP CODING HERE 
+    #### KEEP CODING HERE 
+    #### KEEP CODING HERE 
+    #### KEEP CODING HERE 
+    #### KEEP CODING HERE 
+    #### KEEP CODING HERE 
+    #### KEEP CODING HERE 
+    #### KEEP CODING HERE 
+    '''
+    # zcen,zlow,zhigh,nbar,wfkp,shell_vol,total weighted gals
+    nbar_file = get_nbar_file(**cat_corr) 
+    print nbar_file
+    np.savetxt(nbar_file,
+            np.c_[zmid, zlow, zhigh, avg_nbar],
+            fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e'], delimiter='\t')
+    '''
+
+# Plotting -----
+def plot_nbar(cat_corr): 
+    ''' Plot nbar(z) given catalog and correction dictionary
+
+    Parameters
+    ----------
+    cat_corr : (list of) dictionary specifying catalog and correction  
+
+    '''
+
+    prettyplot()        # set up plot 
+    pretty_colors = prettycolors()
+
+    # list of catalog and correction methods 
+    if isinstance(cat_corr, list): 
+        cat_corrs = cat_corr 
+    else: 
+        cat_corrs = [cat_corr]
+    cat_corr_str = ''
+
+    fig = plt.figure(1) 
+    sub = fig.add_subplot(111) 
+    
+    for i_cc, cc in enumerate(cat_corrs):    # loop through cat corrs 
+    
+        # catalog and correction method 
+        catalog = cc['catalog']
+        correction = cc['correction']
+    
+        # import average nbar(z)
+        nbar_file = get_nbar_file(**cc) 
+        print nbar_file 
+        zmid, zlow, zhigh, nbar = np.loadtxt(nbar_file, unpack=True, usecols=[0,1,2,3])
+        
+        # catalog correction specifier 
+        cat_corr_label = ''.join([ 'Average ', catalog['name'], ' ', correction['name'] ]) 
+        cat_corr_str += '_'+catalog['name']+'_'+correction['name']
+        
+        # plot nbar(z) 
+        sub.plot( zmid, nbar, c = pretty_colors[i_cc+1], label = cat_corr_label, lw=2) 
+        
+        # catalog redshift limits 
+        if catalog['name'].lower() == 'lasdamasgeo': 
+            try: 
+                zmin = min(zmin, 0.16)
+                zmax = max(zmax, 0.44)
+            except NameError: 
+                zmin = 0.16
+                zmax = 0.44
+        else: 
+            try: 
+                zmin = min(zmin, 0.43)
+                zmax = max(zmax, 0.7)
+            except NameError: 
+                zmin = 0.43
+                zmax = 0.7
+    
+    sub.set_xlim([zmin, zmax]) 
+    #sub.set_ylim([0.00035, 0.0004])
+    sub.set_xlabel('Redshift (z)')
+    sub.set_ylabel(r'$\mathtt{\bar{n}(z)}$')
+
+    sub.legend(loc = 'upper left') 
+
+    fig_name = ''.join(['figure/', 'nbar_z', cat_corr_str, '.png']) 
+    fig.savefig(fig_name, bbox_inches='tight')
+
 if __name__=='__main__':
-    cat_corr = {'catalog': {'name': 'lasdamasgeo'}, 
-            'correction': {'name': 'true'}} 
-    build_averaged_nbar(10, **cat_corr)
+    cat_corr = [
+            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'true'}}, 
+            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}
+            ]
+
+    #plot_nbar(cat_corr)
+    cat_corr = {'catalog': {'name': 'nseries'}, 'correction': {'name': 'true'}}
+    build_nbar_zdep_ratio(plot=True, **cat_corr)
+    #build_averaged_nbar(84, **cat_corr)
+    cat_corr = {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}
+    build_nbar_zdep_ratio(plot=True, **cat_corr)
+    #build_averaged_nbar(84, **cat_corr)
     #nbar(**cat_corr) 

@@ -2157,8 +2157,19 @@ def build_ldg_scratch(**cat_corr):
 
 def build_ldg_nbarz(**cat_corr): 
     ''' Downsample LasDamas mocks to give nbar(z) redshift dependence
+    similar to CMASS sample 
 
     '''
+    catalog = cat_corr['catalog']
+    correction = cat_corr['correction']
+        
+    omega_m = 0.25  # cosmology for LDG
+
+    cosmo = {} 
+    cosmo['omega_M_0'] = omega_m 
+    cosmo['omega_lambda_0'] = 1.0 - omega_m 
+    cosmo['h'] = 0.676
+    cosmo = cosmos.distance.set_omega_k_0(cosmo) 
 
 def build_nseries_scratch(**cat_corr): 
     ''' Quick function to test fiber collision correction methods on Nseries mocks
