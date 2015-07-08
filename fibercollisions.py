@@ -898,16 +898,45 @@ def fibcol_now_fraction(**cat_corr):
     ''' Calculate no fiber collision weights fraction 
 
     '''
+    # catalog and correction dictionary 
+    catalog = cat_corr['catalog']
+    correction = cat_corr['correction'] 
+    
+    if correction['name'] != 'upweight': 
+        raise NameError('asdlkfjadf') 
+
+    # import data 
     data = fc_data.galaxy_data('data', clobber=False, **cat_corr) 
+    
+    if catalog['name'].lower() == 'bigmd':  # Big MD 
+        wfc = data.wfc 
+        comp = np.array([1.0 for i in range(len(wfc))]) 
+
+    elif catalog['name'].lower() == 'nseries':  # Nseries 
+        wfc = data.wfc
+        comp = data.comp 
+
+    else: 
+        raise NotImplementedError('asdlkfjkajsdf') 
+   
+    w_tot = np.sum(comp) 
+    w_withfiber = np.sum(comp[np.where(wfc > 0)]) 
+    print 'total weight', w_tot
+    print w_tot - w_withfiber, ' galaxies without fibers'
+    print 'w_fc = 0 fraction = ', 1.0 - w_withfiber/w_tot
 
 if __name__=='__main__': 
-    for corr in ['upweight']: #, 'noweight']: 
+    for corr in ['true', 'upweight']: #, 'noweight']: 
         cat_corr = {
                 'catalog': {'name':'bigmd'}, 
                 'correction': {'name': corr}
                 } 
         fc_data.galaxy_data('data', clobber=True, **cat_corr) 
 
+    #cat_corr = { 'catalog': {'name':'bigmd'}, 'correction': {'name': 'upweight'}}
+    #fibcol_now_fraction(**cat_corr)
+    #cat_corr = { 'catalog': {'name':'nseries', 'n_mock': 1}, 'correction': {'name': 'upweight'}}
+    #fibcol_now_fraction(**cat_corr)
     #corrections = [{'name': 'true'}, {'name': 'upweight'}]#, {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}]
     #corrections = [{'name': 'peakshot', 'sigma': 3.8, 'fpeak': 0.7, 'fit': 'gauss'}]
     '''

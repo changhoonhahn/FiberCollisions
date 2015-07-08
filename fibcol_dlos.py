@@ -33,7 +33,7 @@ class dlos:
         catalog = cat_corr['catalog']
         correction = cat_corr['correction']
 
-        if catalog['name'].lower() == 'lasdamasgeo':        # LasDamas Geo ------------------------------------------------
+        if catalog['name'].lower() == 'lasdamasgeo':        # LasDamas Geo ------------------
 
             file_dir = '/mount/riachuelo1/hahn/data/LasDamas/Geo/'
             #File name 
@@ -50,7 +50,7 @@ class dlos:
                 self.targ_z = readin_data[1]
                 self.neigh_z = readin_data[2]
         
-        elif catalog['name'].lower() == 'tilingmock':       # Tiling Mock ---------------------------------------------------
+        elif catalog['name'].lower() == 'tilingmock':       # Tiling Mock -------------------
 
             file_dir = '/mount/riachuelo1/hahn/data/tiling_mocks/'        # directory
             # File name 
@@ -68,7 +68,7 @@ class dlos:
                 self.targ_z = readin_data[1]
                 self.neigh_z = readin_data[2]
         
-        elif catalog['name'].lower() == 'qpm':              # QPM ------------------------------------------------------------
+        elif catalog['name'].lower() == 'qpm':              # QPM ---------------------------
 
             file_dir = '/mount/riachuelo1/hahn/data/QPM/dr12d/'        # directory
             # File name 
@@ -90,7 +90,7 @@ class dlos:
                 self.neigh_dec = readin_data[5] 
                 self.neigh_z = readin_data[6]
 
-        elif catalog['name'].lower() == 'nseries':          # Nseries ------------------------------------
+        elif catalog['name'].lower() == 'nseries':          # Nseries -----------------------
 
             file_dir = '/mount/riachuelo1/hahn/data/Nseries/' # directory
             file_name = ''.join([file_dir, 'DLOS_CutskyN', str(catalog['n_mock']), '.dat']) 
@@ -113,8 +113,8 @@ class dlos:
                 self.neigh_dec = readin_data[5] 
                 self.neigh_z = readin_data[6]
 
-        elif catalog['name'].lower() =='patchy': 
-            # PATCHY mocks --------------------------------------------------- 
+        elif catalog['name'].lower() =='patchy':            # PATCHY mocks ------------------
+
             file_dir = '/mount/riachuelo1/hahn/data/PATCHY/dr12/v6c/'
             file_name = ''.join([file_dir, 
                 'DLOS_Patchy-Mocks-DR12CMASS-N-V6C-Portsmouth-mass_', 
@@ -135,8 +135,30 @@ class dlos:
                 self.neigh_dec = readin_data[5] 
                 self.neigh_z = readin_data[6]
         
-        # CMASS ---------------------------------------------------------------
-        elif catalog['name'].lower() == 'cmass': 
+        elif catalog['name'].lower() == 'bigmd':            # Big MD mock -------------------
+
+            file_dir = '/mount/riachuelo1/hahn/data/BigMD/' # directory
+            file_name = ''.join([file_dir, 'DLOS_bigMD-cmass-dr12v4_vetoed.fibcoll.dat']) 
+            
+            self.file_name = file_name 
+
+            if readdata == True: 
+                if not os.path.isfile(file_name) or clobber: 
+                    print 'Constructing ', file_name 
+                    
+                    build_dlos(**cat_corr)  
+                    #build_dlos_nseries_test(**cat_corr) 
+
+                readin_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4,5,6]) 
+                self.dlos = readin_data[0]
+                self.targ_ra = readin_data[1]
+                self.targ_dec = readin_data[2]
+                self.targ_z = readin_data[3]
+                self.neigh_ra = readin_data[4] 
+                self.neigh_dec = readin_data[5] 
+                self.neigh_z = readin_data[6]
+
+        elif catalog['name'].lower() == 'cmass':            # CMASS -------------------------
             file_dir = '/mount/riachuelo1/hahn/data/'        # directory
             # File name 
             file_name = ''.join([file_dir, 'DLOS_cmass-dr12v4-N-Reid-weights-zlim.dat']) 
@@ -741,8 +763,8 @@ def combined_dlos_fit(n_mocks, fit='gauss', sanitycheck=False, clobber=False, **
                 else: 
                     combined_dlos = np.concatenate([combined_dlos, los_disp_i.dlos]) 
 
-    elif catalog['name'].lower() == 'tilingmock':               
-        # Tiling Mock ------------------------------------------------
+    elif catalog['name'].lower() in ('tilingmock', 'bigmd'): 
+        # Tiling Mock, BigMD ------------------------------------------------
 
         # import DLOS values for mock 
         los_disp = dlos(**cat_corr)
@@ -767,7 +789,7 @@ def combined_dlos_fit(n_mocks, fit='gauss', sanitycheck=False, clobber=False, **
                 combined_dlos = los_disp_i.dlos
             else: 
                 combined_dlos = np.concatenate([combined_dlos, los_disp_i.dlos]) 
-
+    
     else: 
         raise NameError("not yet coded") 
 
@@ -1240,11 +1262,14 @@ def combined_dlos_angsep_fit(n_mocks, fit='gauss', sanitycheck=False, **cat_corr
 
     #return [sigma, fpeak]
 
-def combined_dlos_dist(n_mock, **cat_corr):
-    ''' Combine dLOS values and calculate the normalized histogram for the peak of the distribution
+def build_combined_dlos_dist_peak(n_mock, **cat_corr):
+    ''' Combine dLOS values and calculate the normalized histogram 
+    for the peak of the distribution
 
     Parameters
     ----------
+    n_mock : number of dLOS files to combine (each is a realization)
+    cat_corr : catalog correction dictionary 
 
     Notes
     -----
@@ -1298,8 +1323,7 @@ def combined_dlos_dist(n_mock, **cat_corr):
                 combined_dlos = np.concatenate([combined_dlos, los_d_i.dlos]) 
             n_mocks += 1
 
-    elif catalog['name'].lower() == 'patchy':                      
-        # PATCHY ------------------------------------------------------------
+    elif catalog['name'].lower() == 'patchy':                   # PATCHY ------------------------------------------------------------
         for i_mock in range(1,51): 
             # individual catalog_correction dictonary 
             i_catalog = catalog.copy() 
@@ -1315,6 +1339,14 @@ def combined_dlos_dist(n_mock, **cat_corr):
             else: 
                 combined_dlos = np.concatenate([combined_dlos, los_d_i.dlos]) 
             n_mocks = n_mocks+1
+
+    elif catalog['name'].lower() == 'bigmd':
+    
+        los_d_i = dlos(**cat_corr) 
+        
+        combined_dlos = los_d_i.dlos 
+
+        n_mocks = 1 # only one realization of BigMD
 
     elif catalog['name'].lower() == 'cmass': 
         los_d_i = dlos(**cat_corr)
@@ -1787,11 +1819,19 @@ def combined_catalog_dlos_fits(catalog, n_mock):
         #print 'Expon ', combined_dlos_fit(10, fit='expon', sanitycheck=True,  **cat_corr) 
         print 'Gauss ', combined_dlos_fit(n_mock, fit='gauss', sanitycheck=True, 
                 clobber=True, **cat_corr) 
+
+    elif 'bigmd' in catalog: 
+        print 'BigMD -------------------------------------------------------'
+        cat_corr = {'catalog': {'name':'bigmd'}, 'correction': {'name': 'upweight'}}
+        print 'Gauss ', combined_dlos_fit(1, fit='gauss', sanitycheck=True, 
+                clobber=True, **cat_corr) 
+
     else: 
         raise NameError('asdfasdfasdf')  
 
 if __name__=="__main__": 
-    #cat_corr = {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}} 
+    #cat_corr = {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}} 
+    #Dlos = dlos(readdata=True, clobber=True, **cat_corr)
     #combined_dlos_dist(1, **cat_corr)
     #combined_catalog_dlos_fits('nseries', 1)
     #for i in np.arange(1, 11): 
@@ -1804,7 +1844,7 @@ if __name__=="__main__":
     #for i in np.arange(1,2): 
     #    cat_corr = {'catalog': {'name': 'nseries', 'n_mock': i}, 'correction': {'name': 'upweight'}} 
     #    build_dlos(**cat_corr) 
-    #combined_catalog_dlos_fits('patchy', 10)
+    combined_catalog_dlos_fits('bigmd', 1)
     #combined_catalog_dlos_fits('lasdamasgeo', 5)
     #nseries_idl_python_dlos_test(1)
-    ldg_idl_python_dlos_test(10)
+    #ldg_idl_python_dlos_test(10)
