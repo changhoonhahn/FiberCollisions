@@ -533,14 +533,6 @@ def build_nbar_zdep_ratio(plot=False, **cat_corr):
             'ratio_overmax_', (nbar_file.split('/')[-1]).split('dat')[0], '.png'])
         fig.savefig(fig_name, bbox_inches='tight')
 
-    #### KEEP CODING HERE 
-    #### KEEP CODING HERE 
-    #### KEEP CODING HERE 
-    #### KEEP CODING HERE 
-    #### KEEP CODING HERE 
-    #### KEEP CODING HERE 
-    #### KEEP CODING HERE 
-    #### KEEP CODING HERE 
     '''
     # zcen,zlow,zhigh,nbar,wfkp,shell_vol,total weighted gals
     nbar_file = get_nbar_file(**cat_corr) 

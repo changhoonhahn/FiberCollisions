@@ -353,7 +353,7 @@ class galaxy_data:
             if DorR == 'data':                          # Data ------------------------------
                 
                 # catalog columns 
-                catalog_columns = ['ra', 'dec', 'z', 'wfc', 'comp'] 
+                catalog_columns = ['ra', 'dec', 'z', 'wfc'] 
                 self.columns = catalog_columns
 
                 if not os.path.isfile(file_name) or clobber:
@@ -364,22 +364,23 @@ class galaxy_data:
                         # true mocks 
                         # all weights = 1 (fibercollisions *not* imposed) 
                         build_true(**cat_corr) 
-                    
+
+                    elif correction['name'].lower() in (
+                            'upweight', 'shotnoise', 'floriansn', 'hectorsn'): 
+                        # upweighted mocks
+                        build_fibercollided(**cat_corr) 
+
                         ''' #COMMENTED OUT FOR NOW 
-                        elif correction['name'].lower() in ('upweight', 'shotnoise', 'floriansn', 'hectorsn'): 
-                            # upweighted mocks
-                            build_fibercollided(**cat_corr) 
+                            elif correction['name'].lower() in ('peaknbar', 'peakshot'): 
+                                # peak corrected mocks 
+                                build_peakcorrected_fibcol(doublecheck=True, **cat_corr)  # build peak corrected file 
 
-                        elif correction['name'].lower() in ('peaknbar', 'peakshot'): 
-                            # peak corrected mocks 
-                            build_peakcorrected_fibcol(doublecheck=True, **cat_corr)  # build peak corrected file 
+                                #elif correction['name'].lower() in ('noweight'): 
+                                #    # n oweight 
+                                #    build_noweight(**cat_corr) 
+                            elif 'scratch' in correction['name'].lower():           # scratch pad for different methods 
 
-                            #elif correction['name'].lower() in ('noweight'): 
-                            #    # n oweight 
-                            #    build_noweight(**cat_corr) 
-                        elif 'scratch' in correction['name'].lower():           # scratch pad for different methods 
-
-                            build_nseries_scratch(**cat_corr) 
+                                build_nseries_scratch(**cat_corr) 
                         '''
                     else: 
                         raise NotImplementedError() 
@@ -780,6 +781,11 @@ def get_galaxy_data_file(DorR, cosmology='fidcosmo', **cat_corr):
             if correction['name'].lower() == 'true':    # true mocks
 
                 file_name = ''.join([data_dir, 'bigMD-cmass-dr12v4_vetoed.dat']) # hardcoded
+    
+            elif correction['name'].lower() in ('upweight'):  
+                
+                file_name = ''.join([data_dir, 
+                    'bigMD-cmass-dr12v4_vetoed.fibcoll.dat']) # hardcoded
 
                 ''' 
                 elif correction['name'].lower() in ('upweight', 'shotnoise', 
@@ -1176,11 +1182,11 @@ def build_fibercollided(**cat_corr):
         print fibcollided_cmd
         os.system(fibcollided_cmd)  # call IDL code 
 
-    elif catalog['name'].lower() == 'tilingmock':                               # Tiling Mock ------------------------------
+    elif catalog['name'].lower() == 'tilingmock':       # Tiling Mock ----------------
         fibcollided_cmd = ' '.join(['idl', '-e', '"', "build_wcp_assign, 'tilingmock'", '"'])
         os.system(fibcollided_cmd) 
 
-    elif catalog['name'].lower() == 'qpm':                                      # QPM -----------------------------------
+    elif catalog['name'].lower() == 'qpm':              # QPM ------------------------
 
         orig_true_file = ''.join(['/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/data/', 
             'a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.rdz']) 
@@ -1221,7 +1227,7 @@ def build_fibercollided(**cat_corr):
 
         fibcollided_cmd = ''
     
-    elif catalog['name'].lower() == 'nseries':                                  # N series --------------------------------
+    elif catalog['name'].lower() == 'nseries':          # N-series --------------------
     
         data_dir = '/mount/riachuelo1/hahn/data/Nseries/'   # directory
 
@@ -1241,8 +1247,7 @@ def build_fibercollided(**cat_corr):
 
         fibcollided_cmd = ''
 
-    elif catalog['name'].lower() == 'patchy': 
-        # PATCHY mocks ----------------------------------------
+    elif catalog['name'].lower() == 'patchy':           # PATCHY mocks ---------------
 
         # read original mock data 
         orig_file = ''.join(['/mount/riachuelo1/hahn/data/PATCHY/dr12/v6c/', 
@@ -1266,6 +1271,28 @@ def build_fibercollided(**cat_corr):
                 delimiter='\t') 
         
         fibcollided_cmd = ''
+    
+    elif catalog['name'].lower() == 'bigmd':            # Big MD --------------------
+
+        # read original random catalog 
+        data_dir = '/mount/riachuelo1/hahn/data/BigMD/'
+        orig_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-wcp-veto.dat']) 
+
+        # RA, Decl, Redhsift, veto  
+        ra, dec, z, veto, wfc = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,4,5]) 
+        n_gal = len(ra) 
+
+        vetomask = np.where(veto == 1)  # impose vetomask 
+    
+        fc_file = get_galaxy_data_file('data', **cat_corr)    # file name 
+        np.savetxt(fc_file, 
+                np.c_[
+                    ra[vetomask], dec[vetomask], z[vetomask], wfc[vetomask]
+                    ], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+        
+        fibcollided_cmd = ''
+    
     else: 
         raise NameError('not yet coded') 
 

@@ -893,8 +893,15 @@ def build_pk(catalog, n_mocks, quad=False):
         for corr in corrections: 
             build_fibcol_pk(catalog, i_mock, corr, spec=spec, clobber=True) 
 
+# Compare fiber collisions of data 
+def fibcol_now_fraction(**cat_corr): 
+    ''' Calculate no fiber collision weights fraction 
+
+    '''
+    data = fc_data.galaxy_data('data', clobber=False, **cat_corr) 
+
 if __name__=='__main__': 
-    for corr in ['true']: #, 'upweight', 'noweight']: 
+    for corr in ['upweight']: #, 'noweight']: 
         cat_corr = {
                 'catalog': {'name':'bigmd'}, 
                 'correction': {'name': corr}
