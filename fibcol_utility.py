@@ -35,22 +35,25 @@ def fortran_code(fft_power, **cat_corr):
     
     if catalog['name'].lower() == 'lasdamasgeo':            # LasDamasGeo ----------------------
 
-        # code directory 
         ldg_code_dir = '/home/users/hahn/powercode/FiberCollisions/LasDamas/Geo/' 
        
         if fft_power.lower() == 'fft':                      # FFT -----------------
-
-            # literature
-            if correction['name'].lower() == 'floriansn':     # Beutler+2014
-                f_code = ldg_code_dir+'FFT_ldg_fkp_w_florian_'+str(spec['grid'])+'grid.f'
-            elif correction['name'].lower() == 'hectorsn':  # Gil-Marin+2014
-                f_code = ldg_code_dir+'FFT_ldg_fkp_w_hector_'+str(spec['grid'])+'grid.f'
+    
+                
+            if 'down_nz' not in correction['name']: 
+                if correction['name'].lower() == 'floriansn':     # Beutler+2014
+                    f_code = ldg_code_dir+'FFT_ldg_fkp_w_florian_'+str(spec['grid'])+'grid.f'
+                elif correction['name'].lower() == 'hectorsn':  # Gil-Marin+2014
+                    f_code = ldg_code_dir+'FFT_ldg_fkp_w_hector_'+str(spec['grid'])+'grid.f'
+                else: 
+                    f_code = ldg_code_dir+'FFT_ldg_fkp_w_'+str(spec['grid'])+'grid.f'
             else: 
-                f_code = ldg_code_dir+'FFT_ldg_fkp_w_'+str(spec['grid'])+'grid.f'
+                # downsampled nz LasDamasGeo
+                f_code = ldg_code_dir+'FFT_ldg_fkp_w_down_nz_'+str(spec['grid'])+'grid.f'
 
         elif fft_power.lower() == 'power':                  # power ----------------
 
-            if correction['name'].lower() in ('true', 'upweight', 'peaknbar'):  
+            if correction['name'].lower() in ('true', 'upweight', 'peaknbar', 'true_down_nz'):  
                 # FKP estimator
                 if spec['grid'] == 360: 
                     f_code = ldg_code_dir+'power_ldg_fkp_360grid_180bin.f'
@@ -77,7 +80,29 @@ def fortran_code(fft_power, **cat_corr):
             f_code = code_dir+'power_FKP_SDSS_BOSS_v3.f'
         else: 
             raise NameError('asdflkajsdf') 
+    
+    elif catalog['name'].lower() == 'ldgdownnz':            # LasDamasGeo downsampled ---------
+        
+        ldg_code_dir = '/home/users/hahn/powercode/FiberCollisions/LasDamas/Geo/' 
+       
+        if fft_power.lower() == 'fft':      # FFT -----------------
+                
+            # only one implemented so far 
+            f_code = ldg_code_dir+'FFT_ldg_fkp_w_down_nz_'+str(spec['grid'])+'grid.f'
 
+        elif fft_power.lower() == 'power':  # power ----------------
+
+            if correction['name'].lower() in ('true', 'upweight', 'peaknbar'):  
+                # FKP estimator
+
+                if spec['grid'] == 360: 
+                    f_code = ldg_code_dir+'power_ldg_fkp_360grid_180bin.f'
+                elif spec['grid'] == 960: 
+                    f_code = ldg_code_dir+'power_ldg_fkp_960grid_480bin.f'
+
+            else: 
+                raise NotImplementedError('what?')
+    
     elif catalog['name'].lower() == 'tilingmock':               # Tiling Mock ----------------
 
         # code directory 
@@ -295,7 +320,7 @@ def get_fibcoll_dir(file_type, **cat_corr):
         raise NameError('either data, fft, or power') 
 
     else: 
-        if catalog['name'].lower() == 'lasdamasgeo': 
+        if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz'): 
             # Lasdamasgeo -----------------------------------------
             
             if file_type.lower() == 'data': 

@@ -64,7 +64,8 @@ def build_fibcol_fft(DorR, **cat_corr):
     data_file = fc_data.get_galaxy_data_file(DorR, **cat_corr) 
     print data_file
 
-    if catalog['name'].lower() in ('lasdamasgeo', 'qpm', 'patchy', 'nseries'):   
+    if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz', 
+            'qpm', 'patchy', 'nseries', 'bigmd'):   
         # Las Damas included because it's constant nbar(z)
         pass
     else: 
@@ -75,7 +76,7 @@ def build_fibcol_fft(DorR, **cat_corr):
     except KeyError: 
         spec['quad'] = False
 
-    if spec['quad'] == False:       # quadrupole or regular FFT code
+    if not spec['quad']:       # quadrupole or regular FFT code
         FFT_code = fc_util.fortran_code('fft', **cat_corr) 
     else:  
         FFT_code = fc_util.fortran_code('quadfft', **cat_corr)  # FFT code 
@@ -102,7 +103,8 @@ def build_fibcol_fft(DorR, **cat_corr):
         DorR_number = 1
 
     if not spec['quad']:       # For NOT Quadrupole code
-        if catalog['name'].lower() in ('lasdamasgeo', 'tilingmock', 'qpm', 'patchy', 'nseries'): 
+        if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz', 
+                'tilingmock', 'qpm', 'patchy', 'nseries'): 
             # LasDamas Geo, Tiling Mock, QPM, PATCHY ----------------------------------------
 
             # get bash command 

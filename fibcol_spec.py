@@ -124,8 +124,7 @@ class Spec:
 
             self.scale = spec['box']
 
-        elif catalog['name'].lower() == "lasdamasgeo": 
-            # LasDamasGeo Mocks -------------------------------------------------------
+        elif catalog['name'].lower() in ("lasdamasgeo", 'ldgdownnz'):       # LasDamasGeo Mocks --
             
             file_dir = ''.join([spec_dir, '/LasDamas/Geo/'])
 
@@ -150,6 +149,7 @@ class Spec:
 
             # survey scale 
             self.scale = spec['box']
+    
 
         elif catalog['name'].lower() == 'patchy': 
             # PATCHY Mocks ---------------------------------------------------------------
@@ -273,7 +273,8 @@ def build_fibcol_power(**cat_corr):
         fc_util.compile_fortran_code(power_code) 
     
     
-    if catalog['name'].lower() in ('lasdamasgeo', 'tilingmock', 'qpm', 'patchy', 'nseries'):   
+    if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz', 
+            'tilingmock', 'qpm', 'patchy', 'nseries'):   
         if spec['quad'] == True:            # for quadrupole code 
             # NOTE: ORDER OF RAND AND MOCK FILES ARE REVERSED
             power_cmd = ' '.join([power_exe, fft_rand_file, fft_file, power_file, 

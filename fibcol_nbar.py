@@ -515,6 +515,9 @@ def build_nbar_zdep_ratio(plot=False, **cat_corr):
     mean_max_nbar = np.average(nbar[max_zrange])
     
     belowmax_ratio = nbar/mean_max_nbar
+    
+    overone = np.where(belowmax_ratio > 1.0) 
+    belowmax_ratio[overone] = 1.0       # some are bound to be above 1. Trim it off
 
     if plot: 
         prettyplot()        # set up plot 
@@ -522,7 +525,7 @@ def build_nbar_zdep_ratio(plot=False, **cat_corr):
 
         fig = plt.figure(1)
         sub = fig.add_subplot(111)
-        sub.plot(zmid, nbar/mean_max_nbar, color=pretty_colors[2], lw=4) 
+        sub.plot(zmid, belowmax_ratio, color=pretty_colors[2], lw=4) 
 
         sub.set_xlim([0.43, 0.7]) 
         sub.set_ylim([0.0, 1.0]) 
@@ -532,15 +535,14 @@ def build_nbar_zdep_ratio(plot=False, **cat_corr):
         fig_name = ''.join(['figure/', 
             'ratio_overmax_', (nbar_file.split('/')[-1]).split('dat')[0], '.png'])
         fig.savefig(fig_name, bbox_inches='tight')
-
-    '''
-    # zcen,zlow,zhigh,nbar,wfkp,shell_vol,total weighted gals
-    nbar_file = get_nbar_file(**cat_corr) 
-    print nbar_file
-    np.savetxt(nbar_file,
-            np.c_[zmid, zlow, zhigh, avg_nbar],
-            fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e'], delimiter='\t')
-    '''
+    
+    data_dir = '/'.join( nbar_file.split('/')[:-1] )+'/'
+    ratio_nbar_file = ''.join([ data_dir, 
+        'ratio_', (nbar_file.split('/')[-1])]) 
+    print ratio_nbar_file
+    np.savetxt(ratio_nbar_file,
+            np.c_[zmid, zlow, zhigh, belowmax_ratio],
+            fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t')
 
 # Plotting -----
 def plot_nbar(cat_corr): 

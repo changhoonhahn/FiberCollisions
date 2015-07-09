@@ -1,9 +1,12 @@
-pro ldg_fibcollmock_wcp_assign, n, letter 
+pro ldgdownnz_wcp_assign, n, letter 
 ; build LasDamasGeo mock catalog with close pair fibercollision weights
 ; using spherematch with angular separation 
 ; and output dLOS for each fibercollided pairs
-; read LasDamas Geo mock
-    true_file = '/mount/riachuelo1/hahn/data/LasDamas/Geo/sdssmock_gamma_lrgFull_zm_oriana'+strmid(strtrim(string(n+100),1),1)+letter+'_no.rdcz.dat'
+
+    ; read LasDamas Geo mock
+    true_file = '/mount/riachuelo1/hahn/data/LasDamas/Geo/'+$
+        'sdssmock_gamma_lrgFull_zm_oriana'+strmid(strtrim(string(n+100),1),1)+letter+$
+        '_no.rdcz.down_nz.dat'
     readcol, true_file, mock_ra, mock_dec, mock_redshift
     Ngal = n_elements(mock_ra)
     print, Ngal, ' galaxies'
@@ -81,8 +84,11 @@ pro ldg_fibcollmock_wcp_assign, n, letter
     if (Ngal ne total(wcp)) then STOP 
     
     ; write mocks with fibercollision weights
-    openw, lun, '/mount/riachuelo1/hahn/data/LasDamas/Geo/sdssmock_gamma_lrgFull_zm_oriana'+strmid(strtrim(string(n+100),1),1)+$
-        letter+'_no.rdcz.fibcoll.dat', /get_lun
+    output_file = '/mount/riachuelo1/hahn/data/LasDamas/Geo/'+$
+        'sdssmock_gamma_lrgFull_zm_oriana'+strmid(strtrim(string(n+100),1),1)+$
+        letter+'_no.rdcz.fibcoll.down_nz.dat'
+
+    openw, lun, output_file, /get_lun
     
     for i=0L,Ngal-1L do begin 
         printf, lun, mock_ra[i], mock_dec[i], mock_redshift[i], wcp[i], z_upw[i], upw_index[i], format='(5F, I)'

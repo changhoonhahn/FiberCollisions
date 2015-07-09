@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 
 # --- Local ----
 import fibcol_dlos as fc_dlos
+import fibcol_nbar as fc_nbar
 import galaxy_environment as genv
 import pyspherematch as pysph
 
@@ -79,12 +80,17 @@ class galaxy_data:
 
                     elif correction['name'].lower() in ('noweight'): 
                         # No weight
-                        catalog_columns = ['ra', 'dec', 'z', 'weight'] 
                         build_noweight(**cat_corr) 
 
-                    elif 'scratch' in correction['name'].lower():           # scratch pad for different methods 
+                    elif 'scratch' in correction['name'].lower():           
+                        # scratch pad for different methods 
 
                         build_ldg_scratch(**cat_corr) 
+
+                    elif correction['name'].lower() in ('true_down_nz'): 
+
+                        # true mock catalog downsampled by nbar(z) 
+                        build_ldg_nz_down('data', **cat_corr)
 
                     else: 
                         raise NameError('Correction Name Unknown') 
@@ -102,15 +108,80 @@ class galaxy_data:
                 catalog_columns = ['ra', 'dec', 'z']        
 
                 self.columns = catalog_columns
+                
+                if 'down_nz' in correction['name'].lower(): 
+                    # true rnadom catalog downsampled by nbar(z) 
+                    build_ldg_nz_down('random', **cat_corr)
+                    
+                    # Read data 
+                    file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2])         
 
+                    for i_col, catalog_column in enumerate(catalog_columns): 
+                        column_data = file_data[i_col]
+                        # assign to class
+                        setattr(self, catalog_column, column_data)
+
+                else: 
+                    # Read data 
+                    file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2])         
+
+                    for i_col, catalog_column in enumerate(catalog_columns): 
+                        if catalog_column == 'z': 
+                            column_data = file_data[i_col]/299800.0
+                        else: 
+                            column_data = file_data[i_col]
+                        # assign to class
+                        setattr(self, catalog_column, column_data)
+        
+        elif catalog['name'].lower() == 'ldgdownnz':    # LasDamasGeo downsampled ------------ 
+            
+            omega_m = 0.25  # cosmology
+
+            if DorR == 'data':                          # Data -------------------------
+               
+                # columns that this catalog data will have  
+                catalog_columns = ['ra', 'dec', 'z', 'weight']  
+
+                self.columns = catalog_columns
+
+                if (os.path.isfile(file_name) == False) or (clobber == True): 
+                    # if file does not exists, make file  
+                    print 'Building', file_name
+
+                    if correction['name'].lower() == 'true':    # True
+                        # true mock catalog downsampled by nbar(z) 
+                        build_ldg_nz_down('data', **cat_corr)
+                    elif correction['name'].lower() in ('upweight'): 
+                        # nearest neighbor weights assigned
+                        build_fibercollided(**cat_corr)
+                    else: 
+                        raise NameError('Correction Name Unknown') 
+
+                # read data (ra, dec, z, weights) 
+                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])         
+
+                for i_col, catalog_column in enumerate(catalog_columns): 
+                    column_data = file_data[i_col]
+                    setattr(self, catalog_column, column_data) 
+
+            elif DorR.lower() == 'random':          # Random Catalogs -------------------------
+
+                # columns of random catalog (NOTE CZ IS CONVERTED TO Z) 
+                catalog_columns = ['ra', 'dec', 'z']        
+
+                self.columns = catalog_columns
+                
+                if (not os.path.isfile(file_name)) or clobber: 
+                    # true rnadom catalog downsampled by nbar(z) 
+                    build_ldg_nz_down('random', **cat_corr)
+                else: 
+                    pass 
+                    
                 # Read data 
                 file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2])         
 
                 for i_col, catalog_column in enumerate(catalog_columns): 
-                    if catalog_column == 'z': 
-                        column_data = file_data[i_col]/299800.0
-                    else: 
-                        column_data = file_data[i_col]
+                    column_data = file_data[i_col]
                     # assign to class
                     setattr(self, catalog_column, column_data)
 
@@ -467,8 +538,7 @@ def get_galaxy_data_file(DorR, cosmology='fidcosmo', **cat_corr):
     catalog = cat_corr['catalog'] 
     correction = cat_corr['correction'] 
     
-    if catalog['name'].lower() == 'lasdamasgeo':                # LasDamasGeo -----------------------
-        
+    if catalog['name'].lower() == 'lasdamasgeo':                # LasDamasGeo --------------
         data_dir = '/mount/riachuelo1/hahn/data/LasDamas/Geo/'
 
         if DorR.lower() == 'data':                  # data
@@ -526,17 +596,55 @@ def get_galaxy_data_file(DorR, cosmology='fidcosmo', **cat_corr):
                     catalog['letter'], '_no.rdcz.noweight.dat']) 
 
             elif 'scratch' in correction['name'].lower(): 
-    
                 # easily adjustable methods 
                 file_name = ''.join([data_dir, 'sdssmock_gamma_lrgFull_zm_oriana', 
                     str("%02d" % catalog['n_mock']), catalog['letter'], '_no.rdcz.fibcoll.', 
                     correction['name'].lower(), '.dat']) 
+            
+            elif correction['name'].lower() in ('true_down_nz'): 
+                # true mock catalog downsampled by redshift 
+                file_name = ''.join([data_dir, 
+                    'sdssmock_gamma_lrgFull_zm_oriana', 
+                    str("%02d" % catalog['n_mock']), catalog['letter'], 
+                    '_no.rdcz.down_nz.dat'])
 
             else: 
                 raise NotImplementedError('asdfasdf') 
 
         if DorR.lower() == 'random': 
-            file_name = '/mount/riachuelo1/hahn/data/LasDamas/Geo/sdssmock_gamma_lrgFull.rand_200x_no.rdcz.dat'
+
+            if 'down_nz' in correction['name'].lower():  
+                file_name = ''.join(['/mount/riachuelo1/hahn/data/LasDamas/Geo/',
+                    'sdssmock_gamma_lrgFull.rand_200x_no.rdcz.down_nz.dat']) 
+            else: 
+                file_name = '/mount/riachuelo1/hahn/data/LasDamas/Geo/sdssmock_gamma_lrgFull.rand_200x_no.rdcz.dat'
+    
+    elif catalog['name'].lower() == 'ldgdownnz':                # LasDamasGeo downsampled ----- 
+        data_dir = '/mount/riachuelo1/hahn/data/LasDamas/Geo/'
+
+        if DorR.lower() == 'data':                  # data
+
+            if correction['name'].lower() == 'true':    # true
+                # true mock catalog downsampled by redshift 
+                file_name = ''.join([data_dir, 
+                    'sdssmock_gamma_lrgFull_zm_oriana', 
+                    str("%02d" % catalog['n_mock']), catalog['letter'], 
+                    '_no.rdcz.down_nz.dat'])
+
+            elif correction['name'].lower() in ('upweight'):    # upweight
+                # Nearest angular neighbor weights assigned
+                file_name = ''.join([data_dir, 
+                    'sdssmock_gamma_lrgFull_zm_oriana', 
+                    str("%02d" % catalog['n_mock']), catalog['letter'], 
+                    '_no.rdcz.fibcoll.down_nz.dat'])
+
+            else: 
+                raise NotImplementedError('asdfasdf') 
+
+        if DorR.lower() == 'random': 
+
+            file_name = ''.join(['/mount/riachuelo1/hahn/data/LasDamas/Geo/',
+                'sdssmock_gamma_lrgFull.rand_200x_no.rdcz.down_nz.dat']) 
 
     elif catalog['name'].lower() == 'tilingmock':               # Tiling Mock -----------------------
         if DorR == 'data': 
@@ -1178,6 +1286,13 @@ def build_fibercollided(**cat_corr):
     if catalog['name'].lower() == 'lasdamasgeo':        # Las Damas Geo 
         
         fibcollided_cmd = 'idl -e "ldg_fibcollmock_wcp_assign,'+str(catalog['n_mock'])+", '"+\
+                str(catalog['letter'])+"'"+'"'
+        print fibcollided_cmd
+        os.system(fibcollided_cmd)  # call IDL code 
+
+    elif catalog['name'].lower() == 'ldgdownnz': 
+
+        fibcollided_cmd = 'idl -e "ldgdownnz_wcp_assign,'+str(catalog['n_mock'])+", '"+\
                 str(catalog['letter'])+"'"+'"'
         print fibcollided_cmd
         os.system(fibcollided_cmd)  # call IDL code 
@@ -2182,21 +2297,126 @@ def build_ldg_scratch(**cat_corr):
             np.c_[orig_ra, orig_dec, orig_z, orig_wfc ], 
             fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
-def build_ldg_nbarz(**cat_corr): 
-    ''' Downsample LasDamas mocks to give nbar(z) redshift dependence
+def build_ldg_nz_down(DorR, **cat_corr): 
+    ''' Downsample LasDamas mocks in order to give the nbar(z) redshift dependence
     similar to CMASS sample 
+
+    Parameters 
+    ----------
+    * cat_corr : catalog correction dictionary
+
+    
+    Notes
+    -----
+    * simultaneously generates nbar(z) file for new downsampled nbar(z) 
+    * rather than using the actual CMASS sample, Nseries mock nbar(z) ratio is used 
+    * since the main goal is to mostly to construct a redshif tdependence, 
+    the details are spared
+    * wcp are NOT assigned
 
     '''
     catalog = cat_corr['catalog']
-    correction = cat_corr['correction']
-        
-    omega_m = 0.25  # cosmology for LDG
+    ldg_catalog = catalog.copy()
+    ldg_catalog['name'] = 'lasdamasgeo'
+    true_cat_corr = {'catalog': ldg_catalog, 'correction': {'name': 'true'}} # only true can go her 
 
-    cosmo = {} 
-    cosmo['omega_M_0'] = omega_m 
-    cosmo['omega_lambda_0'] = 1.0 - omega_m 
-    cosmo['h'] = 0.676
-    cosmo = cosmos.distance.set_omega_k_0(cosmo) 
+    if catalog['name'].lower() != 'ldgdownnz': 
+        raise NameError('kasdkfjlaskjdf') 
+    
+    ldg_nbar = 0.0000944233         # default LDG nbar(z) 
+    
+    # read in LDG file 
+    ldg_file = get_galaxy_data_file(DorR, **true_cat_corr) 
+    if DorR == 'data': 
+        ra, dec, z, wcp = np.loadtxt(ldg_file, unpack=True, usecols=[0,1,2,3])
+    elif DorR == 'random': 
+        ra, dec, cz = np.loadtxt(ldg_file, unpack=True, usecols=[0,1,2])
+        z =cz/299800.0
+    ngal_tot = len(z) 
+
+    # read in Nseries nbar(z) ratio file
+    nseries_cat = {'name': 'nseries'} 
+    nseries_cat_corr = {'catalog': nseries_cat, 'correction': {'name': 'true'}} 
+
+    nbar_file = fc_nbar.get_nbar_file(**nseries_cat_corr) # avg nbar file
+    ratio_nbar_file = ''.join([ '/'.join( nbar_file.split('/')[:-1] ), '/', 
+        'ratio_', (nbar_file.split('/')[-1])]) 
+    print ratio_nbar_file
+    
+    nseries_zmid, nseries_zlow, nseries_zhigh, nseries_fraction = np.loadtxt(
+            ratio_nbar_file, unpack=True, usecols=[0,1,2,3]) 
+
+    zmid = nseries_zmid 
+    zlow = nseries_zlow 
+    zhigh = nseries_zhigh
+
+    nseries_zmid = nseries_zmid - 0.27  # shift nseries redshift down 
+    nseries_zlow = nseries_zlow - 0.27  # shift nseries redshift down 
+    nseries_zhigh = nseries_zhigh - 0.27  # shift nseries redshift down 
+    
+    remove_indices = [] 
+    ngal_remove = 0
+    if DorR == 'random':
+        new_nz = [] 
+
+    # loop through redshift bins and downsample 
+    for i_z, n_zmid in enumerate(nseries_zmid): 
+
+        z_bin = np.where( (z >= nseries_zlow[i_z]) & (z < nseries_zhigh[i_z]) ) 
+
+        ngal_bin = len(z[z_bin]) # Ngal for redshift bin 
+        
+        bin_down_frac = nseries_fraction[i_z] 
+    
+        if DorR == 'random':    # make downsampled nbar(z) file
+            if n_zmid > 0.0: 
+                new_nz.append(ldg_nbar * bin_down_frac) 
+            
+        # number of galaxies to remove 
+        ngal_bin_remove = np.float(ngal_bin) * (1.0 - bin_down_frac) 
+    
+        if ngal_bin_remove > 0:  
+            # indices to remove
+            ngal_remove += int(np.rint(ngal_bin_remove))
+            remove_indices += random.sample( z_bin[0], int(np.rint(ngal_bin_remove)) )
+    
+    if DorR == 'random': 
+        new_nz += [0.0 for i in range(len(zmid) - len(new_nz))]
+
+        new_nz_file = ''.join(['/mount/riachuelo1/hahn/data/LasDamas/Geo/', 
+            'nbar-lasdamasgeo.down_nz.dat']) 
+        print new_nz_file
+        np.savetxt(new_nz_file,
+                np.c_[zmid, zlow, zhigh, new_nz],
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e'], delimiter='\t')
+
+    print ngal_remove, ' Galaxies will be removed from mock realization'
+    print 100.0 * np.float(ngal_remove)/np.float(ngal_tot), '% of galaxies will be removed'
+    
+    remain_indices = list(set(range(ngal_tot)) - set(remove_indices)) # remove 'remove indices'
+
+    if len(remain_indices) + len(remove_indices) == ngal_tot: 
+        pass
+    else: 
+        raise TypeError('Remove indices not working') 
+    
+    ldg_down_nz_file = get_galaxy_data_file(DorR, **cat_corr) 
+    if DorR == 'data': 
+        np.savetxt(ldg_down_nz_file, 
+                np.c_[
+                    ra[remain_indices], dec[remain_indices], 
+                    z[remain_indices], wcp[remain_indices]
+                    ], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+    elif DorR == 'random': 
+        np.savetxt(ldg_down_nz_file, 
+                np.c_[
+                    ra[remain_indices], dec[remain_indices], 
+                    z[remain_indices]
+                    ], 
+                fmt=['%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+
+    return 
 
 def build_nseries_scratch(**cat_corr): 
     ''' Quick function to test fiber collision correction methods on Nseries mocks

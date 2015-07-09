@@ -297,7 +297,7 @@ def build_fibcol_pk(cat, i_mock, corr, quad=False, clobber=False, **kwargs):
         power_file = fc_spec.build_fibcol_power(**i_cat_corr) 
         print 'Constructing ', power_file 
     
-    elif cat == 'lasdamasgeo': 
+    elif cat in ('lasdamasgeo', 'ldgdownnz'): 
         # some constants throughout the code
         if 'spec' in kwargs.keys(): 
             spec = kwargs['spec'] 
@@ -877,7 +877,8 @@ def build_pk(catalog, n_mocks, quad=False):
 
     '''
     # correction method list 
-    corrections = [ {'name': 'true'}, {'name': 'upweight'}]
+    corrections = [ {'name': 'upweight'}] # , {'name': 'upweight'}]
+    #corrections = [{'name': 'true_down_nz'}]
     #corrections = [{'name': 'peakshot', 'sigma': 3.8, 'fpeak': 0.7, 'fit': 'gauss'}]
     #corrections = [{'name': 'peakshot', 'fpeak': 0.7, 'fit': 'true'}]
     #corrections = [{'name': 'scratch_peakknown'}]
@@ -889,7 +890,7 @@ def build_pk(catalog, n_mocks, quad=False):
 
     spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid': 360, 'quad': quad}
 
-    for i_mock in range(11, n_mocks+1): 
+    for i_mock in range(1, n_mocks+1): 
         for corr in corrections: 
             build_fibcol_pk(catalog, i_mock, corr, spec=spec, clobber=True) 
 
@@ -926,13 +927,16 @@ def fibcol_now_fraction(**cat_corr):
     print 'w_fc = 0 fraction = ', 1.0 - w_withfiber/w_tot
 
 if __name__=='__main__': 
-    for corr in ['true', 'upweight']: #, 'noweight']: 
-        cat_corr = {
-                'catalog': {'name':'bigmd'}, 
-                'correction': {'name': corr}
-                } 
-        fc_data.galaxy_data('data', clobber=True, **cat_corr) 
-
+    '''
+    for corr in ['true_down_nz']: #, 'noweight']: 
+        for n_mock in np.arange(1, 10): 
+            for letter in ['a', 'b', 'c', 'd']: 
+            cat_corr = {
+                    'catalog': {'name':'lasdamasgeo', 'n_mock': n_mock, 'letter': letter}, 
+                    'correction': {'name': corr}
+                    } 
+            fc_data.galaxy_data('data', clobber=True, **cat_corr) 
+    '''
     #cat_corr = { 'catalog': {'name':'bigmd'}, 'correction': {'name': 'upweight'}}
     #fibcol_now_fraction(**cat_corr)
     #cat_corr = { 'catalog': {'name':'nseries', 'n_mock': 1}, 'correction': {'name': 'upweight'}}
@@ -955,7 +959,7 @@ if __name__=='__main__':
                 fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     '''
 
-    #build_pk('lasdamasgeo', 10, quad=True)
+    build_pk('ldgdownnz', 10, quad=False)
     #build_pk('nseries', 84, quad=True)
 
     #qpm_avgP(45, {'name':'true'})
