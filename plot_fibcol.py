@@ -1099,6 +1099,16 @@ if __name__=="__main__":
     #plot_avg_pk_fibcol('lasdamasgeo', 40, {'name': 'true'}, quad=False)   
     #plot_avg_pk_fibcol('qpm', 100, {'name': 'true'}, quad=False)   
     #plot_comdis2z_test()
+    ldgdownnz_methods = [
+            {'catalog': {'name': 'lasdamasgeo'}, 'correction': {'name': 'true'}}, 
+            {'catalog': {'name': 'ldgdownnz'}, 'correction': {'name': 'true'}} 
+            ]
+    plot_pk_fibcol_comp(ldgdownnz_methods, 10,
+            quad=False, Ngrid=360, type='regular', 
+            xrange=[0.001, 1.0], yrange=[10**3, 3*10**5])
+    plot_pk_fibcol_comp(ldgdownnz_methods, 10,
+            quad=False, Ngrid=360, type='ratio', 
+            xrange=[0.001, 1.0], yrange=[0.8, 1.2])
 
     ldgdownnz_methods = [
             {'catalog': {'name': 'ldgdownnz'}, 'correction': {'name': 'true'}}, 

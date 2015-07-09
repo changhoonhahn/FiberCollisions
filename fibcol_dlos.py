@@ -1712,6 +1712,8 @@ def plot_fcpaper_dlos(cat_corrs):
             mocks = range(1,11) 
         elif catalog['name'].lower() == 'cmass': 
             mocks = ['']
+        elif catalog['name'].lower() == 'bigmd': 
+            mocks = ['']
         else: 
             raise NameError('error')
     
@@ -1760,14 +1762,16 @@ def plot_fcpaper_dlos(cat_corrs):
         elif catalog['name'].lower() == 'patchy': 
             cat_label = 'patchy' 
             cat_color = pretty_colors[7]
-            lwid=4
         elif catalog['name'].lower() == 'tilingmock': 
             cat_label = 'Tiling Mock' 
             cat_color = pretty_colors[5]
         elif catalog['name'].lower() == 'cmass': 
             cat_label = 'BOSS CMASS'
             cat_color = pretty_colors[0]
-            lwid = 3 
+            lwid = 2
+        elif catalog['name'].lower() == 'bigmd': 
+            cat_label = 'Big MultiDark'
+            cat_color = pretty_colors[11]
         else: 
             raise NameError('asdf') 
 
@@ -1778,7 +1782,7 @@ def plot_fcpaper_dlos(cat_corrs):
     sub.set_xlabel(r"d$_{\rm{LOS}}$ (Mpc)", fontsize=24) 
     sub.set_xlim([-45.0, 45.0])
     #sub.set_xlim([0.1, 100.0])
-    sub.set_ylim([0.0, 0.07])
+    sub.set_ylim([0.0, 0.125])
     #sub.set_xscale('log') 
     #sub.set_yscale("log") 
     sub.legend(loc='upper left', scatterpoints=1, prop={'size':20}) 
@@ -1844,7 +1848,13 @@ if __name__=="__main__":
     #for i in np.arange(1,2): 
     #    cat_corr = {'catalog': {'name': 'nseries', 'n_mock': i}, 'correction': {'name': 'upweight'}} 
     #    build_dlos(**cat_corr) 
-    combined_catalog_dlos_fits('bigmd', 1)
+    #combined_catalog_dlos_fits('bigmd', 1)
     #combined_catalog_dlos_fits('lasdamasgeo', 5)
     #nseries_idl_python_dlos_test(1)
     #ldg_idl_python_dlos_test(10)
+    cat_corrs = [
+            {'catalog': {'name': 'cmass'}, 'correction': {'name': 'upweight'}}, 
+            {'catalog': {'name': 'qpm'}, 'correction': {'name': 'upweight'}}, 
+            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}, 
+            {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}}]
+    plot_fcpaper_dlos(cat_corrs)
