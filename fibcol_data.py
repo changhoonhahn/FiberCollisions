@@ -1846,7 +1846,7 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
     else: 
         raise NameError('correction fit has to be specified as gauss or expon') 
 
-    if catalog['name'].lower() == 'lasdamasgeo':    # LasDamasGeo 
+    if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz'):    # LasDamasGeo 
         n_mocks = 160   # total number of mocks
         survey_zmin, survey_zmax = 0.16, 0.44
 

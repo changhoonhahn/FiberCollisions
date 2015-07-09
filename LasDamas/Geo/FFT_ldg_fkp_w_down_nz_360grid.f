@@ -1,61 +1,60 @@
-c FFT code for LasDamasGeo with galaxy catalog weights using FKP weighting
-c I values are computed from random catalog
-c code input: Lbox, galaxy/random flag, P0, galaxy/random file, FFT output file 
-c galaxy catalog input: ra,dec,z,weight
-c random catalog input: ra,dec,z*cspeed
       implicit none  !as FFT_FKP_SDSS_LRG_new but removes some hard-cored choices
-      integer i,j,k,ii,jj,kk,n,nn
-      integer Nran,iwr,Ngal,Nmax,kx,ky,kz,Lm,Ngrid,ix,iy,iz
-      integer Nnz,Ntail,wNgal
-      integer Ng,Nr,iflag,ic,Nbin,l,ipoly,wb,wred,flag
-      integer veto
+      integer Nsel,Nran,i,iwr,Ngal,Nmax,n,kx,ky,kz,Lm,Ngrid,ix,iy,iz,j,k
+      integer Ng,Nr,iflag,ic,Nbin,l,ipoly,wb,wcp,wred,flag
+      real n_bar,wfkp,wfc,wcomp
       integer*8 planf
-      real pi,cspeed,Om0,OL0,redtru,m1,m2,wcp 
-      REAL zt,zlo,zhi,garb1,garb2,garb3
-      real cpz,cpnbarz
-      parameter(Nmax=2*10**8,Ngrid=360,Nbin=151,pi=3.141592654)
-      parameter(Om0=0.25,OL0=0.75)
+      real pi,cspeed,Om0,OL0,redtru,m1,m2,zlo,zhi,garb1,garb2,garb3,veto
+      parameter(Nsel=181,Nmax=2*10**8,Ngrid=360,Nbin=151,pi=3.141592654)
+      parameter(Om0=0.25,OL0=0.75)          ! hardcoded for Nseries
       integer grid
       dimension grid(3)
       parameter(cspeed=299800.0)
       integer, allocatable :: ig(:),ir(:)
-      real dum,gfrac
-      real peakrt,peakprt,pr,Rbox
+      real zbin(Nbin),dbin(Nbin),sec3(Nbin),zt,dum,gfrac
+      real cz,sec2(Nsel),chi,nbar,Rbox
       real*8 Ngsys,Nrsys
       real, allocatable :: nbg(:),nbr(:),rg(:,:),rr(:,:),wg(:),wr(:)
-      REAL, ALLOCATABLE :: z(:),selfun(:),sec(:)
-      REAL, ALLOCATABLE :: dm(:),selfunchi(:),secchi(:)
-      REAL, ALLOCATABLE :: tailz(:),tailnbarz(:),tailsec(:)
-      REAL az,ra,dec,rad,numden,wbr,wcpr,wredr,n_bar
-      REAL dlosrt,dlosprt
+      real, allocatable :: cmp(:)
+      real selfun(Nsel),z(Nsel),sec(Nsel),zmin,zmax,az,ra,dec,rad,numden
       real alpha,P0,nb,weight,ar,akf,Fr,Fi,Gr,Gi
       real*8 I10,I12,I22,I13,I23,I33
       real*8 gI10,gI12,gI22,gI13,gI23,gI33
       real kdotr,vol,xscale,rlow,rm(2)
-      real ran1,ran2,ran3,pz
-      real chi,nbar,nbarchi,tailnbar
       complex, allocatable :: dcg(:,:,:),dcr(:,:,:)
 c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
       character selfunfile*200,lssfile*200,randomfile*200,filecoef*200
-      CHARACTER peakfile*200,nbarfile*200,tailnbarfile*200
+      character spltest*200,nbarfile*200
       character fname*200,fftname*200
       character Rboxstr*200,iflagstr*200,P0str*200
+      common /interpol/z,selfun,sec
+      common /interpol2/ra,sec2
+      common /interp3/dbin,zbin,sec3
+      common /Nrandom/Nran
       external nbar,chi,nbar2,PutIntoBox,assign2,fcomb
-      external nbarchi,tailnbar
       include '/home/users/hahn/powercode/fftw_f77.i'
-
       grid(1) = Ngrid
       grid(2) = Ngrid
       grid(3) = Ngrid
       call fftwnd_f77_create_plan(planf,3,grid,FFTW_BACKWARD,
      $     FFTW_ESTIMATE + FFTW_IN_PLACE)
 
-      CALL getarg(1,Rboxstr)
-      READ(Rboxstr,*) Rbox
-      CALL getarg(2,iflagstr)
-      READ(iflagstr,*) iflag
-      CALL getarg(3,P0str) 
-      READ(P0str,*) P0
+c read in down sampled n(z) file 
+      selfunfile='/mount/riachuelo1/hahn/data/LasDamas/Geo/'//
+     $     'nbar-lasdamasgeo.down_nz.dat'
+      open(unit=4,file=selfunfile,status='old',form='formatted')
+      do i=1,Nsel
+         read(4,*)z(i),dum,dum,selfun(i)
+      enddo 
+      close(4)
+      call spline(z,selfun,Nsel,3e30,3e30,sec)
+
+!Arguments: Rbox, Mock/Random, P0, File, FFT file
+      call getarg(1,Rboxstr)
+      read(Rboxstr,*) Rbox
+      call getarg(2,iflagstr)
+      read(iflagstr,*) iflag
+      call getarg(3,P0str) 
+      read(P0str,*) P0
 
       Lm=Ngrid
       xscale=2.*RBox
@@ -64,38 +63,37 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
       rm(1)=float(Lm)/xscale
       rm(2)=1.-rlow*rm(1)
       WRITE(*,*) 'Ngrid=',Ngrid,'Box=',xscale,'P0=',P0
-     
+
       if (iflag.eq.0) then ! run on mock
-         CALL getarg(4,lssfile)
+         call getarg(4,lssfile)
          allocate(rg(3,Nmax),nbg(Nmax),ig(Nmax),wg(Nmax))
          open(unit=4,file=lssfile,status='old',form='formatted')
-
-         Ngal=0 
+         Ngal=0 !Ngal will get determined later after survey is put into a box (Ng)
          Ngsys=0.d0
-         DO i=1,Nmax
-            READ(4,*,END=13)ra,dec,az,wcp
+         do i=1,Nmax
+            read(4,*,end=13)ra,dec,az,wfc
             ra=ra*(pi/180.)
             dec=dec*(pi/180.)
             rad=chi(az)
             rg(1,i)=rad*cos(dec)*cos(ra)
             rg(2,i)=rad*cos(dec)*sin(ra)
             rg(3,i)=rad*sin(dec)
-            nbg(i)=0.0000944233
-            wg(i)=wcp
+            nbg(i)=nbar(az)
+            wg(i)=wfc            
             Ngal=Ngal+1
-            Ngsys=Ngsys+dble(wcp)
+            Ngsys=Ngsys+dble(wg(i))           ! contains comp upweighting
          enddo
  13      continue
          close(4)
 
-         WRITE(*,*)'Ngal=',Ngal,'Ng,sys=',real(Ngsys)
-         WRITE(*,*)'Ngal,sys/Ng=',real(Ngsys)/float(Ngal)
-         
+         WRITE(*,*) 'Ngal=',Ngal,'Ngal,sys=',real(Ngsys)
+         WRITE(*,*) 'Ngal,sys/Ngal=',real(Ngsys)/float(Ngal)
+
          call PutIntoBox(Ngal,rg,Rbox,ig,Ng,Nmax)
          gfrac=100. *float(Ng)/float(Ngal)
          WRITE(*,*) 'Ngal,box=',Ng,'Ngal=',Ngal,gfrac,'percent'
 
-         Ngsys=Ngsys*dble(Ng)/dble(Ngal) !we have a problem if it's not 100% 
+         Ngsys=Ngsys*dble(Ng)/dble(Ngal)
 
          gI10=0.d0
          gI12=0.d0
@@ -104,8 +102,8 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          gI23=0.d0
          gI33=0.d0
          do i=1,Ng
-            nb=nbg(i)  
-            weight=dble(wg(i))/(1.d0+nb*P0) 
+            nb=nbg(i)
+            weight=dble(wg(i))/(1.d0+nbg(i)*P0) ! no comp variation
             gI10=gI10+1.d0
             gI12=gI12+dble(weight**2)
             gI22=gI22+dble(nb*weight**2)
@@ -127,33 +125,31 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          write(6)P0,Ng,real(Ngsys)
          close(6)
 
-       elseif (iflag.eq.1) then 
+       elseif (iflag.eq.1) then ! compute discretness integrals and FFT random mock
          call getarg(4,randomfile)
          allocate(rr(3,Nmax),nbr(Nmax),ir(Nmax),wr(Nmax))
          open(unit=4,file=randomfile,status='old',form='formatted')
-         Nran=0 
+         Nran=0 !Ngal will get determined later after survey is put into a box (Nr)
          Nrsys=0.d0
          do i=1,Nmax
             read(4,*,end=15)ra,dec,az
             ra=ra*(pi/180.)
             dec=dec*(pi/180.)
-            az=az/cspeed!divide cz by c
             rad=chi(az)
             wr(i)=1.0
-            Nrsys=Nrsys+dble(wr(i))
-            Nran=Nran+1
             rr(1,i)=rad*cos(dec)*cos(ra)
             rr(2,i)=rad*cos(dec)*sin(ra)
             rr(3,i)=rad*sin(dec)
-            nbr(i)=0.0000944233
+            nbr(i)=nbar(az)            ! nbar_true no comp variation
+            Nrsys=Nrsys+dble(wr(i))
+            Nran=Nran+1
          enddo
  15      continue
          close(4)
       
          call PutIntoBox(Nran,rr,Rbox,ir,Nr,Nmax)
          gfrac=100. *float(Nr)/float(Nran)
-         write(*,*) 'Nr=',Nr,'Nran=',Nran,'Nr,sys=',Nrsys
-         Nrsys=Nrsys*dble(Nr)/dble(Nran)!should be 100% 
+         WRITE(*,*) 'Nran,box=',Nr,'Nran=',Nran, gfrac,'percent'
 
          I10=0.d0
          I12=0.d0
@@ -162,8 +158,8 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          I23=0.d0
          I33=0.d0
          do i=1,Nr
-            nb=nbr(i)  
-            weight=1.d0/(1.d0+nb*P0) 
+            nb=nbr(i)            ! yes comp variations
+            weight=dble(wr(i))/(1.d0+nbr(i)*P0)  ! no comp variations
             I10=I10+1.d0
             I12=I12+dble(weight**2)
             I22=I22+dble(nb*weight**2)
@@ -172,11 +168,13 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
             I33=I33+dble(nb**2 *weight**3)
          enddo
 
+         WRITE(*,*) 'N_r,sys=',Nrsys,'N_r,sys/Nr=',Nrsys/float(Nran)
          allocate(dcr(Ngrid,Ngrid,Ngrid))
          call assign(Nran,rr,rm,Lm,dcr,P0,nbr,ir,wr)
          call fftwnd_f77_one(planf,dcr,dcr)      
          call fcomb(Lm,dcr,Nr)
 
+!         write(*,*) 'Fourier file :'
          call getarg(5,filecoef)
          open(unit=6,file=filecoef,status='unknown',form='unformatted')
          write(6)(((dcr(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
@@ -184,7 +182,12 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
      &   real(I33)
          write(6)P0,Nr,real(Nrsys)
          close(6)
+         
       endif
+      
+
+ 1025 format(2x,6e14.6)
+ 123  stop
       end
 c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       Subroutine PutIntoBox(Ng,rg,Rbox,ig,Ng2,Nmax)
@@ -217,6 +220,7 @@ c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 cc*******************************************************************
       real dtl(2*L,L,L),r(3,N),rm(2),we,ar,nb,nbg(N),w(N)
       integer ig(N)
+      external nbar
 c
       do 1 iz=1,L
        do 1 iy=1,L
@@ -447,24 +451,21 @@ c
 c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       REAL function nbar(QQ) !nbar(z)
 c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-      real az,QQ
+      parameter(Nsel=181)!80)
+      integer iflag
+      real z(Nsel),selfun(Nsel),sec(Nsel),self,az,qq,area_ang
+      common /interpol/z,selfun,sec
+      common/radint/Om0,OL0
+      common /zbounds/zmin,zmax
+      real Om0,OL0
+      external chi
       az=QQ
       if (az.lt.0.0 .or. az.gt.1.5) then
          nbar=0.0
       else
-          nbar=9.44451e-5
+         call splint(z,selfun,sec,Nsel,az,self)
+         nbar=self 
       endif
-      RETURN
-      END
-c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      REAL function tailnbar(QQQ,N,tailz,tailnbarz,tailsec)
-c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-      INTEGER N
-      REAL tailz(N),tailnbarz(N),tailsec(N)
-      REAL tailself,tailar,QQQ
-      tailar=QQQ
-      CALL splint(tailz,tailnbarz,tailsec,N,tailar,tailself)
-      tailnbar=tailself
       RETURN
       END
 c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -489,7 +490,7 @@ c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       real*8 function rdi(z) !radial distance integrand
 c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       real Om0,OL0
-      parameter (Om0=0.27,OL0=0.73)  
+      parameter (Om0=0.31,OL0=0.69)  
       real*8 z
       rdi=3000.d0/dsqrt(OL0+(1.d0-Om0-OL0)*(1.d0+z)**2+Om0*(1.d0+z)**3)
       return
