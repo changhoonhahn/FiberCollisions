@@ -136,7 +136,7 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
 
         omega_m = 0.31
         
-        readcol, mock_file, mock_ra, mock_dec, mock_redshift, w_cp 
+        readcol, mock_file, mock_ra, mock_dec, mock_redshift, nbar, w_cp 
 
         upcp_indx = where(w_cp gt 1)   ; upweighted galaxies  
         ra_upcp  = mock_ra[upcp_indx]

@@ -1855,15 +1855,18 @@ def combined_catalog_dlos_fits(catalog, n_mock):
 
 if __name__=="__main__": 
     cat_corr = {
-            'catalog': {'name': 'ldgdownnz', 'n_mock': 1, 'letter': 'a'}, 
+            'catalog': {'name': 'bigmd'}, 
             'correction': {'name': 'upweight'}} 
+    #Dlos = dlos(readdata=True, clobber=True, **cat_corr)
     #combined_dlos_dist(1, **cat_corr)
     #combined_catalog_dlos_fits('nseries', 1)
+    '''
     for i in np.arange(1, 11): 
         for letter in ['a', 'b', 'c', 'd']: 
             cat_corr = {'catalog': {'name': 'ldgdownnz', 'n_mock': i, 'letter': letter}, 
                     'correction': {'name': 'upweight'}} 
             Dlos = dlos(readdata=True, clobber=True, **cat_corr)
+    '''
             #build_dlos_ldg_test(**cat_corr)
     #        fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     #        build_dlos(**cat_corr) 
@@ -1879,4 +1882,4 @@ if __name__=="__main__":
             {'catalog': {'name': 'qpm'}, 'correction': {'name': 'upweight'}}, 
             {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}, 
             {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}}]
-    #plot_fcpaper_dlos(cat_corrs)
+    plot_fcpaper_dlos(cat_corrs)

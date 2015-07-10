@@ -1055,8 +1055,7 @@ def build_true(**cat_corr):
             true_ra, true_dec, true_z, true_weight],
             fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
-    elif catalog['name'].lower() == 'patchy': 
-        # PATCHY mocks ------------------------------------------ 
+    elif catalog['name'].lower() == 'patchy':           # PATCHY mocks ---------------------------
         
         # read original mock data 
         orig_file = ''.join(['/mount/riachuelo1/hahn/data/PATCHY/dr12/v6c/', 
@@ -1081,24 +1080,28 @@ def build_true(**cat_corr):
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e', '%10.5f'], 
                 delimiter='\t') 
     
-    elif catalog['name'].lower() == 'bigmd':                                # Big MultiDark 
+    elif catalog['name'].lower() == 'bigmd':                    # Big MultiDark ------------
+    
+        P0 = 20000.0
 
         # read rdzw file 
         data_dir = '/mount/riachuelo1/hahn/data/BigMD/'
         orig_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-wcp-veto.dat'])  # hardcoded
-        orig_ra, orig_dec, orig_z, orig_veto, orig_wfc = np.loadtxt(orig_file, 
-                skiprows=1, unpack=True, usecols=[0,1,2,4,5])
+        orig_ra, orig_dec, orig_z, orig_wfkp, orig_veto, orig_wfc = np.loadtxt(orig_file, 
+                unpack=True, usecols=[0,1,2,3,4,5])
 
         # true wfc = 1 for all galaxies 
         true_wfc = np.array([ 1.0 for i in range(len(orig_wfc)) ]) 
+        nbar = (1.0/P0) * (1.0/orig_wfkp - 1.0) 
 
         vetomask = np.where(orig_veto == 1)     # if veto = 1 then keep; otherwise discard 
         
         # write to file 
         true_file = get_galaxy_data_file('data', **cat_corr) 
         np.savetxt(true_file, 
-                np.c_[orig_ra[vetomask], orig_dec[vetomask], orig_z[vetomask], true_wfc[vetomask]], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+                np.c_[orig_ra[vetomask], orig_dec[vetomask], orig_z[vetomask], 
+                    nbar[vetomask], true_wfc[vetomask]], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e', '%10.5f'], delimiter='\t') 
 
     else: 
         raise NameError('not yet coded') 
@@ -1112,10 +1115,9 @@ def build_random(**cat_corr):
     '''
     catalog = cat_corr['catalog']
 
-    if catalog['name'].lower() == 'qpm':                        # QPM ------------------------------
-    
-        data_dir = '/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/randoms/'
+    if catalog['name'].lower() == 'qpm':            # QPM ------------------------------
         # read original random catalog  
+        data_dir = '/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/randoms/'
         orig_true_random = np.loadtxt(''.join([data_dir, 'a0.6452_rand50x.dr12d_cmass_ngc.rdz']))   # ra, dec, z, wfkp
         orig_true_random_info = np.loadtxt(data_dir+'a0.6452_rand50x.dr12d_cmass_ngc.rdz.info')   # galid, comp?
         orig_true_random_veto = np.loadtxt(data_dir+'a0.6452_rand50x.dr12d_cmass_ngc.veto')       # veto  
@@ -1164,22 +1166,24 @@ def build_random(**cat_corr):
                     orig_ra[vetomask], orig_dec[vetomask], orig_z[vetomask], orig_nbar[vetomask]
                     ], fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e'], delimiter='\t') 
 
-    elif catalog['name'].lower() == 'bigmd': 
-
+    elif catalog['name'].lower() == 'bigmd':        # Big MD ----------------------------
+        P0 = 20000.0
         # original random catalog 
         data_dir = '/mount/riachuelo1/hahn/data/BigMD/'
         orig_rand_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-wcp-veto.ran']) 
 
         # RA, Decl, Redhsift, veto  
-        ra, dec, z, veto = np.loadtxt(orig_rand_file, unpack=True, usecols=[0,1,2,4]) 
+        ra, dec, z, wfkp, veto = np.loadtxt(orig_rand_file, unpack=True, usecols=[0,1,2,3,4]) 
+    
+        nbar = (1.0 / P0) * (1.0/wfkp - 1.0)    # nbar(z) 
 
         vetomask = np.where(veto == 1)  # impose vetomask 
     
         # save rnadom file (write RA, Decl, Redshift) 
         true_random_file = get_galaxy_data_file('random', **{'catalog':{'name':'bigmd'}, 'correction':{'name':'true'}})
         np.savetxt(true_random_file, 
-                np.c_[ra[vetomask], dec[vetomask], z[vetomask]], 
-                fmt=['%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+                np.c_[ra[vetomask], dec[vetomask], z[vetomask], nbar[vetomask]], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e'], delimiter='\t') 
     else:
         raise NotImplementedError('asdfasdfasdfasdfadf') 
 
@@ -1388,23 +1392,28 @@ def build_fibercollided(**cat_corr):
         fibcollided_cmd = ''
     
     elif catalog['name'].lower() == 'bigmd':            # Big MD --------------------
-
+    
+        P0 = 20000.0
         # read original random catalog 
         data_dir = '/mount/riachuelo1/hahn/data/BigMD/'
         orig_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-wcp-veto.dat']) 
 
         # RA, Decl, Redhsift, veto  
-        ra, dec, z, veto, wfc = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,4,5]) 
+        ra, dec, z, wfkp, veto, wfc = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,3,4,5]) 
         n_gal = len(ra) 
 
+        nbar = (1.0 / P0) * (1.0/wfkp - 1.0) 
+        print nbar
+        print min(nbar), max(nbar)
         vetomask = np.where(veto == 1)  # impose vetomask 
     
         fc_file = get_galaxy_data_file('data', **cat_corr)    # file name 
         np.savetxt(fc_file, 
                 np.c_[
-                    ra[vetomask], dec[vetomask], z[vetomask], wfc[vetomask]
+                    ra[vetomask], dec[vetomask], z[vetomask], 
+                    nbar[vetomask], wfc[vetomask]
                     ], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e', '%10.5f'], delimiter='\t') 
         
         fibcollided_cmd = ''
     

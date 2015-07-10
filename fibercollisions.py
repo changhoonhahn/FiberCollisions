@@ -265,76 +265,54 @@ def build_fibcol_pk(cat, i_mock, corr, quad=False, clobber=False, **kwargs):
     quad : monopole or quadrupole 
 
     '''
+    mock_list = [] 
+    if cat in ('lasdamasgeo', 'ldgdownnz'):     # lasdamasgeo mocks 
+        for letter in ['a', 'b', 'c', 'd']: 
+            mock_list.append({'n_mock': i_mock, 'letter': letter}) 
+    else: 
+        mock_list.append({'n_mock': i_mock}) 
+    
     # cat corr dictionary
+    correction = corr   
     catalog = {'name': cat} 
-    correction = corr 
 
-    if cat in ('qpm', 'nseries'):                            
-        # some constants throughout the code
-        if 'spec' in kwargs.keys(): 
-            spec = kwargs['spec']
-        else: 
-            spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 
-                    'grid':360, 'quad':quad}
+    if 'spec' in kwargs.keys(): 
+        spec = kwargs['spec']
+    else: 
+        spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 
+                'grid':360, 'quad':quad}
 
-        i_catalog = catalog.copy() 
-        i_catalog['n_mock'] = i_mock 
+    cat_corr = {'catalog': catalog, 'correction': correction, 'spec': spec}
 
-        i_cat_corr = {'catalog': i_catalog, 'correction': correction, 'spec': spec}
-        # random data ------------------------------------------------
-        fibcoll_data_prep('random', silent=False, clobber=False, **i_cat_corr) 
+    # build random data 
+    fibcoll_data_prep('random', silent=False, clobber=False, **cat_corr) 
+    # build random FFT  
+    rand_fft_file = fc_fft.build_fibcol_fft('random', **cat_corr)
 
-        # build random FFT  
-        rand_fft_file = fc_fft.build_fibcol_fft('random', **i_cat_corr)
+    for mock_dict in mock_list: # loop through 
+        # set up catalog correction dictionary 
+        (cat_corr['catalog'])['n_mock'] = mock_dict['n_mock'] 
+        try: 
+            (cat_corr['catalog'])['letter'] = mock_dict['letter']
+        except (NameError, KeyError): 
+            pass 
 
         # mock data ---------------------------------------------------
-        fibcoll_data_prep('data', clobber=clobber, **i_cat_corr) 
+        fibcoll_data_prep('data', clobber=clobber, **cat_corr) 
                 
         # build mock FFT
-        fft_file = fc_fft.build_fibcol_fft('data', **i_cat_corr) 
+        fft_file = fc_fft.build_fibcol_fft('data', **cat_corr) 
         print 'Constructing ', fft_file 
         
-        power_file = fc_spec.build_fibcol_power(**i_cat_corr) 
+        power_file = fc_spec.build_fibcol_power(**cat_corr) 
         print 'Constructing ', power_file 
-    
-    elif cat in ('lasdamasgeo', 'ldgdownnz'): 
-        # some constants throughout the code
-        if 'spec' in kwargs.keys(): 
-            spec = kwargs['spec'] 
-        else:
-            spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 
-                    'grid':360, 'quad': quad} 
-
-        cat_corr = {'catalog':catalog, 'correction': correction, 'spec': spec}
-
-        # random data ------------------------------------------------
-        fibcoll_data_prep('random', silent=False, **cat_corr) 
-
-        # build random FFT  
-        rand_fft_file = fc_fft.build_fibcol_fft('random', **cat_corr)
         
-        # mock data ---------------------------------------------------
-        for letter in ['a', 'b', 'c', 'd']: 
-            i_cat_corr = {'catalog':catalog, 'correction': correction, 'spec': spec}
-            i_cat_corr['catalog']['n_mock'] = i_mock 
-            i_cat_corr['catalog']['letter'] = letter
+        # in order to safe memory delete data FFT file which can be generated quickly
+        cleanup_cmd = ''. join(['rm ', fft_file])
+        #print cleanup_cmd 
+        #os.system(cleanup_cmd) 
+    return 
 
-            fibcoll_data_prep('data', clobber=clobber, **i_cat_corr) 
-            
-            # build mock FFT
-            fft_file = fc_fft.build_fibcol_fft('data', **i_cat_corr) 
-            print 'Constructing ', fft_file 
-            
-            power_file = fc_spec.build_fibcol_power(**i_cat_corr) 
-            print 'Constructing ', power_file 
-
-            # in order to safe memory delete data FFT file which can be generated quickly
-            cleanup_cmd = ''. join(['rm ', fft_file])
-            #print cleanup_cmd 
-            #os.system(cleanup_cmd) 
-    else: 
-        raise NotImplementedError() 
-    
 # ------------------------------------------------------------------------------------
 # Tiling Mock
 def tilingmock_fibcoll_pk(corr, quad=False): 
@@ -937,12 +915,10 @@ if __name__=='__main__':
                     } 
             fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     '''
-    #cat_corr = { 'catalog': {'name':'bigmd'}, 'correction': {'name': 'upweight'}}
+    cat_corr = { 'catalog': {'name':'bigmd'}, 'correction': {'name': 'true'}}
     #fibcol_now_fraction(**cat_corr)
     #cat_corr = { 'catalog': {'name':'nseries', 'n_mock': 1}, 'correction': {'name': 'upweight'}}
     #fibcol_now_fraction(**cat_corr)
-    #corrections = [{'name': 'true'}, {'name': 'upweight'}]#, {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}]
-    #corrections = [{'name': 'peakshot', 'sigma': 3.8, 'fpeak': 0.7, 'fit': 'gauss'}]
     '''
     corrections = [{'name': 'scratch_peakknown_gauss_divide'}]
     for i_mock in np.arange(1, 11): 
@@ -958,8 +934,8 @@ if __name__=='__main__':
                 cat_corr = {'catalog': {'name': 'lasdamasgeo', 'n_mock': i_mock, 'letter': letter}, 'correction': corr} 
                 fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     '''
-
-    build_pk('ldgdownnz', 10, quad=False)
+    build_pk('bigmd', 1, quad=False) 
+    #build_pk('ldgdownnz', 10, quad=False)
     #build_pk('nseries', 84, quad=True)
 
     #qpm_avgP(45, {'name':'true'})

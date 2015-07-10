@@ -179,8 +179,7 @@ def fortran_code(fft_power, **cat_corr):
         else: 
             raise NameError("not Yet coded") 
     
-    elif catalog['name'].lower() == 'nseries':                  # N series ------------------
-
+    elif catalog['name'].lower() == 'nseries':              # N series ------------------
         code_dir = 'Nseries/'
         
         if fft_power.lower() == 'fft':          # FFT
@@ -228,8 +227,7 @@ def fortran_code(fft_power, **cat_corr):
         else: 
             raise NameError("not Yet coded") 
 
-    elif catalog['name'].lower() == 'patchy':                       # PATCHY --------------------
-
+    elif catalog['name'].lower() == 'patchy':               # PATCHY --------------------
         code_dir = '/home/users/hahn/powercode/FiberCollisions/PATCHY/dr12/v6c/'
         
         if fft_power.lower() == 'fft': 
@@ -273,6 +271,30 @@ def fortran_code(fft_power, **cat_corr):
         else: 
             raise NameError("not Yet coded") 
         '''
+    
+    elif catalog['name'].lower() == 'bigmd':                # Big MD ------------------------
+        code_dir = 'BigMD/'
+        
+        if fft_power.lower() == 'fft':  # FFT
+            if correction['name'].lower() == 'floriansn': 
+                raise NotImplementedError('asdfklj')
+            elif correction['name'].lower() == 'hectorsn': 
+                raise NotImplementedError('asdfklj')
+            else: 
+                f_code = code_dir+'FFT-bigmd-fkp-w-nbar-'+str(spec['grid'])+'grid.f'
+    
+        elif fft_power.lower() == 'power': 
+            if correction['name'].lower() in ('true', 'upweight'):
+                # normal FKP shot noise correction
+                if spec['grid'] == 360: 
+                    f_code = code_dir+'power-bigmd-fkp-w-nbar-360grid-180bin.f'
+                else: 
+                    raise NotImplementedError('asdfklj')
+            else: 
+                raise NotImplementedError('asdfklj')
+
+        else: 
+            raise NameError("not Yet coded") 
     
     else: 
         raise NaemError('Not coded!') 
@@ -367,6 +389,13 @@ def get_fibcoll_dir(file_type, **cat_corr):
             else:
                 file_dir = '/mount/riachuelo1/hahn/power/PATCHY/dr12/v6c/'
 
+        elif catalog['name'].lower() == 'bigmd':                # Big MD --------------------
+            if file_type.lower() == 'data': 
+                file_dir = '/mount/riachuelo1/hahn/data/BigMD/'
+            elif file_type.lower() == 'fft': 
+                file_dir = '/mount/riachuelo1/hahn/FFT/BigMD/'
+            else:
+                file_dir = '/mount/riachuelo1/hahn/power/BigMD/'
         else: 
             raise NameError('not yet coded')
     return file_dir 

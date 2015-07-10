@@ -40,10 +40,10 @@ class Spec:
         except KeyError: 
             spec['quad'] = False
 
-        if spec['quad'] == True:                                # for Quadrupole code 
+        if spec['quad']:                                # for Quadrupole code 
             spec_file_flag = spec_file_flag+'quad_'
 
-        if catalog['name'].lower() == 'tilingmock':                             # Tiling Mock ---------------------------
+        if catalog['name'].lower() == 'tilingmock':             # Tiling Mock -----------------
 
             file_dir = spec_dir+'tiling_mocks/' # file directory 
 
@@ -69,17 +69,15 @@ class Spec:
 
             self.scale = spec['box']
 
-        elif catalog['name'].lower() == 'cmass': 
+        elif catalog['name'].lower() == 'cmass':                # CMASS ---------------------
             file_dir = spec_dir
 
             file_prefix = 'power-cmass-dr12v4-N-Reid-weights-zlim-ngalsys-3600lbox-360grid-180bin.dat'
             file_corr = ''
             file_suffix = ''
 
-        elif catalog['name'].lower() == 'qpm':                                  # QPM --------------------------------
-
+        elif catalog['name'].lower() == 'qpm':                  # QPM ----------------------
             file_dir = spec_dir+'QPM/dr12d/'    # QPM directory 
-
             data_file = fc_data.get_galaxy_data_file('data', **cat_corr)
 
             # file naem  
@@ -100,8 +98,7 @@ class Spec:
 
             self.scale = spec['box']
         
-        elif catalog['name'].lower() == 'nseries':                              # N series --------------------------------
-
+        elif catalog['name'].lower() == 'nseries':              # N series --------------------
             file_dir = spec_dir+'Nseries/'    # N series directory 
 
             data_file = fc_data.get_galaxy_data_file('data', **cat_corr)
@@ -118,6 +115,31 @@ class Spec:
                 file_suffix = '.grid360.nmax.nstep3.P020000.box3600'
             elif spectrum == 'power': 
                 file_suffix = '.grid'+str(spec['grid'])+'.P0'+str(spec['P0'])+'.box'+str(spec['box'])
+            
+            # specify correction 
+            file_corr = ''          # specified in file_prefix within the data file name 
+
+            self.scale = spec['box']
+
+        elif catalog['name'].lower() == 'bigmd':                # Big MD --------------------
+            file_dir = spec_dir+'BigMD/'    # N series directory 
+
+            data_file = fc_data.get_galaxy_data_file('data', **cat_corr)
+
+            # file naem  
+            file_prefix = spec_file_flag + data_file.rsplit('/')[-1]
+            
+            if correction['name'].lower() == 'shotnoise': file_prefix = file_prefix+'.shotnoise'
+            if correction['name'].lower() == 'floriansn': file_prefix = file_prefix+'.floriansn'
+            if correction['name'].lower() == 'hectorsn': file_prefix = file_prefix+'.hectorsn'
+
+            # file ending  
+            if spectrum == 'bispec': 
+                file_suffix = '.grid360.nmax.nstep3.P020000.box3600'
+            elif spectrum == 'power': 
+                file_suffix = ''.join([
+                    '.grid', str(spec['grid']), '.P0', str(spec['P0']), '.box', str(spec['box'])
+                    ])
             
             # specify correction 
             file_corr = ''          # specified in file_prefix within the data file name 
@@ -274,7 +296,7 @@ def build_fibcol_power(**cat_corr):
     
     
     if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz', 
-            'tilingmock', 'qpm', 'patchy', 'nseries'):   
+            'tilingmock', 'qpm', 'patchy', 'nseries', 'bigmd'):   
         if spec['quad'] == True:            # for quadrupole code 
             # NOTE: ORDER OF RAND AND MOCK FILES ARE REVERSED
             power_cmd = ' '.join([power_exe, fft_rand_file, fft_file, power_file, 
