@@ -764,7 +764,7 @@ def combined_dlos_fit(n_mocks, fit='gauss', sanitycheck=False, clobber=False, **
     correction = cat_corr['correction']
    
     # Read dLOS data 
-    if catalog['name'].lower() == 'lasdamasgeo':            
+    if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz'):
         # LasDamasGeo ------------------------------------------------
         for i_mock in range(1, n_mocks+1): 
             for letter in ['a', 'b', 'c', 'd']: 
@@ -1823,6 +1823,11 @@ def combined_catalog_dlos_fits(catalog, n_mock):
         print 'LASDAMASGEO------------------------------------------------------'
         cat_corr = {'catalog': {'name':'lasdamasgeo'}, 'correction': {'name': 'upweight'}}
         print 'Gauss ', combined_dlos_fit(n_mock, fit='gauss', sanitycheck=True,  **cat_corr) 
+    
+    elif 'ldgdownnz' in catalog:  
+        print 'Downsampled LDG------------------------------------------------------'
+        cat_corr = {'catalog': {'name':'ldgdownnz'}, 'correction': {'name': 'upweight'}}
+        print 'Gauss ', combined_dlos_fit(n_mock, fit='gauss', sanitycheck=True,  **cat_corr) 
 
     elif 'qpm' in catalog: 
 
@@ -1859,7 +1864,7 @@ if __name__=="__main__":
             'correction': {'name': 'upweight'}} 
     #Dlos = dlos(readdata=True, clobber=True, **cat_corr)
     #combined_dlos_dist(1, **cat_corr)
-    #combined_catalog_dlos_fits('nseries', 1)
+    combined_catalog_dlos_fits('ldgdownnz', 10)
     '''
     for i in np.arange(1, 11): 
         for letter in ['a', 'b', 'c', 'd']: 
@@ -1877,9 +1882,9 @@ if __name__=="__main__":
     #combined_catalog_dlos_fits('lasdamasgeo', 5)
     #nseries_idl_python_dlos_test(1)
     #ldg_idl_python_dlos_test(10)
-    cat_corrs = [
-            {'catalog': {'name': 'cmass'}, 'correction': {'name': 'upweight'}}, 
-            {'catalog': {'name': 'qpm'}, 'correction': {'name': 'upweight'}}, 
-            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}, 
-            {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}}]
-    plot_fcpaper_dlos(cat_corrs)
+    #cat_corrs = [
+    #        {'catalog': {'name': 'cmass'}, 'correction': {'name': 'upweight'}}, 
+    #        {'catalog': {'name': 'qpm'}, 'correction': {'name': 'upweight'}}, 
+    #        {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}, 
+    #        {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}}]
+    #plot_fcpaper_dlos(cat_corrs)

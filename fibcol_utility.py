@@ -39,17 +39,12 @@ def fortran_code(fft_power, **cat_corr):
        
         if fft_power.lower() == 'fft':                      # FFT -----------------
     
-                
-            if 'down_nz' not in correction['name']: 
-                if correction['name'].lower() == 'floriansn':     # Beutler+2014
-                    f_code = ldg_code_dir+'FFT_ldg_fkp_w_florian_'+str(spec['grid'])+'grid.f'
-                elif correction['name'].lower() == 'hectorsn':  # Gil-Marin+2014
-                    f_code = ldg_code_dir+'FFT_ldg_fkp_w_hector_'+str(spec['grid'])+'grid.f'
-                else: 
-                    f_code = ldg_code_dir+'FFT_ldg_fkp_w_'+str(spec['grid'])+'grid.f'
+            if correction['name'].lower() == 'floriansn':     # Beutler+2014
+                f_code = ldg_code_dir+'FFT_ldg_fkp_w_florian_'+str(spec['grid'])+'grid.f'
+            elif correction['name'].lower() == 'hectorsn':  # Gil-Marin+2014
+                f_code = ldg_code_dir+'FFT_ldg_fkp_w_hector_'+str(spec['grid'])+'grid.f'
             else: 
-                # downsampled nz LasDamasGeo
-                f_code = ldg_code_dir+'FFT_ldg_fkp_w_down_nz_'+str(spec['grid'])+'grid.f'
+                f_code = ldg_code_dir+'FFT_ldg_fkp_w_'+str(spec['grid'])+'grid.f'
 
         elif fft_power.lower() == 'power':                  # power ----------------
 
@@ -93,12 +88,18 @@ def fortran_code(fft_power, **cat_corr):
         elif fft_power.lower() == 'power':  # power ----------------
 
             if correction['name'].lower() in ('true', 'upweight', 'peaknbar'):  
-                # FKP estimator
-
+                # Original FKP estimator
                 if spec['grid'] == 360: 
                     f_code = ldg_code_dir+'power_ldg_fkp_360grid_180bin.f'
                 elif spec['grid'] == 960: 
                     f_code = ldg_code_dir+'power_ldg_fkp_960grid_480bin.f'
+
+            elif correction['name'].lower() in ('peakshot'): 
+                # Igal+Irand shot noise incorporated
+                if spec['grid'] == 360: 
+                    f_code = ldg_code_dir+'power_ldg_fkp_Igal_Iran_360grid_180bin.f'
+                elif spec['grid'] == 960: 
+                    f_code = ldg_code_dir+'power_ldg_fkp_Igal_Iran_960grid_480bin.f'
 
             else: 
                 raise NotImplementedError('what?')

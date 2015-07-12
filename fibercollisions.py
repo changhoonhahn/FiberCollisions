@@ -855,10 +855,11 @@ def build_pk(catalog, n_mocks, quad=False):
 
     '''
     # correction method list 
-    corrections = [ {'name': 'upweight'}] # , {'name': 'upweight'}]
+    #corrections = [ {'name': 'upweight'}] # , {'name': 'upweight'}]
     #corrections = [{'name': 'true_down_nz'}]
     #corrections = [{'name': 'peakshot', 'sigma': 3.8, 'fpeak': 0.7, 'fit': 'gauss'}]
     #corrections = [{'name': 'peakshot', 'fpeak': 0.7, 'fit': 'true'}]
+    corrections = [{'name': 'peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}]
     #corrections = [{'name': 'scratch_peakknown'}]
     #corrections = [{'name': 'scratch_peakknown_ang'}]
     #corrections = [{'name': 'scratch_peakknown_gauss'}]
@@ -906,14 +907,20 @@ def fibcol_now_fraction(**cat_corr):
 
 if __name__=='__main__': 
     '''
-    for corr in ['true_down_nz']: #, 'noweight']: 
+    for corr in ['true', 'upweight', 'peakshot']: #, 'noweight']: 
         for n_mock in np.arange(1, 10): 
             for letter in ['a', 'b', 'c', 'd']: 
-            cat_corr = {
-                    'catalog': {'name':'lasdamasgeo', 'n_mock': n_mock, 'letter': letter}, 
-                    'correction': {'name': corr}
-                    } 
-            fc_data.galaxy_data('data', clobber=True, **cat_corr) 
+                if corr == 'peakshot': 
+                    cat_corr = {
+                            'catalog': {'name':'ldgdownnz', 'n_mock': n_mock, 'letter': letter}, 
+                            'correction': {'name': corr, 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}
+                            } 
+                else: 
+                    cat_corr = {
+                            'catalog': {'name':'ldgdownnz', 'n_mock': n_mock, 'letter': letter}, 
+                            'correction': {'name': corr}
+                            } 
+                fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     '''
     cat_corr = { 'catalog': {'name':'bigmd'}, 'correction': {'name': 'true'}}
     #fibcol_now_fraction(**cat_corr)
@@ -934,8 +941,8 @@ if __name__=='__main__':
                 cat_corr = {'catalog': {'name': 'lasdamasgeo', 'n_mock': i_mock, 'letter': letter}, 'correction': corr} 
                 fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     '''
-    build_pk('bigmd', 1, quad=False) 
-    #build_pk('ldgdownnz', 10, quad=False)
+    #build_pk('bigmd', 1, quad=False) 
+    build_pk('ldgdownnz', 10, quad=False)
     #build_pk('nseries', 84, quad=True)
 
     #qpm_avgP(45, {'name':'true'})
