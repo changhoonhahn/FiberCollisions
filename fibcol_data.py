@@ -439,8 +439,7 @@ class galaxy_data:
                         # all weights = 1 (fibercollisions *not* imposed) 
                         build_true(**cat_corr) 
 
-                    elif correction['name'].lower() in (
-                            'upweight', 'shotnoise', 'floriansn', 'hectorsn'): 
+                    elif correction['name'].lower() in ('upweight'): 
                         # upweighted mocks
                         build_fibercollided(**cat_corr) 
 
@@ -482,14 +481,10 @@ class galaxy_data:
         else: 
             raise NameError('not yet coded') 
 
-        ''' COMMENTED OUT FOR NOW 
-        # CMASS --------------------------------------------------------------------------------------------------------
-        elif catalog['name'].lower() == 'cmass':
-            omega_m = 0.274
-            # Only coded for dr12v4 
+        elif catalog['name'].lower() == 'cmass':                    # CMASS -----------------
+            omega_m = 0.31      # (fiducial cosmology) 
             # NO CORRECTION IMPOSED YET
-            # Data ------------------------------------------------------------------------------------------------------
-            if DorR == 'data': 
+            if DorR == 'data':      # data --------------------
                 catalog_columns = ['ra', 'dec', 'z', 'wsys', 'wnoz', 'wfc', 'nbar', 'comp']
                 self.columns = catalog_columns
 
@@ -508,13 +503,13 @@ class galaxy_data:
                 self.columns = catalog_colums
                 
                 file_name = ''.join([data_dir, 'cmass-dr12v4-N-Reid-weights-zlim.ran.dat'])
+
                 if readdata == True: 
                     file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4])   #ra,dec,z,nbar,comp
 
                     # assign to data columns class
                     for i_col, catalog_column in enumerate(catalog_columns): 
                         setattr(self, catalog_column, file_data[i_col]) 
-        '''
         
         # survey cosmology metadata 
         cosmo = {} 
@@ -1071,8 +1066,7 @@ def build_true(**cat_corr):
             true_ra, true_dec, true_z, true_weight],
             fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
-    elif catalog['name'].lower() == 'patchy':           # PATCHY mocks ---------------------------
-        
+    elif catalog['name'].lower() == 'patchy':           # PATCHY mocks ------------------------
         # read original mock data 
         orig_file = ''.join(['/mount/riachuelo1/hahn/data/PATCHY/dr12/v6c/', 
             'Patchy-Mocks-DR12CMASS-N-V6C-Portsmouth-mass_', 

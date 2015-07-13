@@ -855,11 +855,11 @@ def build_pk(catalog, n_mocks, quad=False):
 
     '''
     # correction method list 
-    #corrections = [ {'name': 'upweight'}] # , {'name': 'upweight'}]
+    corrections = [{'name': 'true'}, {'name': 'upweight'}] # , {'name': 'upweight'}]
     #corrections = [{'name': 'true_down_nz'}]
     #corrections = [{'name': 'peakshot', 'sigma': 3.8, 'fpeak': 0.7, 'fit': 'gauss'}]
     #corrections = [{'name': 'peakshot', 'fpeak': 0.7, 'fit': 'true'}]
-    corrections = [{'name': 'peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}]
+    #corrections = [{'name': 'peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}]
     #corrections = [{'name': 'scratch_peakknown'}]
     #corrections = [{'name': 'scratch_peakknown_ang'}]
     #corrections = [{'name': 'scratch_peakknown_gauss'}]
@@ -942,7 +942,7 @@ if __name__=='__main__':
                 fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     '''
     #build_pk('bigmd', 1, quad=False) 
-    build_pk('ldgdownnz', 10, quad=False)
+    build_pk('patchy', 10, quad=False)
     #build_pk('nseries', 84, quad=True)
 
     #qpm_avgP(45, {'name':'true'})

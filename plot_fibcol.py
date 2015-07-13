@@ -59,7 +59,8 @@ def plot_pk_fibcol_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
         correction = cat_corr['correction']
 
         # power/bispectrum properties 
-        if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz', 'qpm', 'nseries', 'bigmd'): 
+        if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz', 'qpm', 'nseries', 'bigmd', 
+                'patchy'): 
 
             spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 
                     'grid': Ngrid, 'quad': quad} 
@@ -128,7 +129,7 @@ def plot_pk_fibcol_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
 
             n_file = 1          # only one file 
 
-        elif catalog['name'].lower() in ('qpm', 'nseries'): 
+        elif catalog['name'].lower() in ('qpm', 'nseries', 'patchy'): 
 
             n_file = 0  
             for i_mock in range(1, n_mock_i+1): 
@@ -197,8 +198,9 @@ def plot_pk_fibcol_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
                         color=pretty_colors[i_corr+1], label=resid_label)
 
             else: 
+                lbl = ' '.join([catalog['name'].upper(), correction['name'].upper()])
                 sub.scatter(avg_k, avg_Pk, 
-                        color=pretty_colors[i_corr+1], label=correction['name'])
+                        color=pretty_colors[i_corr+1], label=lbl)
 
         elif type == 'ratio':                       # P_corr(k)/P_true comparison 
             if i_corr == 0 :        
@@ -212,6 +214,7 @@ def plot_pk_fibcol_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
                         corr_name = 'Hahn'
                     else: 
                         corr_name = correction['name']
+
                     if correction['fit'].lower() in ('expon', 'gauss'): # labels
                         # exponential and gaussian fits 
                         resid_label = ''.join([
@@ -247,7 +250,7 @@ def plot_pk_fibcol_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
                     print avg_k[(avg_k > 0.15) & (avg_k < 0.2)]
                     '''
                 else:
-                    resid_label = correction['name']
+                    resid_label = ''.join([catalog['name'], ' ', correction['name']])
 
                     sub.scatter(avg_k, residual(avg_Pk, avg_Pk_denom), \
                             color=pretty_colors[i_corr+1], label=resid_label)
@@ -1126,14 +1129,15 @@ if __name__=="__main__":
     #plot_avg_pk_fibcol('qpm', 100, {'name': 'true'}, quad=False)   
     #plot_comdis2z_test()
     catcorr_methods = [
-            {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'true'}}, 
-            {'catalog': {'name': 'qpm'}, 'correction': {'name': 'true'}}
+            {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}},
+            {'catalog': {'name': 'patchy'}, 'correction': {'name': 'upweight'}}, 
+            {'catalog': {'name': 'qpm'}, 'correction': {'name': 'upweight'}} 
             ]
 
-    plot_pk_fibcol_comp(catcorr_methods, [1, 1000],
+    plot_pk_fibcol_comp(catcorr_methods, [10,10,1],
             quad=False, Ngrid=360, type='regular', 
             xrange=[0.001, 1.0], yrange=[10**3, 3*10**5])
-    plot_pk_fibcol_comp(catcorr_methods, [1, 1000],
+    plot_pk_fibcol_comp(catcorr_methods, [10,10,1],
             quad=False, Ngrid=360, type='ratio', 
             xrange=[0.001, 1.0], yrange=[0.8, 1.2])
 
