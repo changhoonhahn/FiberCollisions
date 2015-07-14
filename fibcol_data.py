@@ -418,14 +418,12 @@ class galaxy_data:
                     setattr(self, catalog_column, file_data[i_col])
     
         elif catalog['name'].lower() == 'bigmd':                            # Big MultiDark ------------------------
-            
             if cosmology == 'fidcosmo': 
                 omega_m = 0.31 # fiducial cosmology  
             else: 
                 raise NotImplementedError('You should use fiducial cosmology') 
 
             if DorR == 'data':                          # Data ------------------------------
-                
                 # catalog columns 
                 catalog_columns = ['ra', 'dec', 'z', 'wfc'] 
                 self.columns = catalog_columns
@@ -465,7 +463,6 @@ class galaxy_data:
                     setattr(self, catalog_column, file_data[i_col]) 
             
             elif DorR == 'random':              # Random ------------------------------------
-
                 catalog_columns = ['ra', 'dec', 'z']    # catalog columns 
                 
                 if not os.path.isfile(file_name) or clobber:
@@ -478,15 +475,24 @@ class galaxy_data:
                 for i_col, catalog_column in enumerate(catalog_columns): 
                     setattr(self, catalog_column, file_data[i_col])
 
-        else: 
-            raise NameError('not yet coded') 
-
         elif catalog['name'].lower() == 'cmass':                    # CMASS -----------------
-            omega_m = 0.31      # (fiducial cosmology) 
-            # NO CORRECTION IMPOSED YET
-            if DorR == 'data':      # data --------------------
+            if cosmology == 'fidcosmo': 
+                omega_m = 0.31      # (fiducial cosmology) 
+            else:
+                raise NotImplementedError('You should use fiducial cosmology') 
+
+            if DorR == 'data':              # data --------------------
                 catalog_columns = ['ra', 'dec', 'z', 'wsys', 'wnoz', 'wfc', 'nbar', 'comp']
                 self.columns = catalog_columns
+                
+                if not os.path.isfile(file_name) or clobber:
+                    # File does not exist or Clobber = True!
+                    print 'Constructing ', file_name 
+                    
+                    if correction['name'].lower() in ('upweight'): 
+                        pass 
+                    else: 
+                        raise NotImplementedError('Only upweight works for now') 
 
                 data_dir = '/mount/riachuelo1/hahn/data/'              # data directory
 
@@ -510,7 +516,9 @@ class galaxy_data:
                     # assign to data columns class
                     for i_col, catalog_column in enumerate(catalog_columns): 
                         setattr(self, catalog_column, file_data[i_col]) 
-        
+
+        else: 
+            raise NameError('not yet coded') 
         # survey cosmology metadata 
         cosmo = {} 
         cosmo['omega_M_0'] = omega_m 
@@ -775,7 +783,6 @@ def get_galaxy_data_file(DorR, cosmology='fidcosmo', **cat_corr):
             file_name = ''.join([data_dir, 'a0.6452_rand50x.dr12d_cmass_ngc.vetoed.dat'])             # hardcoded to 50x so it does'nt take forever
 
     elif catalog['name'].lower() == 'patchy':               # PATHCY mocks -------------
-
         data_dir = '/mount/riachuelo1/hahn/data/PATCHY/dr12/v6c/'   # data directory
 
         if DorR == 'data': 
@@ -835,7 +842,6 @@ def get_galaxy_data_file(DorR, cosmology='fidcosmo', **cat_corr):
             file_name = ''.join([data_dir, 'Random-DR12CMASS-N-V6C-x50.vetoed.dat'])
     
     elif catalog['name'].lower() == 'nseries':              # N-series ------------------
-
         data_dir = '/mount/riachuelo1/hahn/data/Nseries/'
         
         if DorR == 'data':  # mock catalogs 
@@ -890,11 +896,9 @@ def get_galaxy_data_file(DorR, cosmology='fidcosmo', **cat_corr):
             file_name = ''.join([data_dir, 'Nseries_cutsky_randoms_50x_redshifts_comp.dat']) 
     
     elif catalog['name'].lower() == 'bigmd':                # Big MD ---------------------
-
         data_dir = '/mount/riachuelo1/hahn/data/BigMD/'
         
         if DorR == 'data':  # mock catalogs 
-
             cosmo_str = '_' + cosmology   # specify cosmology (should be fiducial for most analysis) 
 
             if correction['name'].lower() == 'true':    # true mocks
@@ -944,12 +948,26 @@ def get_galaxy_data_file(DorR, cosmology='fidcosmo', **cat_corr):
                 '''
             else: 
                 raise NotImplementedError('not yet coded') 
-
+    
         elif DorR == 'random':                  # random catalog 
-
             # vetomask-ed random catalog 
             file_name = ''.join([data_dir, 'bigMD-cmass-dr12v4_vetoed.ran'])
+    
+    elif catalog['name'].lower() == 'cmass':                # CMASS ---------------------
+        data_dir = '/mount/riachuelo1/hahn/data/'
+        
+        if DorR == 'data':  # mock catalogs 
+            cosmo_str = '_' + cosmology   # specify cosmology (should be fiducial for most analysis) 
 
+            if correction['name'].lower() in ('upweight'): # upweighted
+                file_name = ''.join([data_dir, 
+                    'cmass-dr12v4-N-Reid-weights-zlim.dat']) # hardcoded
+            else: 
+                raise NotImplementedError('not yet coded') 
+    
+        elif DorR == 'random':                  # random catalog 
+            file_name = ''.join([data_dir, 
+                'cmass-dr12v4-N-Reid-weights-zlim.ran.dat'])
     return file_name 
 
 # ------------------------------------------------------------------------

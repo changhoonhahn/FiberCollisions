@@ -71,10 +71,23 @@ class Spec:
 
         elif catalog['name'].lower() == 'cmass':                # CMASS ---------------------
             file_dir = spec_dir
+    
+            data_file = fc_data.get_galaxy_data_file('data', **cat_corr)
+            file_prefix = ''.join([spec_file_flag, 
+                data_file.rsplit('/')[-1] ])
 
-            file_prefix = 'power-cmass-dr12v4-N-Reid-weights-zlim-ngalsys-3600lbox-360grid-180bin.dat'
-            file_corr = ''
-            file_suffix = ''
+            # file ending  
+            if spectrum == 'bispec': 
+                file_suffix = '.grid360.nmax.nstep3.P020000.box3600'
+            elif spectrum == 'power': 
+                file_suffix = ''.join([
+                    '.grid', str(spec['grid']), '.P0', str(spec['P0']), '.box', str(spec['box'])
+                    ])
+            
+            # specify correction 
+            file_corr = ''          # specified in file_prefix within the data file name 
+
+            self.scale = spec['box']
 
         elif catalog['name'].lower() == 'qpm':                  # QPM ----------------------
             file_dir = spec_dir+'QPM/dr12d/'    # QPM directory 
@@ -145,9 +158,8 @@ class Spec:
             file_corr = ''          # specified in file_prefix within the data file name 
 
             self.scale = spec['box']
-
+    
         elif catalog['name'].lower() in ("lasdamasgeo", 'ldgdownnz'):       # LasDamasGeo Mocks --
-            
             file_dir = ''.join([spec_dir, '/LasDamas/Geo/'])
 
             # e.g. power_sdssmock_gamma_lrgFull_zm_oriana19a_no.rdcz.dat.grid360.P020000.box3600
@@ -296,7 +308,7 @@ def build_fibcol_power(**cat_corr):
     
     
     if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz', 
-            'tilingmock', 'qpm', 'patchy', 'nseries', 'bigmd'):   
+            'tilingmock', 'qpm', 'patchy', 'nseries', 'bigmd', 'cmass'):   
         if spec['quad'] == True:            # for quadrupole code 
             # NOTE: ORDER OF RAND AND MOCK FILES ARE REVERSED
             power_cmd = ' '.join([power_exe, fft_rand_file, fft_file, power_file, 

@@ -63,13 +63,15 @@ def build_fibcol_fft(DorR, **cat_corr):
     # data file name 
     data_file = fc_data.get_galaxy_data_file(DorR, **cat_corr) 
     print data_file
-
+    
+    '''
     if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz', 
             'qpm', 'patchy', 'nseries', 'bigmd'):   
         # Las Damas included because it's constant nbar(z)
         pass
     else: 
         data_file = data_file+'.corrnbar'
+    '''
 
     try:                # if "quad" is not specified, then it's not used.
         spec['quad'] 
@@ -104,7 +106,7 @@ def build_fibcol_fft(DorR, **cat_corr):
 
     if not spec['quad']:       # NOT Quadrupole
         if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz', 
-                'tilingmock', 'qpm', 'patchy', 'nseries', 'bigmd'): 
+                'tilingmock', 'qpm', 'patchy', 'nseries', 'bigmd', 'cmass'): 
             # Mocks: LasDamas Geo, Tiling Mock, QPM, PATCHY, Nseries, BigMD
 
             # get bash command 

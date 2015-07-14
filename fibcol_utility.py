@@ -34,7 +34,6 @@ def fortran_code(fft_power, **cat_corr):
     spec = cat_corr['spec']
     
     if catalog['name'].lower() == 'lasdamasgeo':            # LasDamasGeo ----------------------
-
         ldg_code_dir = '/home/users/hahn/powercode/FiberCollisions/LasDamas/Geo/' 
        
         if fft_power.lower() == 'fft':                      # FFT -----------------
@@ -77,7 +76,6 @@ def fortran_code(fft_power, **cat_corr):
             raise NameError('asdflkajsdf') 
     
     elif catalog['name'].lower() == 'ldgdownnz':            # LasDamasGeo downsampled ---------
-        
         ldg_code_dir = '/home/users/hahn/powercode/FiberCollisions/LasDamas/Geo/' 
        
         if fft_power.lower() == 'fft':      # FFT -----------------
@@ -105,8 +103,6 @@ def fortran_code(fft_power, **cat_corr):
                 raise NotImplementedError('what?')
     
     elif catalog['name'].lower() == 'tilingmock':               # Tiling Mock ----------------
-
-        # code directory 
         code_dir = '/home/users/hahn/powercode/FiberCollisions/TilingMock/'
     
         if fft_power.lower() == 'fft':
@@ -139,7 +135,6 @@ def fortran_code(fft_power, **cat_corr):
             raise NameError('asdlkfjalksdjfklasjf')
 
     elif catalog['name'].lower() == 'qpm':                      # QPM -----------------------
-
         code_dir = '/home/users/hahn/powercode/FiberCollisions/QPM/dr12d/'
         
         if fft_power.lower() == 'fft': 
@@ -297,6 +292,31 @@ def fortran_code(fft_power, **cat_corr):
         else: 
             raise NameError("not Yet coded") 
     
+    elif catalog['name'].lower() == 'cmass': 
+        code_dir = 'CMASS/'
+        
+        if fft_power.lower() == 'fft':  # FFT
+            if correction['name'].lower() == 'floriansn': 
+                raise NotImplementedError('asdfklj')
+            elif correction['name'].lower() == 'hectorsn': 
+                raise NotImplementedError('asdfklj')
+            else: 
+                f_code = ''.join([code_dir,
+                    'FFT_cmass_fkp_w_fidcosmo_', str(spec['grid']), 'grid.f']) 
+    
+        elif fft_power.lower() == 'power': 
+            if correction['name'].lower() in ('upweight'):
+                # normal FKP shot noise correction
+                if spec['grid'] == 360: 
+                    f_code = ''.join([code_dir, 
+                        'power_cmass_fkp_360grid_180bin.f'])
+                else: 
+                    raise NotImplementedError('asdfklj')
+            else: 
+                raise NotImplementedError('asdfklj')
+
+        else: 
+            raise NameError("not Yet coded") 
     else: 
         raise NaemError('Not coded!') 
 
@@ -397,6 +417,14 @@ def get_fibcoll_dir(file_type, **cat_corr):
                 file_dir = '/mount/riachuelo1/hahn/FFT/BigMD/'
             else:
                 file_dir = '/mount/riachuelo1/hahn/power/BigMD/'
+
+        elif catalog['name'].lower() == 'cmass':                # CMASS ----------------------
+            if file_type.lower() == 'data': 
+                file_dir = '/mount/riachuelo1/hahn/data/'
+            elif file_type.lower() == 'fft': 
+                file_dir = '/mount/riachuelo1/hahn/FFT/'
+            else:
+                file_dir = '/mount/riachuelo1/hahn/power/'
         else: 
             raise NameError('not yet coded')
     return file_dir 
