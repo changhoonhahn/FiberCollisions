@@ -22,6 +22,7 @@ import fibcol_dlos as fc_dlos
 import fibcol_nbar as fc_nbar
 import galaxy_environment as genv
 import pyspherematch as pysph
+from utility.fitstables import mrdfits
 
 # Classes ------------------------------------------------------------
 class galaxy_data: 
@@ -466,14 +467,10 @@ class galaxy_data:
                     setattr(self, catalog_column, file_data[i_col])
 
         elif catalog['name'].lower() == 'cmass':                    # CMASS -----------------
-            # THInk ABOUT COSMOLOGY CHOICES MORE # 
-            # THInk ABOUT COSMOLOGY CHOICES MORE # 
-            # THInk ABOUT COSMOLOGY CHOICES MORE # 
             try: 
                 if catalog['cosmology'] == 'fiducial': 
+                    # Firm shift in cosmology use to OmegaM = 0.31 in WG 
                     omega_m = 0.31      # (fiducial cosmology) 
-                elif catalog['cosmology'] == 'regular': 
-                    omega_m = 0.274      # (fiducial cosmology) 
                 else:
                     raise NotImplementedError('You should use fiducial cosmology') 
             except KeyError: 
@@ -489,8 +486,7 @@ class galaxy_data:
                     print 'Constructing ', file_name 
                     
                     if correction['name'].lower() in ('upweight'): 
-                        print 'Already constructed'
-                        pass 
+                        build_fibercollided(**cat_corr) 
                     else: 
                         raise NotImplementedError('Only upweight works for now') 
 
@@ -502,17 +498,19 @@ class galaxy_data:
                     setattr(self, catalog_column, file_data[i_col]) 
 
             elif DorR == 'random': 
-                catalog_columns = ['ra', 'dec', 'z', 'nbar', 'comp']
-                self.columns = catalog_colums
+                catalog_columns = ['ra', 'dec', 'z', 'nbar']
+                self.columns = catalog_columns
                 
-                file_name = ''.join([data_dir, 'cmass-dr12v4-N-Reid-weights-zlim.ran.dat'])
+                if not os.path.isfile(file_name) or clobber: 
+                    print 'Constructing ', file_name 
+                    build_random(**cat_corr) 
 
-                if readdata == True: 
-                    file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4])   #ra,dec,z,nbar,comp
+                #ra,dec,z,nbar,comp
+                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])  
 
-                    # assign to data columns class
-                    for i_col, catalog_column in enumerate(catalog_columns): 
-                        setattr(self, catalog_column, file_data[i_col]) 
+                # assign to data columns class
+                for i_col, catalog_column in enumerate(catalog_columns): 
+                    setattr(self, catalog_column, file_data[i_col]) 
 
         else: 
             raise NameError('not yet coded') 
@@ -916,18 +914,18 @@ def get_galaxy_data_file(DorR, **cat_corr):
             file_name = ''.join([data_dir, 'bigMD-cmass-dr12v4_vetoed.ran'])
     
     elif catalog['name'].lower() == 'cmass':                # CMASS ---------------------
-        data_dir = '/mount/riachuelo1/hahn/data/'
+        data_dir = '/mount/riachuelo1/hahn/data/CMASS/'
         
         if DorR == 'data':  # mock catalogs 
             if correction['name'].lower() in ('upweight'): # upweighted
                 file_name = ''.join([data_dir, 
-                    'cmass-dr12v4-N-Reid-weights-zlim.dat']) # hardcoded
+                    'cmass-dr12v4-N-Reid.dat']) # hardcoded
             else: 
                 raise NotImplementedError('not yet coded') 
     
         elif DorR == 'random':                  # random catalog 
             file_name = ''.join([data_dir, 
-                'cmass-dr12v4-N-Reid-weights-zlim.ran.dat'])
+                'cmass-dr12v4-N-Reid.ran.dat'])
     return file_name 
 
 # ------------------------------------------------------------------------
@@ -1102,8 +1100,22 @@ def build_random(**cat_corr):
     cat_corr : Catalog and Correction dictionary
     '''
     catalog = cat_corr['catalog']
+    if catalog['name'].lower() == 'cmass':          # CMASS -------------------------------- 
+        data_dir = '/mount/riachuelo1/hahn/data/CMASS/'
+        data_file = ''.join([data_dir, 'cmass-dr12v4-N-Reid.ran.fits']) 
+        cmass = mrdfits(data_file) 
 
-    if catalog['name'].lower() == 'qpm':            # QPM ------------------------------
+        zlimit = np.where((cmass.z >= 0.43) & (cmass.z <= 0.7))
+
+        #ra, dec, z, nz
+        random_file = get_galaxy_data_file('random', **cat_corr) 
+        np.savetxt(random_file, 
+                np.c_[
+                    (cmass.ra)[zlimit], (cmass.dec)[zlimit], (cmass.z)[zlimit], 
+                    (cmass.nz)[zlimit]], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+
+    elif catalog['name'].lower() == 'qpm':            # QPM ------------------------------
         # read original random catalog  
         data_dir = '/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/randoms/'
         orig_true_random = np.loadtxt(''.join([data_dir, 'a0.6452_rand50x.dr12d_cmass_ngc.rdz']))   # ra, dec, z, wfkp
@@ -1120,7 +1132,6 @@ def build_random(**cat_corr):
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
     elif catalog['name'].lower() == 'nseries':      # Nseries ----------------------------
-
         # read original random catalog 
         data_dir = '/mount/riachuelo1/hahn/data/Nseries/'
 
@@ -1139,7 +1150,6 @@ def build_random(**cat_corr):
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
     elif catalog['name'].lower() == 'patchy':       # PATCHY
-
         orig_file = ''.join(['/mount/riachuelo1/hahn/data/PATCHY/dr12/v6c/', 
             'Random-DR12CMASS-N-V6C-x50.dat']) 
         orig_ra, orig_dec, orig_z, orig_nbar, orig_veto = np.genfromtxt(orig_file, 
@@ -1274,8 +1284,30 @@ def build_fibercollided(**cat_corr):
     -----
     '''
     catalog = cat_corr['catalog']
-    
-    if catalog['name'].lower() == 'lasdamasgeo':        # Las Damas Geo 
+
+    if catalog['name'].lower() == 'cmass':                  # CMASS ---------------------
+        data_dir = '/mount/riachuelo1/hahn/data/CMASS/'
+        data_file = ''.join([data_dir, 'cmass-dr12v4-N-Reid.dat.fits']) # fits file 
+        data = mrdfits(data_file)
+
+        zlimit = np.where((data.z >= 0.43) & (data.z <= 0.7))
+        
+        fc_file = get_galaxy_data_file('data', **cat_corr)
+        np.savetxt(fc_file, 
+                np.c_[
+                    (data.ra)[zlimit], (data.dec)[zlimit], (data.z)[zlimit], 
+                    (data.weight_systot)[zlimit], (data.weight_noz)[zlimit], 
+                    (data.weight_cp)[zlimit], 
+                    (data.nz)[zlimit], (data.comp)[zlimit]
+                    ], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', 
+                    '%10.5f', '%10.5f', '%10.5f', 
+                    '%.5e', '%10.5f'], delimiter='\t') 
+
+        
+        fibcollided_cmd = ''
+
+    elif catalog['name'].lower() == 'lasdamasgeo':        # Las Damas Geo 
         
         fibcollided_cmd = 'idl -e "ldg_fibcollmock_wcp_assign,'+str(catalog['n_mock'])+", '"+\
                 str(catalog['letter'])+"'"+'"'
@@ -1294,7 +1326,6 @@ def build_fibercollided(**cat_corr):
         os.system(fibcollided_cmd) 
 
     elif catalog['name'].lower() == 'qpm':              # QPM ------------------------
-
         orig_true_file = ''.join(['/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/data/', 
             'a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.rdz']) 
         orig_true_data = np.loadtxt(orig_true_file) 
@@ -1355,7 +1386,6 @@ def build_fibercollided(**cat_corr):
         fibcollided_cmd = ''
 
     elif catalog['name'].lower() == 'patchy':           # PATCHY mocks ---------------
-
         # read original mock data 
         orig_file = ''.join(['/mount/riachuelo1/hahn/data/PATCHY/dr12/v6c/', 
             'Patchy-Mocks-DR12CMASS-N-V6C-Portsmouth-mass_', 
@@ -1380,7 +1410,6 @@ def build_fibercollided(**cat_corr):
         fibcollided_cmd = ''
     
     elif catalog['name'].lower() == 'bigmd':            # Big MD --------------------
-    
         P0 = 20000.0
         # read original random catalog 
         data_dir = '/mount/riachuelo1/hahn/data/BigMD/'

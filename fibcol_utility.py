@@ -309,8 +309,7 @@ def fortran_code(fft_power, **cat_corr):
                     f_code = ''.join([code_dir,
                         'FFT_cmass_fkp_w_fidcosmo_', str(spec['grid']), 'grid.f']) 
                 else: 
-                    f_code = ''.join([code_dir,
-                        'FFT_cmass_fkp_w_', str(spec['grid']), 'grid.f']) 
+                    raise NotImplementedError('just dont do it') 
     
         elif fft_power.lower() == 'power': 
             if correction['name'].lower() in ('upweight'):
@@ -318,6 +317,7 @@ def fortran_code(fft_power, **cat_corr):
                 if spec['grid'] == 360: 
                     f_code = ''.join([code_dir, 
                         'power_cmass_fkp_360grid_180bin.f'])
+                    #'power_cmass_fkp_Igal_360grid_180bin.f'])
                 else: 
                     raise NotImplementedError('asdfklj')
             else: 
@@ -429,11 +429,11 @@ def get_fibcoll_dir(file_type, **cat_corr):
 
         elif catalog['name'].lower() == 'cmass':                # CMASS ----------------------
             if file_type.lower() == 'data': 
-                file_dir = '/mount/riachuelo1/hahn/data/'
+                file_dir = '/mount/riachuelo1/hahn/data/CMASS/'
             elif file_type.lower() == 'fft': 
-                file_dir = '/mount/riachuelo1/hahn/FFT/'
+                file_dir = '/mount/riachuelo1/hahn/FFT/CMASS/'
             else:
-                file_dir = '/mount/riachuelo1/hahn/power/'
+                file_dir = '/mount/riachuelo1/hahn/power/CMASS/'
         else: 
             raise NameError('not yet coded')
     return file_dir 

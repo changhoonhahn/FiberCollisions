@@ -920,7 +920,6 @@ if __name__=='__main__':
                 fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     '''
     #build_pk('ldgdownnz', 1, clobber=False, quad=True) 
-    build_pk('patchy', 10, clobber=False, grid=960, quad=False) 
-    #build_pk('cmass', 1, cosmology='fiducial', quad=False)
-    #build_pk('cmass', 1, cosmology='regular', quad=False)
+    #build_pk('patchy', 10, clobber=False, grid=960, quad=False) 
+    build_pk('cmass', 1, cosmology='fiducial', quad=False)
     #build_pk('nseries', 84, quad=True)

@@ -44,7 +44,6 @@ class Spec:
             spec_file_flag = spec_file_flag+'quad_'
 
         if catalog['name'].lower() == 'tilingmock':             # Tiling Mock -----------------
-
             file_dir = spec_dir+'tiling_mocks/' # file directory 
 
             data_file = fc_data.get_galaxy_data_file('data', **cat_corr)    # data file 
@@ -70,7 +69,7 @@ class Spec:
             self.scale = spec['box']
 
         elif catalog['name'].lower() == 'cmass':                # CMASS ---------------------
-            file_dir = spec_dir
+            file_dir = spec_dir+'CMASS/'
     
             data_file = fc_data.get_galaxy_data_file('data', **cat_corr)
             file_prefix = ''.join([spec_file_flag, 

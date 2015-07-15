@@ -38,9 +38,8 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
       call fftwnd_f77_create_plan(planf,3,grid,FFTW_BACKWARD,
      $     FFTW_ESTIMATE + FFTW_IN_PLACE)
 
-c read in down sampled n(z) file 
-      selfunfile='/mount/riachuelo1/hahn/data/'//
-     $     'nbar-cmass-dr12v4-N-Reid-fidcosmo.dat'
+      selfunfile='/mount/riachuelo1/hahn/data/CMASS/'//
+     $     'nbar-cmass-dr12v4-N-Reid-om0p31_Pfkp10000.dat'
       open(unit=4,file=selfunfile,status='old',form='formatted')
       do i=1,Nsel
          read(4,*)z(i),dum,dum,selfun(i)
@@ -79,7 +78,6 @@ c read in down sampled n(z) file
             rg(2,i)=rad*cos(dec)*sin(ra)
             rg(3,i)=rad*sin(dec)
             nbg(i)=nbar(az)
-            !write(*,*)n_bar,nbg(i)
             cmp(i)=wcomp
             wg(i)=(wstar*(wnoz+wcp-1.0))/wcomp
             Ngal=Ngal+1
@@ -134,7 +132,7 @@ c read in down sampled n(z) file
          Nran=0 !Ngal will get determined later after survey is put into a box (Nr)
          Nrsys=0.d0
          do i=1,Nmax
-            read(4,*,end=15)ra,dec,az,n_bar,wcomp
+            read(4,*,end=15)ra,dec,az,n_bar
             ra=ra*(pi/180.)
             dec=dec*(pi/180.)
             rad=chi(az)
@@ -142,8 +140,8 @@ c read in down sampled n(z) file
             rr(2,i)=rad*cos(dec)*sin(ra)
             rr(3,i)=rad*sin(dec)
             nbr(i)=nbar(az)            ! nbar_true no comp variation
-            cmp(i)=wcomp
-            wr(i)=1.0/wcomp
+            cmp(i)=1.0
+            wr(i)=1.0
             Nrsys=Nrsys+dble(wr(i))
             Nran=Nran+1
          enddo
@@ -153,6 +151,7 @@ c read in down sampled n(z) file
          call PutIntoBox(Nran,rr,Rbox,ir,Nr,Nmax)
          gfrac=100. *float(Nr)/float(Nran)
          WRITE(*,*) 'Nran,box=',Nr,'Nran=',Nran, gfrac,'percent'
+         WRITE(*,*) 'N_r,sys=',Nrsys,'N_r,sys/Nr=',Nrsys/float(Nran)
 
          I10=0.d0
          I12=0.d0
@@ -171,6 +170,7 @@ c read in down sampled n(z) file
             I33=I33+dble(nb**2 *weight**3)
          enddo
 
+         WRITE(*,*) 'Nran,box=',Nr,'Nran=',Nran, gfrac,'percent'
          WRITE(*,*) 'N_r,sys=',Nrsys,'N_r,sys/Nr=',Nrsys/float(Nran)
          allocate(dcr(Ngrid,Ngrid,Ngrid))
          call assign(Nran,rr,rm,Lm,dcr,P0,nbr,ir,wr)

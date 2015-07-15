@@ -153,7 +153,6 @@ def plot_pk_fibcol_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
         avg_Pk = [ sum_Pk[i]/np.float(n_file) for i in range(len(sum_Pk)) ] 
         
         if type == 'regular':                       # P(k) Comparison
-            
             if i_corr > 0: 
                 lstyle = '--' 
             else: 
@@ -191,6 +190,50 @@ def plot_pk_fibcol_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
             else: 
                 lbl = ' '.join([catalog['name'].upper(), correction['name'].upper()])
                 sub.scatter(avg_k, avg_Pk, 
+                        color=pretty_colors[i_corr+1], label=lbl)
+
+        elif type == 'kPk':                      # k^1.5 * P(k) Comparison
+            # to highlight BAO feature (upon Paco's request) 
+            if i_corr > 0: 
+                lstyle = '--' 
+            else: 
+                lstyle = '-' 
+                
+            kPk = avg_k**1.5 * avg_Pk
+            print kPk
+
+            if correction['name'].lower() == 'true':    # P_true(k) 
+            
+                lbl = ' '.join([catalog['name'].upper(), correction['name'].upper()])
+                sub.plot(avg_k, kPk, 
+                        color=pretty_colors[i_corr+1], ls=lstyle,  
+                        label=lbl, lw=4)
+
+            elif correction['name'].lower() in ('peak', 'peaknbar', 'peaktest', 
+                    'peakshot', 'allpeakshot', 'vlospeakshot'):
+
+                if correction['name'] == 'peakshot': 
+                    corr_name = 'Hahn' 
+                else: 
+                    corr_name = correction['name']  
+                
+                if correction['fit'].lower() in ('expon', 'gauss'): 
+                    resid_label = ''.join([
+                        corr_name, ': ', 
+                        str(correction['sigma']), ',', str(correction['fpeak'])
+                        ]) 
+
+                elif correction['fit'].lower() in ('true'): 
+                    resid_label = ''.join([
+                        corr_name, ': ', str(correction['fpeak'])
+                        ]) 
+            
+                sub.scatter(avg_k, kPk, 
+                        color=pretty_colors[i_corr+1], label=resid_label)
+
+            else: 
+                lbl = ' '.join([catalog['name'].upper(), correction['name'].upper()])
+                sub.scatter(avg_k, kPk, 
                         color=pretty_colors[i_corr+1], label=lbl)
 
         elif type == 'ratio':                       # P_corr(k)/P_true comparison 
@@ -353,6 +396,31 @@ def plot_pk_fibcol_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
             sub.set_yscale('log')
 
         resid_str = ''
+    
+    elif type == 'kPk':
+        if 'yrange' in kwargs.keys(): 
+            ylimit = kwargs['yrange'] 
+            yytext = 10**.5*min(ylimit) 
+        else: 
+            ylimit = [10**0,10**2.0]
+            yytext = 10**0.1
+
+        if 'ylabel' in kwargs.keys(): 
+            ylabel = kwargs['ylabel']
+        else: 
+            ylabel = r'$\mathtt{k^{1.5} P_0(k)}$'
+
+        if 'xscale' in kwargs.keys(): 
+            sub.set_xscale(kwargs['xscale']) 
+        else: 
+            sub.set_xscale('log')
+
+        if 'yscale' in kwargs.keys(): 
+            sub.set_yscale(kwargs['yscale'])
+        else: 
+            sub.set_yscale('log')
+
+        resid_str = '_kPk'
 
     elif type == 'ratio': 
         if 'yrange' in kwargs.keys(): 
@@ -1116,14 +1184,19 @@ if __name__=="__main__":
     #        {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}
     #        ]
     catcorr_methods = [
+            {'catalog': {'name': 'cmass', 'cosmology': 'fiducial'}, 
+                'correction': {'name': 'upweight'}},
             {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}},
             {'catalog': {'name': 'patchy'}, 'correction': {'name': 'upweight'}},
             {'catalog': {'name': 'qpm'}, 'correction': {'name': 'upweight'}} 
             ]
 
-    plot_pk_fibcol_comp(catcorr_methods, [1,10,10], 
-            quad=False, Ngrid=960, type='regular', 
+    plot_pk_fibcol_comp(catcorr_methods, [1,1,10,10], 
+            quad=False, Ngrid=360, type='regular', 
             xrange=[0.001, 1.0], yrange=[10**3, 3*10**5])
-    plot_pk_fibcol_comp(catcorr_methods, [1,10,10],
-            quad=False, Ngrid=960, type='ratio', 
+    plot_pk_fibcol_comp(catcorr_methods, [1,1,10,10], 
+            quad=False, Ngrid=360, type='kPk', 
+            xrange=[0.001, 1.0], yrange=[10**0, 3*10**3])
+    plot_pk_fibcol_comp(catcorr_methods, [1,1,10,10],
+            quad=False, Ngrid=360, type='ratio', 
             xrange=[0.001, 1.0], yrange=[0.8, 1.2])
