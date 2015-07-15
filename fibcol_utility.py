@@ -101,6 +101,17 @@ def fortran_code(fft_power, **cat_corr):
 
             else: 
                 raise NotImplementedError('what?')
+
+        elif fft_power.lower() == 'quadfft':  # Quadrupole FFT
+            code_dir = '/home/users/hahn/powercode/FiberCollisions/' 
+            f_code = code_dir+'FFT_FKP_BOSS_cic_il4_v3.f' 
+
+        elif fft_power.lower() == 'quadpower': # Quadrupole power
+            code_dir = '/home/users/hahn/powercode/FiberCollisions/' 
+            f_code = code_dir+'power_FKP_SDSS_BOSS_v3.f'
+
+        else: 
+            raise NameError('asdflkajsdf') 
     
     elif catalog['name'].lower() == 'tilingmock':               # Tiling Mock ----------------
         code_dir = '/home/users/hahn/powercode/FiberCollisions/TilingMock/'
@@ -134,7 +145,7 @@ def fortran_code(fft_power, **cat_corr):
         else: 
             raise NameError('asdlkfjalksdjfklasjf')
 
-    elif catalog['name'].lower() == 'qpm':                      # QPM -----------------------
+    elif catalog['name'].lower() == 'qpm':                  # QPM -----------------------
         code_dir = '/home/users/hahn/powercode/FiberCollisions/QPM/dr12d/'
         
         if fft_power.lower() == 'fft': 
@@ -242,18 +253,9 @@ def fortran_code(fft_power, **cat_corr):
                     f_code = code_dir+'power-patchy-fkp-w-nbar-360grid-180bin.f'
                 elif spec['grid'] == 960: 
                     pass
-                    f_code = code_dir+'power-qpm-fkp-w-nbar-960grid-480bin.f'
-
-            elif correction['name'].lower() in \
-                    ('peakshot', 'shotnoise', 'floriansn', 
-                            'hectorsn', 'vlospeakshot', 'peakshot_dnn'): 
-                if spec['grid'] == 360: 
-                    # Igal Irand shot noise correction 
-                    f_code = code_dir+'power-qpm-fkp-w-nbar-Igal-Irand-360grid-180bin.f'
-                elif spec['grid'] == 960: 
-                    pass
-                    # Igal Irand shot noise correction 
-                    f_code = code_dir+'power-qpm-fkp-w-nbar-Igal-Irand-960grid-480bin.f'
+                    f_code = code_dir+'power-patchy-fkp-w-nbar-960grid-480bin.f'
+            else:
+                raise NotImplementedError('not yet implemented')
 
         # quadrupole codes --------------------------------------------
         # regardess of catalog or correction TEMPORARILY HARDCODED HERE FOR TEST RUN 
@@ -284,6 +286,8 @@ def fortran_code(fft_power, **cat_corr):
                 # normal FKP shot noise correction
                 if spec['grid'] == 360: 
                     f_code = code_dir+'power-bigmd-fkp-w-nbar-360grid-180bin.f'
+                elif spec['grid'] == 960: 
+                    f_code = code_dir+'power-bigmd-fkp-w-nbar-960grid-480bin.f'
                 else: 
                     raise NotImplementedError('asdfklj')
             else: 
@@ -292,7 +296,7 @@ def fortran_code(fft_power, **cat_corr):
         else: 
             raise NameError("not Yet coded") 
     
-    elif catalog['name'].lower() == 'cmass': 
+    elif catalog['name'].lower() == 'cmass':                # CMASS -------------------------
         code_dir = 'CMASS/'
         
         if fft_power.lower() == 'fft':  # FFT
@@ -301,8 +305,12 @@ def fortran_code(fft_power, **cat_corr):
             elif correction['name'].lower() == 'hectorsn': 
                 raise NotImplementedError('asdfklj')
             else: 
-                f_code = ''.join([code_dir,
-                    'FFT_cmass_fkp_w_fidcosmo_', str(spec['grid']), 'grid.f']) 
+                if catalog['cosmology'].lower() == 'fiducial': 
+                    f_code = ''.join([code_dir,
+                        'FFT_cmass_fkp_w_fidcosmo_', str(spec['grid']), 'grid.f']) 
+                else: 
+                    f_code = ''.join([code_dir,
+                        'FFT_cmass_fkp_w_', str(spec['grid']), 'grid.f']) 
     
         elif fft_power.lower() == 'power': 
             if correction['name'].lower() in ('upweight'):
@@ -317,6 +325,7 @@ def fortran_code(fft_power, **cat_corr):
 
         else: 
             raise NameError("not Yet coded") 
+    
     else: 
         raise NaemError('Not coded!') 
 

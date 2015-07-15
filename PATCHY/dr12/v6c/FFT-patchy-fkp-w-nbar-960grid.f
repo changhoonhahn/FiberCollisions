@@ -1,11 +1,11 @@
       implicit none  !as FFT_FKP_SDSS_LRG_new but removes some hard-cored choices
       integer Nsel,Nran,i,iwr,Ngal,Nmax,n,kx,ky,kz,Lm,Ngrid,ix,iy,iz,j,k
       integer Ng,Nr,iflag,ic,Nbin,l,ipoly,wb,wcp,wred,flag
-      real n_bar,wfkp,wfc,wcomp,nz
+      real nz,wfkp,wfc,wcomp
       integer*8 planf
       real pi,cspeed,Om0,OL0,redtru,m1,m2,zlo,zhi,garb1,garb2,garb3,veto
-      parameter(Nsel=201,Nmax=2*10**8,Ngrid=360,Nbin=151,pi=3.141592654)
-      parameter(Om0=0.31,OL0=0.69)          ! hardcoded for PATCHY 
+      parameter(Nsel=201,Nmax=2*10**8,Ngrid=960,Nbin=151,pi=3.141592654)
+      parameter(Om0=0.31,OL0=0.69)          ! hardcoded for QPM 
       integer grid
       dimension grid(3)
       parameter(cspeed=299800.0)
@@ -77,8 +77,8 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
             rg(2,i)=rad*cos(dec)*sin(ra)
             rg(3,i)=rad*sin(dec)
             nbg(i)=nz    ! nbar_true (no comp variations)
-            cmp(i)= 1.0    ! comp weight 
-            wg(i)=wfc ! remove comp variations
+            cmp(i)=1.0    ! comp weight 
+            wg(i)=wfc   ! remove comp variations
             Ngal=Ngal+1
             Ngsys=Ngsys+dble(wg(i))           ! contains comp upweighting
          enddo

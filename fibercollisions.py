@@ -266,7 +266,7 @@ def build_fibcol_pk(cat, i_mock, corr, quad=False, clobber=False, **kwargs):
 
     '''
     mock_list = [] 
-    if cat in ('lasdamasgeo', 'ldgdownnz'):     # lasdamasgeo mocks 
+    if cat['name'].lower() in ('lasdamasgeo', 'ldgdownnz'):     # lasdamasgeo mocks 
         for letter in ['a', 'b', 'c', 'd']: 
             mock_list.append({'n_mock': i_mock, 'letter': letter}) 
     else: 
@@ -274,7 +274,7 @@ def build_fibcol_pk(cat, i_mock, corr, quad=False, clobber=False, **kwargs):
     
     # cat corr dictionary
     correction = corr   
-    catalog = {'name': cat} 
+    catalog = cat 
 
     if 'spec' in kwargs.keys(): 
         spec = kwargs['spec']
@@ -838,7 +838,7 @@ def pk_fibcol_comp(catalog_name, n_mock, corr_methods):
 
     print corr_methods[min_index+1]
 
-def build_pk(catalog, n_mocks, quad=False): 
+def build_pk(catalog, n_mocks, quad=False, clobber=True, **kwargs): 
     ''' 
     Wrapper to build powerspectrum (monopole or quadrupole) for mock catalogs (QPM, Nseries, LasDamasGeo, TilingMock) 
 
@@ -854,25 +854,23 @@ def build_pk(catalog, n_mocks, quad=False):
     * Nseries peakshot bestfit parameters: {'name': 'peakshot', 'sigma', 4.0, 'fpeak': 0.7, 'fit': 'gauss'}
 
     '''
-    # correction method list 
-    #corrections = [{'name': 'true'}, {'name': 'upweight'}]
-    corrections = [{'name': 'upweight'}]
-    #corrections = [{'name': 'true_down_nz'}]
-    #corrections = [{'name': 'peakshot', 'sigma': 3.8, 'fpeak': 0.7, 'fit': 'gauss'}]
-    #corrections = [{'name': 'peakshot', 'fpeak': 0.7, 'fit': 'true'}]
-    #corrections = [{'name': 'peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}]
-    #corrections = [{'name': 'scratch_peakknown'}]
-    #corrections = [{'name': 'scratch_peakknown_ang'}]
-    #corrections = [{'name': 'scratch_peakknown_gauss'}]
-    #corrections = [{'name': 'scratch_peakknown'}, {'name': 'scratch_peakknown_ang'}, {'name': 'scratch_peakknown_gauss'}]
-    #corrections = [{'name': 'scratch_peakknown_gauss_divide'}]
-    #corrections = [{'name': 'scratch_dividedw_gauss'}]
+    try: 
+        Ngrid = kwargs['grid']
+    except KeyError: 
+        Ngrid = 360
 
-    spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid': 360, 'quad': quad}
+    try:        # fiducial cosmology unless specified
+        cosmology = kwargs['cosmology']
+    except KeyError: 
+        cosmology = 'fiducial'
+
+    cat = {'name': catalog, 'cosmology': cosmology} 
+    corrections = [{'name': 'upweight'}]
+    spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':Ngrid, 'quad':quad}
 
     for i_mock in range(1, n_mocks+1): 
         for corr in corrections: 
-            build_fibcol_pk(catalog, i_mock, corr, spec=spec, clobber=True) 
+            build_fibcol_pk(cat, i_mock, corr, spec=spec, clobber=clobber) 
 
 # Compare fiber collisions of data 
 def fibcol_now_fraction(**cat_corr): 
@@ -888,14 +886,19 @@ def fibcol_now_fraction(**cat_corr):
 
     # import data 
     data = fc_data.galaxy_data('data', clobber=False, **cat_corr) 
+    print data.file_name
     
     if catalog['name'].lower() == 'bigmd':  # Big MD 
         wfc = data.wfc 
         comp = np.array([1.0 for i in range(len(wfc))]) 
 
-    elif catalog['name'].lower() == 'nseries':  # Nseries 
+    elif catalog['name'].lower() in ('nseries', 'qpm'):  # Nseries 
         wfc = data.wfc
         comp = data.comp 
+
+    elif catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz'):   # LDG 
+        wfc = data.weight
+        comp = np.array([1.0 for i in range(len(wfc))]) 
 
     else: 
         raise NotImplementedError('asdlkfjkajsdf') 
@@ -908,32 +911,6 @@ def fibcol_now_fraction(**cat_corr):
 
 if __name__=='__main__': 
     '''
-    for corr in ['true', 'upweight', 'peakshot']: #, 'noweight']: 
-        for n_mock in np.arange(1, 10): 
-            for letter in ['a', 'b', 'c', 'd']: 
-                if corr == 'peakshot': 
-                    cat_corr = {
-                            'catalog': {'name':'ldgdownnz', 'n_mock': n_mock, 'letter': letter}, 
-                            'correction': {'name': corr, 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}
-                            } 
-                else: 
-                    cat_corr = {
-                            'catalog': {'name':'ldgdownnz', 'n_mock': n_mock, 'letter': letter}, 
-                            'correction': {'name': corr}
-                            } 
-                fc_data.galaxy_data('data', clobber=True, **cat_corr) 
-    '''
-    cat_corr = { 'catalog': {'name':'bigmd'}, 'correction': {'name': 'true'}}
-    #fibcol_now_fraction(**cat_corr)
-    #cat_corr = { 'catalog': {'name':'nseries', 'n_mock': 1}, 'correction': {'name': 'upweight'}}
-    #fibcol_now_fraction(**cat_corr)
-    '''
-    corrections = [{'name': 'scratch_peakknown_gauss_divide'}]
-    for i_mock in np.arange(1, 11): 
-        for corr in corrections: 
-            cat_corr = {'catalog': {'name': 'nseries', 'n_mock': i_mock}, 'correction': corr} 
-            fc_data.galaxy_data('data', clobber=True, **cat_corr) 
-    #corrections = [{'name': 'upweight'}]
 
     corrections = [{'name': 'upweight'}]
     for i_mock in np.arange(1, 11): 
@@ -942,16 +919,8 @@ if __name__=='__main__':
                 cat_corr = {'catalog': {'name': 'lasdamasgeo', 'n_mock': i_mock, 'letter': letter}, 'correction': corr} 
                 fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     '''
-    #build_pk('bigmd', 1, quad=False) 
-    build_pk('cmass', 1, quad=False)
+    #build_pk('ldgdownnz', 1, clobber=False, quad=True) 
+    build_pk('patchy', 10, clobber=False, grid=960, quad=False) 
+    #build_pk('cmass', 1, cosmology='fiducial', quad=False)
+    #build_pk('cmass', 1, cosmology='regular', quad=False)
     #build_pk('nseries', 84, quad=True)
-
-    #qpm_avgP(45, {'name':'true'})
-    #qpm_deltaP(45, {'name':'true'})
-    
-    #corr = {'name': 'upweight'}
-    #qpm_fibcoll_pk(2, corr) 
-    #cat_corr = {'catalog': {'name':'lasdamasgeo'}, 'correction': corr} 
-    #avg_Pk(40, **cat_corr)
-    #corr = {'name': 'peaknbar', 'sigma':6.9, 'fpeak':1.0, 'fit':'expon'}
-    #lasdamasgeo_fibcoll_pk(40, corr) 

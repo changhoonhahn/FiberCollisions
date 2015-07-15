@@ -4,7 +4,7 @@
       real n_bar,wfkp,wfc,wcomp,wstar,wcp,wnoz
       integer*8 planf
       real pi,cspeed,Om0,OL0,redtru,m1,m2,zlo,zhi,garb1,garb2,garb3,veto
-      parameter(Nsel=181,Nmax=2*10**8,Ngrid=360,Nbin=151,pi=3.141592654)
+      parameter(Nsel=201,Nmax=2*10**8,Ngrid=360,Nbin=151,pi=3.141592654)
       parameter(Om0=0.31,OL0=0.69)  ! hardcoded for fiducial cosmology
       integer grid
       dimension grid(3)
@@ -79,6 +79,7 @@ c read in down sampled n(z) file
             rg(2,i)=rad*cos(dec)*sin(ra)
             rg(3,i)=rad*sin(dec)
             nbg(i)=nbar(az)
+            !write(*,*)n_bar,nbg(i)
             cmp(i)=wcomp
             wg(i)=(wstar*(wnoz+wcp-1.0))/wcomp
             Ngal=Ngal+1
@@ -137,12 +138,12 @@ c read in down sampled n(z) file
             ra=ra*(pi/180.)
             dec=dec*(pi/180.)
             rad=chi(az)
-            wr(i)=1.0/wcomp
             rr(1,i)=rad*cos(dec)*cos(ra)
             rr(2,i)=rad*cos(dec)*sin(ra)
             rr(3,i)=rad*sin(dec)
             nbr(i)=nbar(az)            ! nbar_true no comp variation
             cmp(i)=wcomp
+            wr(i)=1.0/wcomp
             Nrsys=Nrsys+dble(wr(i))
             Nran=Nran+1
          enddo
@@ -453,7 +454,7 @@ c
 c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       REAL function nbar(QQ) !nbar(z)
 c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-      parameter(Nsel=181)!80)
+      parameter(Nsel=201)!80)
       integer iflag
       real z(Nsel),selfun(Nsel),sec(Nsel),self,az,qq,area_ang
       common /interpol/z,selfun,sec
@@ -462,7 +463,7 @@ c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       real Om0,OL0
       external chi
       az=QQ
-      if (az.lt.0.0 .or. az.gt.1.5) then
+      if (az.lt.0.43 .or. az.gt.0.7) then
          nbar=0.0
       else
          call splint(z,selfun,sec,Nsel,az,self)

@@ -75,12 +75,15 @@ class Spec:
             data_file = fc_data.get_galaxy_data_file('data', **cat_corr)
             file_prefix = ''.join([spec_file_flag, 
                 data_file.rsplit('/')[-1] ])
+            
+            cosmo_str = '.'+catalog['cosmology']
 
             # file ending  
             if spectrum == 'bispec': 
                 file_suffix = '.grid360.nmax.nstep3.P020000.box3600'
             elif spectrum == 'power': 
                 file_suffix = ''.join([
+                    cosmo_str, 
                     '.grid', str(spec['grid']), '.P0', str(spec['P0']), '.box', str(spec['box'])
                     ])
             

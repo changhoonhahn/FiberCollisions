@@ -52,25 +52,17 @@ def plot_pk_fibcol_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
     else: 
         Ngrid = 360         # default Ngrid
 
-
     for i_corr, cat_corr in enumerate(cat_corrs):     # loop through correction methods
-    
         catalog = cat_corr['catalog']
         correction = cat_corr['correction']
 
         # power/bispectrum properties 
-        if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz', 'qpm', 'nseries', 'bigmd', 
-                'patchy'): 
-
-            spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 
-                    'grid': Ngrid, 'quad': quad} 
-
-        elif catalog['name'].lower() == 'tilingmock': 
-
+        if catalog['name'].lower() == 'tilingmock':   # Tiling Mock is unique
             spec = {'P0': 20000, 'sscale':4000.0, 'Rbox':2000.0, 'box':4000, 
                     'grid': Ngrid, 'quad': quad} 
-        else: 
-            raise NotImplementedError('not coded yet') 
+        else:       # default spectrum properties  
+            spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 
+                    'grid': Ngrid, 'quad': quad} 
 
         try: 
             if len(n_mock) == len(cat_corrs): 
@@ -81,8 +73,7 @@ def plot_pk_fibcol_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
         except TypeError: 
             n_mock_i = n_mock 
 
-        if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz'):           # LasDamasGeo 
-
+        if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz'):             # LasDamasGeo 
             # compute average[P(k)] for each correction method
             n_file = 0
             for i_mock in range(1, n_mock_i+1):
@@ -113,12 +104,12 @@ def plot_pk_fibcol_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
 
                     n_file = n_file+1
 
-        elif catalog['name'].lower() in ('tilingmock', 'bigmd'):       # Tiling Mocks
-
+        elif catalog['name'].lower() in ('tilingmock', 'bigmd', 'cmass'):       # Tiling Mocks
             i_cat_corr = {'catalog': catalog, 'correction': correction, 'spec':spec}
 
             power = fc_spec.Spec('power', **i_cat_corr)         # read tiling mock P(k)
             power.readfile()
+            print power.file_name
 
             avg_k = power.k
 
@@ -129,8 +120,7 @@ def plot_pk_fibcol_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
 
             n_file = 1          # only one file 
 
-        elif catalog['name'].lower() in ('qpm', 'nseries', 'patchy'): 
-
+        elif catalog['name'].lower() in ('qpm', 'nseries', 'patchy'):           # QPM/PATCHY
             n_file = 0  
             for i_mock in range(1, n_mock_i+1): 
                 i_catalog = catalog.copy() 
@@ -138,6 +128,7 @@ def plot_pk_fibcol_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
                 i_cat_corr = {'catalog': i_catalog, 'correction': correction, 'spec':spec}
                     
                 power_i = fc_spec.Spec('power', **i_cat_corr)
+                print power_i.file_name
                 power_i.readfile()
 
                 if quad: 
@@ -311,17 +302,25 @@ def plot_pk_fibcol_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
 
         else: 
             raise NotImplementedError('asdfasdfasdfadf') 
+            
+        try: 
+            cosmo_str = '_'+catalog['cosmology']+'cosmo'
+        except KeyError: 
+            cosmo_str = '' 
 
         try: 
             if correction['name'].lower() in ('peak', 'peaknbar', 'peakshot'): 
-                corr_str += ''.join(['_', catalog['name'].lower(), '_', 
+                corr_str += ''.join([cosmo_str, 
+                    '_', catalog['name'].lower(), '_', 
                     correction['fit'], '_', correction['name'], 
                     '_sigma', str(correction['sigma']), '_fpeak', str(correction['fpeak'])]) 
             else: 
-                corr_str += ''.join(['_', catalog['name'].lower(), '_', correction['name']]) 
+                corr_str += ''.join([cosmo_str, 
+                    '_', catalog['name'].lower(), '_', correction['name']]) 
 
         except NameError: 
-            corr_str = ''.join(['_', catalog['name'].lower(), '_', correction['name']]) 
+            corr_str = ''.join([cosmo_str, 
+                '_', catalog['name'].lower(), '_', correction['name']]) 
 
         del avg_k
         del avg_Pk
@@ -439,6 +438,7 @@ def plot_pk_fibcol_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
         n_mock_str = '_'.join([str(nm) for nm in n_mock]) 
     except TypeError:
         n_mock_str = str(n_mock) 
+
 
     # fig file name 
     if quad == True: 
@@ -1110,97 +1110,20 @@ def chi_squared():
             [{'name': 'true'}, {'name':'upweight'}, {'name':'floriansn'}, {'name':'hectorsn'}, {'name': 'peakshot', 'sigma':4.8, 'fpeak':0.62, 'fit':'gauss'}])
 
 if __name__=="__main__":
-
-    #cat_corr_list = [] 
-    #catalog = {'name': 'nseries'}
-    #for corr in ['true', 'upweight', 'scratch_peakknown']: 
-    #    cat_corr_list.append({'catalog': catalog, 'correction': {'name': corr}}) 
-
-    #plot_nbar_comparison(cat_corr_list, type='ratio', xrange=[0.16, 0.4], yrange=[0.95, 1.05])
-
-    #cat_corr = {'catalog': {'name': 'lasdamasgeo', 'n_mock': 1, 'letter': 'a'}, 
-    #        'correction': {'name': 'upweight'}} 
-
-    #plot_catalog_nearest_neighbor(n=3, cat='lasdamasgeo') 
-    #plot_avg_pk_fibcol('lasdamasgeo', 40, {'name': 'true'}, quad=True)   
-    #plot_avg_pk_fibcol('qpm', 100, {'name': 'true'}, quad=True)   
-
-    #plot_avg_pk_fibcol('lasdamasgeo', 40, {'name': 'true'}, quad=False)   
-    #plot_avg_pk_fibcol('qpm', 100, {'name': 'true'}, quad=False)   
-    #plot_comdis2z_test()
+    #catcorr_methods = [
+    #        {'catalog': {'name': 'cmass', 'cosmology': 'regular'}, 
+    #            'correction': {'name': 'upweight'}},
+    #        {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}
+    #        ]
     catcorr_methods = [
             {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}},
-            {'catalog': {'name': 'patchy'}, 'correction': {'name': 'upweight'}}, 
+            {'catalog': {'name': 'patchy'}, 'correction': {'name': 'upweight'}},
             {'catalog': {'name': 'qpm'}, 'correction': {'name': 'upweight'}} 
             ]
 
-    plot_pk_fibcol_comp(catcorr_methods, [10,10,1],
-            quad=False, Ngrid=360, type='regular', 
+    plot_pk_fibcol_comp(catcorr_methods, [1,10,10], 
+            quad=False, Ngrid=960, type='regular', 
             xrange=[0.001, 1.0], yrange=[10**3, 3*10**5])
-    plot_pk_fibcol_comp(catcorr_methods, [10,10,1],
-            quad=False, Ngrid=360, type='ratio', 
+    plot_pk_fibcol_comp(catcorr_methods, [1,10,10],
+            quad=False, Ngrid=960, type='ratio', 
             xrange=[0.001, 1.0], yrange=[0.8, 1.2])
-
-    ''' 
-    catcorr_methods = [
-            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'true'}}, 
-            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}, 
-            {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'true'}}, 
-            {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}}
-            ]
-
-    plot_pk_fibcol_comp(catcorr_methods, [10, 10, 1, 1],
-            quad=False, Ngrid=360, type='regular', 
-            xrange=[0.001, 1.0], yrange=[10**3, 3*10**5])
-    plot_pk_fibcol_comp(catcorr_methods, [10, 10, 1, 1],
-            quad=False, Ngrid=360, type='ratio', 
-            xrange=[0.001, 1.0], yrange=[0.8, 1.2])
-    
-    catcorr_methods = [
-            {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'true'}}, 
-            {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}}
-            ]
-
-    plot_pk_fibcol_comp(catcorr_methods, 1,
-            quad=False, Ngrid=360, type='regular', 
-            xrange=[0.001, 1.0], yrange=[10**3, 3*10**5])
-    plot_pk_fibcol_comp(catcorr_methods, 1,
-            quad=False, Ngrid=360, type='ratio', 
-            xrange=[0.001, 1.0], yrange=[0.8, 1.2])
-    '''
-    """
-    nseries_corr_methods = [{'name': 'true'}, {'name':'upweight'}] #,
-            #{'name': 'peakshot', 'sigma':3.8, 'fpeak': 0.7, 'fit': 'gauss'}, 
-            #{'name': 'scratch_peakknown'},  
-            #{'name': 'scratch_peakknown_gauss'},  
-            #{'name': 'scratch_peakknown_gauss_divide'} 
-            #]
-            #{'name': 'peakshot', 'fpeak': 0.7, 'fit': 'true'} 
-            #]
-
-    plot_pk_fibcol_comp('nseries', 84, nseries_corr_methods, 
-            quad=True, Ngrid=360, type='regular', 
-            xrange=[0.001, 1.0], yrange=[10**3, 3*10**5])
-    plot_pk_fibcol_comp('nseries', 84, nseries_corr_methods, 
-            quad=True, Ngrid=360, type='ratio', 
-            xrange=[0.001, 1.0], yrange=[0.2, 2.0]) 
-        
-    plot_pk_fibcol_comp('nseries', 84, nseries_corr_methods, 
-            quad=True, Ngrid=360, type='residual', yscale='log', 
-            xrange=[0.001, 1.0], yrange=[0.02, 100.0]) 
-    
-    ldg_corr_methods = [{'name': 'true'}, {'name':'upweight'},
-            {'name': 'peakshot', 'sigma':6.5, 'fpeak': 0.76, 'fit': 'gauss'}, 
-            {'name': 'scratch_peakknown'}]
-            
-            #, {'name': 'scratch_peakknown_ang'}, {'name': 'scratch_peakknown_gauss'}]
-            #{'name': 'peakshot', 'fpeak': 0.7, 'fit': 'true'} 
-            #]
-
-    plot_pk_fibcol_comp('lasdamasgeo', 10, ldg_corr_methods, 
-            quad=True, Ngrid=360, type='regular', 
-            xrange=[0.001, 1.0], yrange=[10**3, 3*10**5])
-    plot_pk_fibcol_comp('lasdamasgeo', 10, ldg_corr_methods, 
-            quad=True, Ngrid=360, type='ratio', 
-            xrange=[0.001, 1.0], yrange=[0.2, 2.0]) 
-    """

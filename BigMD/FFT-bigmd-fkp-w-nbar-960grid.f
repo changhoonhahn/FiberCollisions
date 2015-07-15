@@ -4,8 +4,8 @@
       real n_bar,wfkp,wfc,wcomp,nz
       integer*8 planf
       real pi,cspeed,Om0,OL0,redtru,m1,m2,zlo,zhi,garb1,garb2,garb3,veto
-      parameter(Nsel=201,Nmax=2*10**8,Ngrid=360,Nbin=151,pi=3.141592654)
-      parameter(Om0=0.31,OL0=0.69)          ! hardcoded for PATCHY 
+      parameter(Nsel=201,Nmax=2*10**8,Ngrid=960,Nbin=151,pi=3.141592654)
+      parameter(Om0=0.31,OL0=0.69)          ! hardcoded for QPM 
       integer grid
       dimension grid(3)
       parameter(cspeed=299800.0)
@@ -38,13 +38,6 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
       call fftwnd_f77_create_plan(planf,3,grid,FFTW_BACKWARD,
      $     FFTW_ESTIMATE + FFTW_IN_PLACE)
 
-      zmax=1.1
-      do ic=1,Nbin
-         zt=zmax*float(ic-1)/float(Nbin-1)
-         zbin(ic)=zt
-         dbin(ic)=chi(zt)
-      enddo
-      call spline(dbin,zbin,Nbin,3e30,3e30,sec3)
 !Arguments: Rbox, Mock/Random, P0, File, FFT file
       call getarg(1,Rboxstr)
       read(Rboxstr,*) Rbox

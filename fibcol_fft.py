@@ -21,22 +21,28 @@ class FFT:
 
         data_file = fc_data.get_galaxy_data_file(DorR, **cat_corr)  # data file 
     
-        if quad == False: 
+        if not quad:    # FFT flag 
             FFT_str = 'FFT_'
         else: 
             FFT_str =  'FFT_quad_'
+    
+        try: 
+            cosmo_str = ''.join(['.', catalog['cosmology']]) 
+        except KeyError: 
+            cosmo_str = ''
         
         if (correction['name'].lower() in ('floriansn', 'hectorsn')) & \
                 (DorR.lower() != 'random'):
             # Florian+ and Hector+ methods require their own random FFTs
             fft_file = ''.join([fft_dir, 
-                FFT_str, data_file.rsplit('/')[-1], '.', correction['name'].lower(), 
+                FFT_str, data_file.rsplit('/')[-1], 
+                cosmo_str, '.', correction['name'].lower(), 
                 '.grid', str(spec['grid']), '.P0', str(spec['P0']), '.box', str(spec['box'])
                 ])
         else: 
             # FFTs from data file 
             fft_file = ''.join([fft_dir, 
-                FFT_str, data_file.rsplit('/')[-1], 
+                FFT_str, data_file.rsplit('/')[-1], cosmo_str,
                 '.grid', str(spec['grid']), '.P0', str(spec['P0']), '.box', str(spec['box'])
                 ])
 
@@ -134,7 +140,7 @@ def build_fibcol_fft(DorR, **cat_corr):
         # Quad FFT argument sequence (SUBJECT TO CHANGE) 
 
         # determine "idata"
-        if catalog['name'].lower() == 'lasdamasgeo': 
+        if catalog['name'].lower() in ('lasdamasgeo'): 
             idata = 2
             ifc = 0 
         elif catalog['name'].lower() == 'qpm': 
@@ -145,6 +151,9 @@ def build_fibcol_fft(DorR, **cat_corr):
             ifc = 0 
         elif catalog['name'].lower() == 'nseries': 
             idata = 10 
+            ifc = 0 
+        elif catalog['name'].lower() == 'ldgdownnz':  
+            idata = 11 
             ifc = 0 
         else: 
             raise NameError('not included in Quadrupole code') 

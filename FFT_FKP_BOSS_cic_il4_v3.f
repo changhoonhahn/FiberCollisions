@@ -80,6 +80,8 @@ c      read(Omstr,*)Om0
          Om0=0.274
       elseif (idata.eq.10) then !Nseries
          Om0=0.31 ! fiducial cosmology
+      elseif (idata.eq.11) then ! Downsampled LasDamas
+         Om0=0.25 
       else
          write(*,*)'specify which dataset you want!'
          stop
@@ -108,6 +110,9 @@ c      read(Omstr,*)Om0
       elseif (idata.eq.10) then ! Nseries
          selfunfile='/mount/riachuelo1/hahn/data/Nseries'//
      $    '/nbar-nseries-fibcoll.dat'
+      elseif (idata.eq.11) then 
+         selfunfile='/mount/riachuelo1/hahn/data/LasDamas/Geo'//
+     $    '/nbar-lasdamasgeo.down_nz.dat'
       else !just to have z(Nsel)            
          dir='/mount/riachuelo2/rs123/BOSS/QPM/cmass/'
          ! directy has been changed in order to remove header
@@ -133,7 +138,8 @@ c      read(Omstr,*)Om0
          enddo   
          close(4)
          call spline(z,selfun,Nsel,3e30,3e30,sec)
-      elseif (idata.eq.10) then ! Nseries fiducial cosmology
+      elseif (idata.eq.10 .or. idata.eq.11) then 
+         ! Nseries fiducial cosmology or Downsampled LasDamas Geo
          open(unit=4,file=selfunfile,status='old',form='formatted')
          do i=1,Nsel
             read(4,*)z(i),dum,dum,selfun(i)
@@ -250,6 +256,13 @@ c         fname='/mount/chichipio2/hahn/data/'//lssfile
                read(4,*,end=13)ra,dec,az,wred
                az=az!/cspeed
                nbb=0.0000944233
+               wsys=1.
+               comp=1.
+               nbg(i)=nbb*comp
+            elseif (idata.eq.11) then ! Down sampled LasDamas
+               read(4,*,end=13)ra,dec,az,wred
+               az=az
+               nbb=nbar(az)
                wsys=1.
                comp=1.
                nbg(i)=nbb*comp
@@ -546,6 +559,13 @@ c               read(4,*,end=15)ra,dec,az,nbb
                read(4,*,end=15)ra,dec,az
                az=az/cspeed         ! ldg random has cz instead of z
                nbb=0.0000944233
+               wsys=1.
+               wred=1.
+               comp=1.
+               nbr(i)=nbb*comp ! number density as given in randoms (comp weighted)
+            elseif (idata.eq.11) then !Downsampled LasDamas   
+               read(4,*,end=15)ra,dec,az
+               nbb=nbar(az)
                wsys=1.
                wred=1.
                comp=1.
