@@ -82,6 +82,8 @@ c      read(Omstr,*)Om0
          Om0=0.31 ! fiducial cosmology
       elseif (idata.eq.11) then ! Downsampled LasDamas
          Om0=0.25 
+      elseif (idata.eq.12) then ! bigMD
+         Om0=0.31! fiducial cosmology 
       else
          write(*,*)'specify which dataset you want!'
          stop
@@ -263,6 +265,11 @@ c         fname='/mount/chichipio2/hahn/data/'//lssfile
                read(4,*,end=13)ra,dec,az,wred
                az=az
                nbb=nbar(az)
+               wsys=1.
+               comp=1.
+               nbg(i)=nbb*comp
+            elseif (idata.eq.12) then ! bigMD
+               read(4,*,end=13)ra,dec,az,nbb,wred
                wsys=1.
                comp=1.
                nbg(i)=nbb*comp
@@ -566,6 +573,12 @@ c               read(4,*,end=15)ra,dec,az,nbb
             elseif (idata.eq.11) then !Downsampled LasDamas   
                read(4,*,end=15)ra,dec,az
                nbb=nbar(az)
+               wsys=1.
+               wred=1.
+               comp=1.
+               nbr(i)=nbb*comp ! number density as given in randoms (comp weighted)
+            elseif (idata.eq.12) then ! bigMD
+               read(4,*,end=15)ra,dec,az,nbb
                wsys=1.
                wred=1.
                comp=1.

@@ -132,7 +132,7 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
 
         spherematch, ra_nocp, dec_nocp, ra_upcp, dec_upcp, fib_angscale, m_nocp, m_upcp, d12, maxmatch=0
 
-    endif else if (strlowcase(catalog) EQ 'bigmd') then begin 
+    endif else if (strmatch(catalog, '*bigmd*', /fold_case) EQ 1) then begin 
 
         omega_m = 0.31
         

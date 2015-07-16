@@ -1183,16 +1183,16 @@ if __name__=="__main__":
     #            'correction': {'name': 'upweight'}},
     #        {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}
     #        ]
-    #catcorr_methods = [
-    #        {'catalog': {'name': 'cmass', 'cosmology': 'fiducial'}, 
-    #            'correction': {'name': 'upweight'}},
-    #        {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}},
-    #        {'catalog': {'name': 'patchy'}, 'correction': {'name': 'upweight'}},
-    #        {'catalog': {'name': 'qpm'}, 'correction': {'name': 'upweight'}} 
-    #        ]
+    catcorr_methods = [
+            {'catalog': {'name': 'cmass', 'cosmology': 'fiducial'}, 
+                'correction': {'name': 'upweight'}},
+            {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}},
+            {'catalog': {'name': 'patchy'}, 'correction': {'name': 'upweight'}},
+            {'catalog': {'name': 'qpm'}, 'correction': {'name': 'upweight'}} 
+            ]
     #catcorr_methods = [
     #        {'catalog': {'name': 'ldgdownnz'}, 'correction': {'name': 'true'}},
-    #        {'catalog': {'name': 'ldgdownnz'}, 'correction': {'name': 'upweight'}},
+    #        {'catalog': {'name': 'ldgdownnz'}, 'correction': {'name': 'bigfc'}},
     #        {'catalog': {'name': 'ldgdownnz'}, 
     #            'correction': {'name': 'bigfc_peakshot', 
     #                'sigma':6.5, 'fpeak':0.76, 'fit':'gauss'}},

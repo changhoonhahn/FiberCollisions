@@ -270,7 +270,7 @@ def fortran_code(fft_power, **cat_corr):
             raise NameError("not Yet coded") 
         '''
     
-    elif catalog['name'].lower() == 'bigmd':                # Big MD ------------------------
+    elif 'bigmd' in catalog['name'].lower():                # Big MD ------------------------
         code_dir = 'BigMD/'
         
         if fft_power.lower() == 'fft':  # FFT
@@ -292,7 +292,13 @@ def fortran_code(fft_power, **cat_corr):
                     raise NotImplementedError('asdfklj')
             else: 
                 raise NotImplementedError('asdfklj')
-
+        # quadrupole codes --------------------------------------------
+        elif fft_power.lower() == 'quadfft': 
+            code_dir = '/home/users/hahn/powercode/FiberCollisions/' 
+            f_code = code_dir+'FFT_FKP_BOSS_cic_il4_v3.f' 
+        elif fft_power.lower() == 'quadpower': 
+            code_dir = '/home/users/hahn/powercode/FiberCollisions/' 
+            f_code = code_dir+'power_FKP_SDSS_BOSS_v3.f'
         else: 
             raise NameError("not Yet coded") 
     
@@ -419,7 +425,7 @@ def get_fibcoll_dir(file_type, **cat_corr):
             else:
                 file_dir = '/mount/riachuelo1/hahn/power/PATCHY/dr12/v6c/'
 
-        elif catalog['name'].lower() == 'bigmd':                # Big MD --------------------
+        elif 'bigmd' in catalog['name'].lower():                # Big MD --------------------
             if file_type.lower() == 'data': 
                 file_dir = '/mount/riachuelo1/hahn/data/BigMD/'
             elif file_type.lower() == 'fft': 

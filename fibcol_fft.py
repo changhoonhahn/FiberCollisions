@@ -69,15 +69,6 @@ def build_fibcol_fft(DorR, **cat_corr):
     # data file name 
     data_file = fc_data.get_galaxy_data_file(DorR, **cat_corr) 
     print data_file
-    
-    '''
-    if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz', 
-            'qpm', 'patchy', 'nseries', 'bigmd'):   
-        # Las Damas included because it's constant nbar(z)
-        pass
-    else: 
-        data_file = data_file+'.corrnbar'
-    '''
 
     try:                # if "quad" is not specified, then it's not used.
         spec['quad'] 
@@ -111,30 +102,25 @@ def build_fibcol_fft(DorR, **cat_corr):
         DorR_number = 1
 
     if not spec['quad']:       # NOT Quadrupole
-        if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz', 
-                'tilingmock', 'qpm', 'patchy', 'nseries', 'bigmd', 'cmass'): 
-            # Mocks: LasDamas Geo, Tiling Mock, QPM, PATCHY, Nseries, BigMD
 
-            # get bash command 
-            FFT_cmd = ' '.join([
-                FFT_exe, str(spec['Rbox']), str(DorR_number), str(spec['P0']), 
-                data_file, fft_file]) 
-            print FFT_cmd
-    
-            if DorR.lower() == 'data':  
-                # don't bother checking if the file exists for mocks and run the damn thing 
-                subprocess.call(FFT_cmd.split()) 
+        # get bash command 
+        FFT_cmd = ' '.join([
+            FFT_exe, str(spec['Rbox']), str(DorR_number), str(spec['P0']), 
+            data_file, fft_file]) 
+        print FFT_cmd
 
-            elif DorR.lower() == 'random':      
-                # random takes longer so check to see if it exists first
-                # call FFT randomc ommand 
-                if os.path.isfile(fft_file) == False: 
-                    print "Building ", fft_file 
-                    subprocess.call(FFT_cmd.split())
-                else: 
-                    print fft_file, " already exists" 
-        else: 
-            raise NameError('not yet coded!') 
+        if DorR.lower() == 'data':  
+            # don't bother checking if the file exists for mocks and run the damn thing 
+            subprocess.call(FFT_cmd.split()) 
+
+        elif DorR.lower() == 'random':      
+            # random takes longer so check to see if it exists first
+            # call FFT randomc ommand 
+            if os.path.isfile(fft_file) == False: 
+                print "Building ", fft_file 
+                subprocess.call(FFT_cmd.split())
+            else: 
+                print fft_file, " already exists" 
 
     else:       # For Quadruopole code ----------------------------------------------------
         # Quad FFT argument sequence (SUBJECT TO CHANGE) 
@@ -154,6 +140,9 @@ def build_fibcol_fft(DorR, **cat_corr):
             ifc = 0 
         elif catalog['name'].lower() == 'ldgdownnz':  
             idata = 11 
+            ifc = 0 
+        elif 'bigmd' in catalog['name'].lower(): 
+            idata = 12
             ifc = 0 
         else: 
             raise NameError('not included in Quadrupole code') 

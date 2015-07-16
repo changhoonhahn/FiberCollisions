@@ -136,7 +136,7 @@ class Spec:
 
             self.scale = spec['box']
 
-        elif catalog['name'].lower() == 'bigmd':                # Big MD --------------------
+        elif 'bigmd' in catalog['name'].lower():                # Big MD --------------------
             file_dir = spec_dir+'BigMD/'    # N series directory 
 
             data_file = fc_data.get_galaxy_data_file('data', **cat_corr)
@@ -306,19 +306,15 @@ def build_fibcol_power(**cat_corr):
         fc_util.compile_fortran_code(power_code) 
     
     
-    if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz', 
-            'tilingmock', 'qpm', 'patchy', 'nseries', 'bigmd', 'cmass'):   
-        if spec['quad'] == True:            # for quadrupole code 
-            # NOTE: ORDER OF RAND AND MOCK FILES ARE REVERSED
-            power_cmd = ' '.join([power_exe, fft_rand_file, fft_file, power_file, 
-                str(spec['sscale']), str(spec['grid']/2)]) 
-        else: 
-            power_cmd = ' '.join([power_exe, fft_file, fft_rand_file, power_file, str(spec['sscale'])]) 
-
-        print power_cmd
-        subprocess.call(power_cmd.split()) 
+    if spec['quad'] == True:            # for quadrupole code 
+        # NOTE: ORDER OF RAND AND MOCK FILES ARE REVERSED
+        power_cmd = ' '.join([power_exe, fft_rand_file, fft_file, power_file, 
+            str(spec['sscale']), str(spec['grid']/2)]) 
     else: 
-        raise NameError('not yet coded') 
+        power_cmd = ' '.join([power_exe, fft_file, fft_rand_file, power_file, str(spec['sscale'])]) 
+
+    print power_cmd
+    subprocess.call(power_cmd.split()) 
             
     return power_file  
 

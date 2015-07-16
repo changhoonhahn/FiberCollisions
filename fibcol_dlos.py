@@ -169,10 +169,18 @@ class dlos:
                 self.neigh_dec = readin_data[5] 
                 self.neigh_z = readin_data[6]
         
-        elif catalog['name'].lower() == 'bigmd':            # Big MD mock -------------------
-
+        elif 'bigmd' in catalog['name'].lower():            # Big MD mock -------------------
             file_dir = '/mount/riachuelo1/hahn/data/BigMD/' # directory
-            file_name = ''.join([file_dir, 'DLOS_bigMD-cmass-dr12v4_vetoed.fibcoll.dat']) 
+            if catalog['name'].lower() == 'bigmd': 
+                file_name = ''.join([file_dir, 'DLOS_bigMD-cmass-dr12v4_vetoed.fibcoll.dat']) 
+            elif catalog['name'].lower() == 'bigmd1':
+                file_name = ''.join([file_dir, 
+                    'DLOS_bigMD-cmass-dr12v4-RST-standardHAM_vetoed.fibcoll.dat']) 
+            elif catalog['name'].lower() == 'bigmd2': 
+                file_name = ''.join([file_dir, 
+                    'DLOS_bigMD-cmass-dr12v4-RST-quadru_vetoed.fibcoll.dat']) 
+            else: 
+                NotImplementedError('lkasdfkjadsf')
             
             self.file_name = file_name 
 
@@ -797,8 +805,15 @@ def combined_dlos_fit(n_mocks, fit='gauss', sanitycheck=False, clobber=False, **
                 else: 
                     combined_dlos = np.concatenate([combined_dlos, los_disp_i.dlos]) 
 
-    elif catalog['name'].lower() in ('tilingmock', 'bigmd'): 
-        # Tiling Mock, BigMD ------------------------------------------------
+    elif catalog['name'].lower() in ('tilingmock'): # Tiling Mock --------------------------
+
+        # import DLOS values for mock 
+        los_disp = dlos(**cat_corr)
+
+        combined_dlos = los_disp.dlos
+        n_mocks = 1
+
+    elif 'bigmd' in catalog['name'].lower():        # BigMD --------------------------------
 
         # import DLOS values for mock 
         los_disp = dlos(**cat_corr)
@@ -1382,8 +1397,7 @@ def build_combined_dlos_dist_peak(n_mock, **cat_corr):
                 combined_dlos = np.concatenate([combined_dlos, los_d_i.dlos]) 
             n_mocks = n_mocks+1
 
-    elif catalog['name'].lower() == 'bigmd':
-    
+    elif 'bigmd' in catalog['name'].lower():                    # Big MD ---------------------
         los_d_i = dlos(**cat_corr) 
         
         combined_dlos = los_d_i.dlos 
@@ -1754,7 +1768,7 @@ def plot_fcpaper_dlos(cat_corrs):
             mocks = range(1,11) 
         elif catalog['name'].lower() == 'cmass': 
             mocks = ['']
-        elif catalog['name'].lower() == 'bigmd': 
+        elif 'bigmd' in catalog['name'].lower(): 
             mocks = ['']
         else: 
             raise NameError('error')
@@ -1811,9 +1825,16 @@ def plot_fcpaper_dlos(cat_corrs):
             cat_label = 'BOSS CMASS'
             cat_color = pretty_colors[0]
             lwid = 2
-        elif catalog['name'].lower() == 'bigmd': 
-            cat_label = 'Big MultiDark'
-            cat_color = pretty_colors[11]
+        elif 'bigmd' in catalog['name'].lower(): 
+            if catalog['name'].lower() == 'bigmd': 
+                cat_label = 'Big MultiDark'
+                cat_color = pretty_colors[11]
+            elif catalog['name'].lower() == 'bigmd1': 
+                cat_label = 'Big MultiDark RST StandardHAM'
+                cat_color = pretty_colors[12]
+            elif catalog['name'].lower() == 'bigmd2': 
+                cat_label = 'Big MultiDark RST Quadru'
+                cat_color = pretty_colors[13]
         else: 
             raise NameError('asdf') 
 
@@ -1877,7 +1898,7 @@ def combined_catalog_dlos_fits(catalog, n_mock):
 
     elif 'bigmd' in catalog: 
         print 'BigMD -------------------------------------------------------'
-        cat_corr = {'catalog': {'name':'bigmd'}, 'correction': {'name': 'upweight'}}
+        cat_corr = {'catalog': {'name':catalog}, 'correction': {'name': 'upweight'}}
         print 'Gauss ', combined_dlos_fit(1, fit='gauss', sanitycheck=True, 
                 clobber=True, **cat_corr) 
 
@@ -1885,13 +1906,13 @@ def combined_catalog_dlos_fits(catalog, n_mock):
         raise NameError('asdfasdfasdf')  
 
 if __name__=="__main__": 
-    #cat_corr = {
-    #        'catalog': {'name': 'bigmd'}, 
-    #        'correction': {'name': 'upweight'}} 
+    cat_corr = {
+            'catalog': {'name': 'bigmd1'}, 
+            'correction': {'name': 'upweight'}} 
     #Dlos = dlos(readdata=True, clobber=True, **cat_corr)
     #combined_dlos_dist(1, **cat_corr)
     #combined_catalog_dlos_fits('lasdamasgeo', 10)
-    combined_catalog_dlos_fits('ldgdownnz', 10)
+    #combined_catalog_dlos_fits('ldgdownnz', 10)
     '''
     for i in np.arange(1, 11): 
         for letter in ['a', 'b', 'c', 'd']: 
@@ -1905,13 +1926,17 @@ if __name__=="__main__":
     #for i in np.arange(1,2): 
     #    cat_corr = {'catalog': {'name': 'nseries', 'n_mock': i}, 'correction': {'name': 'upweight'}} 
     #    build_dlos(**cat_corr) 
-    #combined_catalog_dlos_fits('bigmd', 1)
+    #combined_catalog_dlos_fits('bigmd1', 1)
+    #combined_catalog_dlos_fits('bigmd2', 1)
     #combined_catalog_dlos_fits('lasdamasgeo', 5)
     #nseries_idl_python_dlos_test(1)
     #ldg_idl_python_dlos_test(10)
-    #cat_corrs = [
-    #        {'catalog': {'name': 'cmass'}, 'correction': {'name': 'upweight'}}, 
-    #        {'catalog': {'name': 'qpm'}, 'correction': {'name': 'upweight'}}, 
-    #        {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}, 
-    #        {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}}]
-    #plot_fcpaper_dlos(cat_corrs)
+    cat_corrs = [
+            {'catalog': {'name': 'cmass'}, 'correction': {'name': 'upweight'}}, 
+            {'catalog': {'name': 'qpm'}, 'correction': {'name': 'upweight'}}, 
+            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}, 
+            {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}},
+            {'catalog': {'name': 'bigmd1'}, 'correction': {'name': 'upweight'}}, 
+            {'catalog': {'name': 'bigmd2'}, 'correction': {'name': 'upweight'}}
+            ]
+    plot_fcpaper_dlos(cat_corrs)

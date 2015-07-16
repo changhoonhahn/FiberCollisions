@@ -423,7 +423,7 @@ class galaxy_data:
                     # assign to object data columns
                     setattr(self, catalog_column, file_data[i_col])
     
-        elif catalog['name'].lower() == 'bigmd':                    # Big MultiDark -----------
+        elif 'bigmd' in catalog['name'].lower():              # Big MultiDark ----------------
             try: 
                 if catalog['cosmology'] == 'fiducial': 
                     omega_m = 0.31      # (fiducial cosmology) 
@@ -945,24 +945,50 @@ def get_galaxy_data_file(DorR, **cat_corr):
             # random catalog 
             file_name = ''.join([data_dir, 'Nseries_cutsky_randoms_50x_redshifts_comp.dat']) 
     
-    elif catalog['name'].lower() == 'bigmd':                # Big MD ---------------------
+    elif 'bigmd' in catalog['name'].lower():                # Big MD ---------------------
         data_dir = '/mount/riachuelo1/hahn/data/BigMD/'
         
         if DorR == 'data':  # mock catalogs 
 
             if correction['name'].lower() == 'true':    # true mocks
 
-                file_name = ''.join([data_dir, 'bigMD-cmass-dr12v4_vetoed.dat']) # hardcoded
+                if catalog['name'].lower() == 'bigmd': 
+                    file_name = ''.join([data_dir, 
+                        'bigMD-cmass-dr12v4_vetoed.dat']) # hardcoded
+                elif catalog['name'].lower() == 'bigmd1': 
+                    file_name = ''.join([data_dir, 
+                        'bigMD-cmass-dr12v4-RST-standardHAM_vetoed.dat']) # hardcoded
+                elif catalog['name'].lower() == 'bigmd2': 
+                    file_name = ''.join([data_dir, 
+                        'bigMD-cmass-dr12v4-RST-quadru_vetoed.dat']) # hardcoded
+                else: 
+                    raise NotImplementedError('asdfkj')
     
             elif correction['name'].lower() in ('upweight'):    # upweighted
-                file_name = ''.join([data_dir, 
-                    'bigMD-cmass-dr12v4_vetoed.fibcoll.dat']) # hardcoded
+                if catalog['name'].lower() == 'bigmd':
+                    file_name = ''.join([data_dir, 
+                        'bigMD-cmass-dr12v4_vetoed.fibcoll.dat']) # hardcoded
+                elif catalog['name'].lower() == 'bigmd1': 
+                    file_name = ''.join([data_dir, 
+                        'bigMD-cmass-dr12v4-RST-standardHAM_vetoed.fibcoll.dat']) 
+                elif catalog['name'].lower() == 'bigmd2': 
+                    file_name = ''.join([data_dir, 
+                        'bigMD-cmass-dr12v4-RST-quadru_vetoed.fibcoll.dat'])                 
+                else: 
+                    raise NotImplementedError('asdfkj')
             else: 
                 raise NotImplementedError('not yet coded') 
     
         elif DorR == 'random':                  # random catalog 
             # vetomask-ed random catalog 
-            file_name = ''.join([data_dir, 'bigMD-cmass-dr12v4_vetoed.ran'])
+            if catalog['name'].lower() == 'bigmd': 
+                file_name = ''.join([data_dir, 'bigMD-cmass-dr12v4_vetoed.ran'])
+            elif catalog['name'].lower() == 'bigmd1': 
+                file_name = ''.join([data_dir, 'bigMD-cmass-dr12v4-RST-standardHAM_vetoed.ran'])
+            elif catalog['name'].lower() == 'bigmd2': 
+                file_name = ''.join([data_dir, 'bigMD-cmass-dr12v4-RST-quadru_vetoed.ran'])
+            else: 
+                raise NotImplementedError('asdlfkj')
     
     elif catalog['name'].lower() == 'cmass':                # CMASS ---------------------
         data_dir = '/mount/riachuelo1/hahn/data/CMASS/'
@@ -1117,13 +1143,20 @@ def build_true(**cat_corr):
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e', '%10.5f'], 
                 delimiter='\t') 
     
-    elif catalog['name'].lower() == 'bigmd':                    # Big MultiDark ------------
-    
+    elif 'bigmd' in catalog['name'].lower():                # Big MultiDark ------------
         P0 = 20000.0
 
         # read rdzw file 
         data_dir = '/mount/riachuelo1/hahn/data/BigMD/'
-        orig_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-wcp-veto.dat'])  # hardcoded
+        if catalog['name'].lower() == 'bigmd':
+            orig_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-wcp-veto.dat'])  # hardcoded
+        elif catalog['name'].lower() == 'bigmd1': 
+            orig_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-RST-standardHAM-veto.dat'])
+        elif catalog['name'].lower() == 'bigmd2': 
+            orig_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-RST-quadru-veto.dat'])
+        else: 
+            raise NotImplementedError('asdlfkjadf') 
+
         orig_ra, orig_dec, orig_z, orig_wfkp, orig_veto, orig_wfc = np.loadtxt(orig_file, 
                 unpack=True, usecols=[0,1,2,3,4,5])
 
@@ -1222,11 +1255,16 @@ def build_random(**cat_corr):
                     orig_ra[vetomask], orig_dec[vetomask], orig_z[vetomask], orig_nbar[vetomask]
                     ], fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e'], delimiter='\t') 
 
-    elif catalog['name'].lower() == 'bigmd':        # Big MD ----------------------------
+    elif 'bigmd' in catalog['name'].lower():        # Big MD ----------------------------
         P0 = 20000.0
         # original random catalog 
         data_dir = '/mount/riachuelo1/hahn/data/BigMD/'
-        orig_rand_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-wcp-veto.ran']) 
+        if catalog['name'].lower() == 'bigmd': 
+            orig_rand_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-wcp-veto.ran']) 
+        elif catalog['name'].lower() == 'bigmd1': 
+            orig_rand_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-RST-standardHAM-veto.ran']) 
+        elif catalog['name'].lower() == 'bigmd2': 
+            orig_rand_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-RST-quadru-veto.ran']) 
 
         # RA, Decl, Redhsift, veto  
         ra, dec, z, wfkp, veto = np.loadtxt(orig_rand_file, unpack=True, usecols=[0,1,2,3,4]) 
@@ -1236,7 +1274,8 @@ def build_random(**cat_corr):
         vetomask = np.where(veto == 1)  # impose vetomask 
     
         # save rnadom file (write RA, Decl, Redshift) 
-        true_random_file = get_galaxy_data_file('random', **{'catalog':{'name':'bigmd'}, 'correction':{'name':'true'}})
+        true_random_file = get_galaxy_data_file('random', 
+                **{'catalog':{'name':catalog['name'].lower()}, 'correction':{'name':'true'}})
         np.savetxt(true_random_file, 
                 np.c_[ra[vetomask], dec[vetomask], z[vetomask], nbar[vetomask]], 
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e'], delimiter='\t') 
@@ -1464,11 +1503,16 @@ def build_fibercollided(**cat_corr):
         
         fibcollided_cmd = ''
     
-    elif catalog['name'].lower() == 'bigmd':            # Big MD --------------------
+    elif 'bigmd' in catalog['name'].lower():            # Big MD --------------------
         P0 = 20000.0
         # read original random catalog 
         data_dir = '/mount/riachuelo1/hahn/data/BigMD/'
-        orig_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-wcp-veto.dat']) 
+        if catalog['name'].lower() == 'bigmd': 
+            orig_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-wcp-veto.dat']) 
+        elif catalog['name'].lower() == 'bigmd1': 
+            orig_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-RST-standardHAM-veto.dat']) 
+        elif catalog['name'].lower() == 'bigmd2': 
+            orig_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-RST-quadru-veto.dat']) 
 
         # RA, Decl, Redhsift, veto  
         ra, dec, z, wfkp, veto, wfc = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,3,4,5]) 
@@ -1476,7 +1520,8 @@ def build_fibercollided(**cat_corr):
 
         nbar = (1.0 / P0) * (1.0/wfkp - 1.0) 
         print nbar
-        print min(nbar), max(nbar)
+        print 'min nz', min(nbar)
+        print 'max nz', max(nbar)
         vetomask = np.where(veto == 1)  # impose vetomask 
     
         fc_file = get_galaxy_data_file('data', **cat_corr)    # file name 
