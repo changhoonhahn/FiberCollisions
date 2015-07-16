@@ -1183,20 +1183,26 @@ if __name__=="__main__":
     #            'correction': {'name': 'upweight'}},
     #        {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}
     #        ]
-    catcorr_methods = [
-            {'catalog': {'name': 'cmass', 'cosmology': 'fiducial'}, 
-                'correction': {'name': 'upweight'}},
-            {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}},
-            {'catalog': {'name': 'patchy'}, 'correction': {'name': 'upweight'}},
-            {'catalog': {'name': 'qpm'}, 'correction': {'name': 'upweight'}} 
-            ]
-
-    plot_pk_fibcol_comp(catcorr_methods, [1,1,10,10], 
-            quad=False, Ngrid=360, type='regular', 
+    #catcorr_methods = [
+    #        {'catalog': {'name': 'cmass', 'cosmology': 'fiducial'}, 
+    #            'correction': {'name': 'upweight'}},
+    #        {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}},
+    #        {'catalog': {'name': 'patchy'}, 'correction': {'name': 'upweight'}},
+    #        {'catalog': {'name': 'qpm'}, 'correction': {'name': 'upweight'}} 
+    #        ]
+    #catcorr_methods = [
+    #        {'catalog': {'name': 'ldgdownnz'}, 'correction': {'name': 'true'}},
+    #        {'catalog': {'name': 'ldgdownnz'}, 'correction': {'name': 'upweight'}},
+    #        {'catalog': {'name': 'ldgdownnz'}, 
+    #            'correction': {'name': 'bigfc_peakshot', 
+    #                'sigma':6.5, 'fpeak':0.76, 'fit':'gauss'}},
+    #        ]
+    n_mock_list = [1,1,10,10]
+    plot_pk_fibcol_comp( catcorr_methods, n_mock_list, quad=False, Ngrid=360, type='regular', 
             xrange=[0.001, 1.0], yrange=[10**3, 3*10**5])
-    plot_pk_fibcol_comp(catcorr_methods, [1,1,10,10], 
+    plot_pk_fibcol_comp(catcorr_methods, n_mock_list, 
             quad=False, Ngrid=360, type='kPk', 
             xrange=[0.001, 1.0], yrange=[10**0, 3*10**3])
-    plot_pk_fibcol_comp(catcorr_methods, [1,1,10,10],
+    plot_pk_fibcol_comp(catcorr_methods, n_mock_list, 
             quad=False, Ngrid=360, type='ratio', 
             xrange=[0.001, 1.0], yrange=[0.8, 1.2])

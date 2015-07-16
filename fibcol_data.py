@@ -92,7 +92,7 @@ class galaxy_data:
 
                     elif correction['name'].lower() in ('bigfc_peakshot'): 
                         # fiber collided with bigger angular scale
-                        build_peakcorrected_fibcol(sanitycheck=True, **cat_corr)
+                        build_peakcorrected_fibcol(doublecheck=True, **cat_corr)
 
                     else: 
                         raise NameError('Correction Name Unknown') 
@@ -158,10 +158,11 @@ class galaxy_data:
                         build_ldgdownnz_bigfc(**cat_corr)
                     elif correction['name'].lower() in ('peakshot'): 
                         # peak + shotnoise correction for monopole
-                        build_peakcorrected_fibcol(sanitycheck=True, **cat_corr)
+                        build_peakcorrected_fibcol(doublecheck=True, **cat_corr)
+
                     elif correction['name'].lower() in ('bigfc_peakshot'): 
                         # fiber collided with bigger angular scale
-                        build_peakcorrected_fibcol(sanitycheck=True, **cat_corr)
+                        build_peakcorrected_fibcol(doublecheck=True, **cat_corr)
                     else: 
                         raise NameError('Correction Name Unknown') 
 
@@ -1984,7 +1985,7 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
     if catalog['name'].lower() in ('qpm', 'nseries'): 
         appended_comp = []   # save comp
             
-    if doublecheck == True:     # check that the peak p(r) is generated properly
+    if doublecheck:     # check that the peak p(r) is generated properly
         dlos_values = [] 
     
     for i_mock in range(len(fibcoll_mock.weight)):  # go through every galaxy in fibercollided mock catalog
@@ -2063,7 +2064,7 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
 
                 appended_z.append(collided_z[0]) 
 
-                if doublecheck == True: 
+                if doublecheck: 
                     dlos_values.append(rand2) 
 
             else:                           # if not in the peak ------------------------------------
@@ -2124,7 +2125,7 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
     else: 
         raise NotImplementedError('asdfasdf')
 
-    if doublecheck == True: 
+    if doublecheck: 
         np.savetxt(peakcorr_file+'.dlosvalues', np.c_[dlos_values], fmt=['%10.5f'], delimiter='\t') 
 
 def build_ldg_scratch(**cat_corr): 

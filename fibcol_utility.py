@@ -80,13 +80,12 @@ def fortran_code(fft_power, **cat_corr):
         ldg_code_dir = '/home/users/hahn/powercode/FiberCollisions/LasDamas/Geo/' 
        
         if fft_power.lower() == 'fft':      # FFT -----------------
-                
             # only one implemented so far 
             f_code = ldg_code_dir+'FFT_ldg_fkp_w_down_nz_'+str(spec['grid'])+'grid.f'
 
         elif fft_power.lower() == 'power':  # power ----------------
 
-            if correction['name'].lower() in ('true', 'upweight', 'peaknbar'):  
+            if correction['name'].lower() in ('true', 'upweight', 'peaknbar', 'bigfc'):  
                 # Original FKP estimator
                 if spec['grid'] == 360: 
                     f_code = ldg_code_dir+'power_ldg_fkp_360grid_180bin.f'

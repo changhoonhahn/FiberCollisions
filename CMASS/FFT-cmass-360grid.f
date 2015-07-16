@@ -13,7 +13,7 @@
       real zbin(Nbin),dbin(Nbin),zt,dum,gfrac
       real cz,sec2(Nsel),chi,nbar,Rbox
       real*8 Ngsys,Ngsyscomp,Ngsystot
-      real*9 Nrsys,Nrsyscomp,Nrsystot
+      real*8 Nrsys,Nrsyscomp,Nrsystot
       real, allocatable :: nbg(:),nbr(:),rg(:,:),rr(:,:),wg(:),wr(:)
       real, allocatable :: cmp(:)
       real selfun(Nsel),z(Nsel),sec(Nsel),zmin,zmax,az,ra,dec,rad,numden
@@ -97,8 +97,8 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          WRITE(*,*) 'Ngal,box=',Ng,'Ngal=',Ngal,gfrac,'percent'
 
          Ngsys=Ngsys*dble(Ng)/dble(Ngal)
-         Ngsyscomp==Ngsyscomp*dble(Ng)/dble(Ngal)
-         Ngsystot==Ngsystot*dble(Ng)/dble(Ngal)
+         Ngsyscomp=Ngsyscomp*dble(Ng)/dble(Ngal)
+         Ngsystot=Ngsystot*dble(Ng)/dble(Ngal)
             
          write(*,*) 'Ngal=',Ng
          write(*,*) 'Ngal,sys=',Ngsys
@@ -165,9 +165,9 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          call PutIntoBox(Nran,rr,Rbox,ir,Nr,Nmax)
          gfrac=100. *float(Nr)/float(Nran)
          WRITE(*,*) 'Nran,box=',Nr,'Nran=',Nran, gfrac,'percent'
-         Nrsys=Nrsys**dble(Nr)/dble(Nran)
-         Nrsyscomp=Nrsyscomp**dble(Nr)/dble(Nran)
-         Nrsystot=Nrsystot**dble(Nr)/dble(Nran)
+         Nrsys=Nrsys*dble(Nr)/dble(Nran)
+         Nrsyscomp=Nrsyscomp*dble(Nr)/dble(Nran)
+         Nrsystot=Nrsystot*dble(Nr)/dble(Nran)
 
          I10=0.d0
          I12=0.d0
@@ -192,7 +192,7 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          write(*,*)'Nrsys,tot=',Nrsystot
 
          allocate(dcr(Ngrid,Ngrid,Ngrid))
-         call assign(Nran,rr,rm,Lm,dcr,P0,nbr,cmpir,wr)
+         call assign(Nran,rr,rm,Lm,dcr,P0,nbr,cmp,ir,wr)
          call fftwnd_f77_one(planf,dcr,dcr)      
          call fcomb(Lm,dcr,Nr)
 
