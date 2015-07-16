@@ -865,7 +865,9 @@ def build_pk(catalog, n_mocks, quad=False, clobber=True, **kwargs):
         cosmology = 'fiducial'
 
     cat = {'name': catalog, 'cosmology': cosmology} 
-    corrections = [{'name': 'upweight'}]
+    corrections = [{'name': 'bigfc_peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}]
+
+    #corrections = [{'name': 'upweight'}]
     spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':Ngrid, 'quad':quad}
 
     for i_mock in range(1, n_mocks+1): 
@@ -911,15 +913,17 @@ def fibcol_now_fraction(**cat_corr):
 
 if __name__=='__main__': 
     '''
-
-    corrections = [{'name': 'upweight'}]
-    for i_mock in np.arange(1, 11): 
+    corrections = [{'name': 'bigfc'}]
+    for i_mock in np.arange(1, 2): 
         for letter in ['a', 'b', 'c', 'd']: 
             for corr in corrections: 
-                cat_corr = {'catalog': {'name': 'lasdamasgeo', 'n_mock': i_mock, 'letter': letter}, 'correction': corr} 
+                cat_corr = {
+                        'catalog': {'name': 'lasdamasgeo', 'n_mock': i_mock, 'letter': letter}, 
+                        'correction': corr} 
                 fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     '''
-    #build_pk('ldgdownnz', 1, clobber=False, quad=True) 
+    build_pk('ldgdownnz', 5, clobber=False, quad=False) 
+    #build_pk('lasdamasgeo', 10, clobber=False, grid=360, quad=False) 
     #build_pk('patchy', 10, clobber=False, grid=960, quad=False) 
-    build_pk('cmass', 1, cosmology='fiducial', quad=False)
+    #build_pk('cmass', 1, cosmology='fiducial', quad=False)
     #build_pk('nseries', 84, quad=True)

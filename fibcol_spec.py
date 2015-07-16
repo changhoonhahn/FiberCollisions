@@ -161,7 +161,7 @@ class Spec:
 
             self.scale = spec['box']
     
-        elif catalog['name'].lower() in ("lasdamasgeo", 'ldgdownnz'):       # LasDamasGeo Mocks --
+        elif catalog['name'].lower() in ("lasdamasgeo", 'ldgdownnz'):       # LasDamasGeo ----
             file_dir = ''.join([spec_dir, '/LasDamas/Geo/'])
 
             # e.g. power_sdssmock_gamma_lrgFull_zm_oriana19a_no.rdcz.dat.grid360.P020000.box3600
@@ -186,10 +186,7 @@ class Spec:
             # survey scale 
             self.scale = spec['box']
     
-
-        elif catalog['name'].lower() == 'patchy': 
-            # PATCHY Mocks ---------------------------------------------------------------
-
+        elif catalog['name'].lower() == 'patchy':                       # PATCHY Mocks -------
             file_dir = ''.join([spec_dir, '/PATCHY/dr12/v6c/']) 
 
             data_file = fc_data.get_galaxy_data_file('data', **cat_corr)

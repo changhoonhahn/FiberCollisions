@@ -140,7 +140,7 @@ def build_fibcol_fft(DorR, **cat_corr):
         # Quad FFT argument sequence (SUBJECT TO CHANGE) 
 
         # determine "idata"
-        if catalog['name'].lower() in ('lasdamasgeo'): 
+        if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz'): 
             idata = 2
             ifc = 0 
         elif catalog['name'].lower() == 'qpm': 

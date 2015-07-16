@@ -48,7 +48,7 @@ class galaxy_data:
         if catalog['name'].lower() == 'lasdamasgeo':    # LasDamas Geo -----------------------
             omega_m = 0.25  # cosmology
 
-            if DorR == 'data':                          # Data -------------------------
+            if DorR == 'data':                      # Data -------------------------
                 # columns that this catalog data will have  
                 catalog_columns = ['ra', 'dec', 'z', 'weight']  
 
@@ -86,10 +86,13 @@ class galaxy_data:
 
                         build_ldg_scratch(**cat_corr) 
 
-                    elif correction['name'].lower() in ('true_down_nz'): 
+                    elif correction['name'].lower() in ('bigfc'): 
+                        # fiber collided with bigger angular scale
+                        build_ldg_bigfc(**cat_corr)
 
-                        # true mock catalog downsampled by nbar(z) 
-                        build_ldg_nz_down('data', **cat_corr)
+                    elif correction['name'].lower() in ('bigfc_peakshot'): 
+                        # fiber collided with bigger angular scale
+                        build_peakcorrected_fibcol(sanitycheck=True, **cat_corr)
 
                     else: 
                         raise NameError('Correction Name Unknown') 
@@ -101,8 +104,7 @@ class galaxy_data:
                     column_data = file_data[i_col]
                     setattr(self, catalog_column, column_data) 
 
-            elif DorR.lower() == 'random':          # Random Catalogs -------------------------
-
+            elif DorR.lower() == 'random':          # Random  -------------------------
                 # columns of random catalog (NOTE CZ IS CONVERTED TO Z) 
                 catalog_columns = ['ra', 'dec', 'z']        
 
@@ -151,8 +153,14 @@ class galaxy_data:
                     elif correction['name'].lower() in ('upweight'): 
                         # nearest neighbor weights assigned
                         build_fibercollided(**cat_corr)
+                    elif correction['name'].lower() in ('bigfc'): 
+                        # fiber collided with bigger angular scale
+                        build_ldgdownnz_bigfc(**cat_corr)
                     elif correction['name'].lower() in ('peakshot'): 
                         # peak + shotnoise correction for monopole
+                        build_peakcorrected_fibcol(sanitycheck=True, **cat_corr)
+                    elif correction['name'].lower() in ('bigfc_peakshot'): 
+                        # fiber collided with bigger angular scale
                         build_peakcorrected_fibcol(sanitycheck=True, **cat_corr)
                     else: 
                         raise NameError('Correction Name Unknown') 
@@ -498,7 +506,7 @@ class galaxy_data:
                     setattr(self, catalog_column, file_data[i_col]) 
 
             elif DorR == 'random': 
-                catalog_columns = ['ra', 'dec', 'z', 'nbar']
+                catalog_columns = ['ra', 'dec', 'z', 'nbar', 'comp']
                 self.columns = catalog_columns
                 
                 if not os.path.isfile(file_name) or clobber: 
@@ -506,7 +514,7 @@ class galaxy_data:
                     build_random(**cat_corr) 
 
                 #ra,dec,z,nbar,comp
-                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])  
+                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4])  
 
                 # assign to data columns class
                 for i_col, catalog_column in enumerate(catalog_columns): 
@@ -543,17 +551,20 @@ def get_galaxy_data_file(DorR, **cat_corr):
 
         if DorR.lower() == 'data':                  # data
 
-            if correction['name'].lower() == 'true':            # true
-
-                file_name = ''.join([data_dir, 'sdssmock_gamma_lrgFull_zm_oriana', 
-                    str("%02d" % catalog['n_mock']), catalog['letter'], '_no.rdcz.dat']) 
+            if correction['name'].lower() == 'true':    # true
+                file_name = ''.join([data_dir, 
+                    'sdssmock_gamma_lrgFull_zm_oriana', 
+                    str("%02d" % catalog['n_mock']), catalog['letter'], 
+                    '_no.rdcz.dat']) 
 
             elif correction['name'].lower() in ('upweight', 'fibcol', 
                     'shotnoise', 'hectorsn', 'floriansn'): 
                 # LDG mocks with fiber collision weights 
                 
-                file_name = ''.join([data_dir, 'sdssmock_gamma_lrgFull_zm_oriana', 
-                    str("%02d" % catalog['n_mock']), catalog['letter'], '_no.rdcz.fibcoll.dat']) 
+                file_name = ''.join([data_dir, 
+                    'sdssmock_gamma_lrgFull_zm_oriana', 
+                    str("%02d" % catalog['n_mock']), catalog['letter'], 
+                    '_no.rdcz.fibcoll.dat']) 
 
             elif correction['name'].lower() in ('peak', 'peaknbar', 'peakshot', 'peaktest'): 
 
@@ -573,6 +584,25 @@ def get_galaxy_data_file(DorR, **cat_corr):
                 
                 file_name = ''.join([data_dir, 'sdssmock_gamma_lrgFull_zm_oriana', 
                     str("%02d" % catalog['n_mock']), catalog['letter'], '_no.rdcz.fibcoll.dat'+corr_str]) 
+            elif correction['name'].lower() in ('bigfc_peakshot'): 
+
+                # specify peak correction fit (expon, gauss, true) 
+                if correction['fit'].lower() in ('gauss', 'expon'): 
+                    corr_str = ''.join([
+                        '.', correction['fit'].lower(), '.', correction['name'].lower(), 
+                        '.sigma', str(correction['sigma']), '.fpeak', str(correction['fpeak'])])
+
+                elif correction['fit'].lower() in ('true'):
+                    corr_str = ''.join([
+                        '.', correction['fit'].lower(), '.', correction['name'].lower(), 
+                        '.fpeak', str(correction['fpeak'])])
+                else: 
+                    raise NameError('peak fit has to be specified: gauss, expon, true') 
+                
+                file_name = ''.join([data_dir, 
+                    'sdssmock_gamma_lrgFull_zm_oriana', 
+                    str("%02d" % catalog['n_mock']), catalog['letter'], 
+                    '_no.rdcz.big_fibcoll.dat'+corr_str]) 
 
             elif correction['name'].lower() in ('peakshot_dnn'): 
                 # Peak Correction (with dNN env) + Shotnoise 
@@ -595,24 +625,21 @@ def get_galaxy_data_file(DorR, **cat_corr):
                     'sdssmock_gamma_lrgFull_zm_oriana', str("%02d" % catalog['n_mock']), 
                     catalog['letter'], '_no.rdcz.noweight.dat']) 
 
-            elif 'scratch' in correction['name'].lower(): 
-                # easily adjustable methods 
+            elif 'scratch' in correction['name'].lower(): # easily adjustable methods 
                 file_name = ''.join([data_dir, 'sdssmock_gamma_lrgFull_zm_oriana', 
                     str("%02d" % catalog['n_mock']), catalog['letter'], '_no.rdcz.fibcoll.', 
                     correction['name'].lower(), '.dat']) 
             
-            elif correction['name'].lower() in ('true_down_nz'): 
-                # true mock catalog downsampled by redshift 
+            elif correction['name'].lower() in ('bigfc'): # fc with bigger ang scale
                 file_name = ''.join([data_dir, 
                     'sdssmock_gamma_lrgFull_zm_oriana', 
                     str("%02d" % catalog['n_mock']), catalog['letter'], 
-                    '_no.rdcz.down_nz.dat'])
+                    '_no.rdcz.big_fibcoll.dat'])
 
             else: 
                 raise NotImplementedError('asdfasdf') 
 
-        if DorR.lower() == 'random': 
-
+        if DorR.lower() == 'random':        # random 
             file_name = '/mount/riachuelo1/hahn/data/LasDamas/Geo/sdssmock_gamma_lrgFull.rand_200x_no.rdcz.dat'
     
     elif catalog['name'].lower() == 'ldgdownnz':                # LasDamasGeo downsampled ----- 
@@ -633,6 +660,12 @@ def get_galaxy_data_file(DorR, **cat_corr):
                     'sdssmock_gamma_lrgFull_zm_oriana', 
                     str("%02d" % catalog['n_mock']), catalog['letter'], 
                     '_no.rdcz.fibcoll.down_nz.dat'])
+            
+            elif correction['name'].lower() in ('bigfc'): # fc with bigger ang scale
+                file_name = ''.join([data_dir, 
+                    'sdssmock_gamma_lrgFull_zm_oriana', 
+                    str("%02d" % catalog['n_mock']), catalog['letter'], 
+                    '_no.rdcz.big_fibcoll.down_nz.dat'])
 
             elif correction['name'].lower() in ('peakshot'): 
                 # peak + shot noise correction 
@@ -650,6 +683,23 @@ def get_galaxy_data_file(DorR, **cat_corr):
                     'sdssmock_gamma_lrgFull_zm_oriana', 
                     str("%02d" % catalog['n_mock']), catalog['letter'], 
                     '_no.rdcz.fibcoll.down_nz.dat'+corr_str]) 
+
+            elif correction['name'].lower() in ('bigfc_peakshot'): 
+                # peak + shot noise correction 
+                
+                if correction['fit'].lower() in ('gauss', 'expon'): 
+                    # specify peak correction fit (expon, gauss, true) 
+                    corr_str = ''.join([
+                        '.', correction['fit'].lower(), '.', correction['name'].lower(), 
+                        '.sigma', str(correction['sigma']), 
+                        '.fpeak', str(correction['fpeak'])])
+                else: 
+                    raise NameError('peak fit has to be specified: gauss, expon, true') 
+                
+                file_name = ''.join([data_dir, 
+                    'sdssmock_gamma_lrgFull_zm_oriana', 
+                    str("%02d" % catalog['n_mock']), catalog['letter'], 
+                    '_no.rdcz.big_fibcoll.down_nz.dat'+corr_str]) 
 
             else: 
                 raise NotImplementedError('asdfasdf') 
@@ -1102,18 +1152,25 @@ def build_random(**cat_corr):
     catalog = cat_corr['catalog']
     if catalog['name'].lower() == 'cmass':          # CMASS -------------------------------- 
         data_dir = '/mount/riachuelo1/hahn/data/CMASS/'
+        # random data fits file
         data_file = ''.join([data_dir, 'cmass-dr12v4-N-Reid.ran.fits']) 
         cmass = mrdfits(data_file) 
+    
+        # mask file 
+        mask_file = ''.join([data_dir, 'mask-cmass-dr12v4-N-Reid.fits']) 
+        mask = mrdfits(mask_file) 
 
         zlimit = np.where((cmass.z >= 0.43) & (cmass.z <= 0.7))
+        ipoly = cmass.ipoly[zlimit] # polygon index
+        comp = mask.weight[ipoly]
 
-        #ra, dec, z, nz
+        #ra, dec, z, nz, comp 
         random_file = get_galaxy_data_file('random', **cat_corr) 
         np.savetxt(random_file, 
                 np.c_[
                     (cmass.ra)[zlimit], (cmass.dec)[zlimit], (cmass.z)[zlimit], 
-                    (cmass.nz)[zlimit]], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+                    (cmass.nz)[zlimit], comp], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e', '%10.5f'], delimiter='\t') 
 
     elif catalog['name'].lower() == 'qpm':            # QPM ------------------------------
         # read original random catalog  
@@ -1304,18 +1361,15 @@ def build_fibercollided(**cat_corr):
                     '%10.5f', '%10.5f', '%10.5f', 
                     '%.5e', '%10.5f'], delimiter='\t') 
 
-        
         fibcollided_cmd = ''
 
     elif catalog['name'].lower() == 'lasdamasgeo':        # Las Damas Geo 
-        
         fibcollided_cmd = 'idl -e "ldg_fibcollmock_wcp_assign,'+str(catalog['n_mock'])+", '"+\
                 str(catalog['letter'])+"'"+'"'
         print fibcollided_cmd
         os.system(fibcollided_cmd)  # call IDL code 
 
     elif catalog['name'].lower() == 'ldgdownnz': 
-
         fibcollided_cmd = 'idl -e "ldgdownnz_wcp_assign,'+str(catalog['n_mock'])+", '"+\
                 str(catalog['letter'])+"'"+'"'
         print fibcollided_cmd
@@ -1886,7 +1940,11 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
         raise NotImplementedError('Mock Catalog not included')
 
     # read in fiber collided mock  
-    fibcoll_cat_corr = {'catalog':catalog, 'correction': {'name': 'upweight'}}
+    if correction['name'] == 'bigfc_peakshot': 
+        fibcoll_cat_corr = {'catalog':catalog, 'correction': {'name': 'bigfc'}}
+    else: 
+        fibcoll_cat_corr = {'catalog':catalog, 'correction': {'name': 'upweight'}}
+
     fibcoll_mock = galaxy_data('data', **fibcoll_cat_corr) 
     cosmo = fibcoll_mock.cosmo      # survey comoslogy 
 
@@ -2030,13 +2088,13 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
                     # assign redshift 
                     appended_z.append(true_z[zindx]) 
 
-                elif correction['name'] == 'peakshot': 
+                elif correction['name'] in ('peakshot', 'bigfc_peakshot'): 
                     upweight_again.append(i_mock)
 
                 else: 
                     raise NotImplementedError('asdfasdf') 
     
-    if correction['name'] == 'peakshot': 
+    if correction['name'] in ('peakshot', 'bigfc_peakshot'): 
         # re-upweighting for peak+shotnoise correction 
         for i_upweightagain in upweight_again: 
             fibcoll_mock.weight[i_upweightagain] += 1.
@@ -2445,6 +2503,54 @@ def build_ldg_nz_down(DorR, **cat_corr):
                 fmt=['%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
     return 
+
+def build_ldg_bigfc(**cat_corr): 
+    ''' Build LasDamas realizations with bigger fiber collision angular scale
+    to match fiber collided fraction
+
+    Parameters 
+    ----------
+    * cat_corr : catalog correction dictionary
+
+    Notes
+    -----
+    * Calls IDL code ldg_bigfibcoll_wcp_assign.pro 
+    * theta_ang : 
+
+    '''
+    catalog = cat_corr['catalog']
+    
+    # IDL command 
+    fibcollided_cmd = 'idl -e "ldg_bigfibcoll_wcp_assign,'+str(catalog['n_mock'])+", '"+\
+            str(catalog['letter'])+"'"+'"'
+    print fibcollided_cmd
+    os.system(fibcollided_cmd)  # call IDL code 
+
+    return fibcollided_cmd
+
+def build_ldgdownnz_bigfc(**cat_corr): 
+    ''' Build LasDamas realizations with bigger fiber collision angular scale
+    to match fiber collided fraction
+
+    Parameters 
+    ----------
+    * cat_corr : catalog correction dictionary
+
+    Notes
+    -----
+    * Calls IDL code ldg_bigfibcoll_wcp_assign.pro 
+    * theta_ang : 
+
+    '''
+    catalog = cat_corr['catalog']
+    
+    # IDL command 
+    fibcollided_cmd = 'idl -e "ldgdownnz_bigfc_wcp_assign,'+str(catalog['n_mock'])+", '"+\
+            str(catalog['letter'])+"'"+'"'
+    print fibcollided_cmd
+    os.system(fibcollided_cmd)  # call IDL code 
+
+    return fibcollided_cmd
 
 def build_nseries_scratch(**cat_corr): 
     ''' Quick function to test fiber collision correction methods on Nseries mocks

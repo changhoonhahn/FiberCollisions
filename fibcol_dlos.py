@@ -37,7 +37,15 @@ class dlos:
 
             file_dir = '/mount/riachuelo1/hahn/data/LasDamas/Geo/'
             #File name 
-            file_name = file_dir+'DLOS_sdssmock_gamma_lrgFull_zm_oriana'+str(catalog['n_mock']+100)[1:3]+catalog['letter']+'_no.rdcz.dat'
+            if correction['name'].lower() == 'bigfc': 
+                file_name = ''.join([file_dir, 
+                    'DLOS_sdssmock_gamma_lrgFull_zm_oriana', 
+                    str(catalog['n_mock']+100)[1:3], catalog['letter'], 
+                    '_no.rdcz.big_fibcoll.dat']) 
+            else: 
+                file_name = ''.join([file_dir, 
+                    'DLOS_sdssmock_gamma_lrgFull_zm_oriana', 
+                    str(catalog['n_mock']+100)[1:3], catalog['letter'], '_no.rdcz.dat']) 
             self.file_name = file_name 
             
             if readdata == True: 
@@ -53,10 +61,16 @@ class dlos:
         elif catalog['name'].lower() == 'ldgdownnz':        # LDG downsampled --------------- 
             
             file_dir = '/mount/riachuelo1/hahn/data/LasDamas/Geo/'
-            file_name = ''.join([file_dir, 
-                'DLOS_sdssmock_gamma_lrgFull_zm_oriana', 
-                str(catalog['n_mock']+100)[1:3], catalog['letter'], 
-                '_no.rdcz.down_nz.dat']) 
+            if correction['name'].lower() == 'bigfc': 
+                file_name = ''.join([file_dir, 
+                    'DLOS_sdssmock_gamma_lrgFull_zm_oriana', 
+                    str(catalog['n_mock']+100)[1:3], catalog['letter'], 
+                    '_no.rdcz.big_fibcoll.down_nz.dat']) 
+            else: 
+                file_name = ''.join([file_dir, 
+                    'DLOS_sdssmock_gamma_lrgFull_zm_oriana', 
+                    str(catalog['n_mock']+100)[1:3], catalog['letter'], 
+                    '_no.rdcz.down_nz.dat']) 
             self.file_name = file_name 
             
             if readdata == True: 
@@ -929,9 +943,17 @@ def combined_dlos_fit(n_mocks, fit='gauss', sanitycheck=False, clobber=False, **
         #sub.set_xlim([-5.0, 5.0])
         sub.set_ylim([0.0, 1.25*np.max(dlos_hist)])
         sub.legend(loc='upper right', scatterpoints=1, prop={'size':14}) 
+    
+        if correction['name'].lower() == 'bigfc': 
+            bigfc_flag = '_bigfc'
+        else: 
+            bigfc_flag = ''
 
         fig_dir = 'figure/'
-        fig.savefig(fig_dir+catalog['name'].lower()+'_'+str(n_mocks)+'mocks_combined_dlos_peakfit_'+fit.lower()+'.png', bbox_inches="tight")
+        fig_file = ''.join([fig_dir, 
+            catalog['name'].lower(), '_', str(n_mocks), 
+            'mocks_combined_dlos_peakfit_', fit.lower(), bigfc_flag, '.png'])
+        fig.savefig(fig_file, bbox_inches="tight")
         fig.clear() 
 
     return [sigma, fpeak]
@@ -1821,12 +1843,16 @@ def combined_catalog_dlos_fits(catalog, n_mock):
     '''
     if 'lasdamasgeo' in catalog:  
         print 'LASDAMASGEO------------------------------------------------------'
+        cat_corr = {'catalog': {'name':'lasdamasgeo'}, 'correction': {'name': 'bigfc'}}
+        print 'Gauss ', combined_dlos_fit(n_mock, fit='gauss', sanitycheck=True,  **cat_corr) 
         cat_corr = {'catalog': {'name':'lasdamasgeo'}, 'correction': {'name': 'upweight'}}
         print 'Gauss ', combined_dlos_fit(n_mock, fit='gauss', sanitycheck=True,  **cat_corr) 
     
     elif 'ldgdownnz' in catalog:  
         print 'Downsampled LDG------------------------------------------------------'
         cat_corr = {'catalog': {'name':'ldgdownnz'}, 'correction': {'name': 'upweight'}}
+        print 'Gauss ', combined_dlos_fit(n_mock, fit='gauss', sanitycheck=True,  **cat_corr) 
+        cat_corr = {'catalog': {'name':'ldgdownnz'}, 'correction': {'name': 'bigfc'}}
         print 'Gauss ', combined_dlos_fit(n_mock, fit='gauss', sanitycheck=True,  **cat_corr) 
 
     elif 'qpm' in catalog: 
@@ -1859,11 +1885,12 @@ def combined_catalog_dlos_fits(catalog, n_mock):
         raise NameError('asdfasdfasdf')  
 
 if __name__=="__main__": 
-    cat_corr = {
-            'catalog': {'name': 'bigmd'}, 
-            'correction': {'name': 'upweight'}} 
+    #cat_corr = {
+    #        'catalog': {'name': 'bigmd'}, 
+    #        'correction': {'name': 'upweight'}} 
     #Dlos = dlos(readdata=True, clobber=True, **cat_corr)
     #combined_dlos_dist(1, **cat_corr)
+    #combined_catalog_dlos_fits('lasdamasgeo', 10)
     combined_catalog_dlos_fits('ldgdownnz', 10)
     '''
     for i in np.arange(1, 11): 

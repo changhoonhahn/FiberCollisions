@@ -47,7 +47,7 @@ def fortran_code(fft_power, **cat_corr):
 
         elif fft_power.lower() == 'power':                  # power ----------------
 
-            if correction['name'].lower() in ('true', 'upweight', 'peaknbar', 'true_down_nz'):  
+            if correction['name'].lower() in ('true', 'upweight', 'peaknbar', 'bigfc'):  
                 # FKP estimator
                 if spec['grid'] == 360: 
                     f_code = ldg_code_dir+'power_ldg_fkp_360grid_180bin.f'
@@ -55,7 +55,8 @@ def fortran_code(fft_power, **cat_corr):
                     f_code = ldg_code_dir+'power_ldg_fkp_960grid_480bin.f'
 
             elif correction['name'].lower() in ('peakshot', 'allpeakshot', 'noweight', 
-                    'shotnoise', 'vlospeakshot', 'floriansn', 'hectorsn', 'peakshot_dnn'): 
+                    'shotnoise', 'vlospeakshot', 'floriansn', 'hectorsn', 'peakshot_dnn', 
+                    'bigfc_peakshot'): 
                 # Igal+Irand shot noise incorporated
                 if spec['grid'] == 360: 
                     f_code = ldg_code_dir+'power_ldg_fkp_Igal_Iran_360grid_180bin.f'
@@ -92,7 +93,7 @@ def fortran_code(fft_power, **cat_corr):
                 elif spec['grid'] == 960: 
                     f_code = ldg_code_dir+'power_ldg_fkp_960grid_480bin.f'
 
-            elif correction['name'].lower() in ('peakshot'): 
+            elif correction['name'].lower() in ('peakshot', 'bigfc_peakshot'): 
                 # Igal+Irand shot noise incorporated
                 if spec['grid'] == 360: 
                     f_code = ldg_code_dir+'power_ldg_fkp_Igal_Iran_360grid_180bin.f'
@@ -307,7 +308,7 @@ def fortran_code(fft_power, **cat_corr):
             else: 
                 if catalog['cosmology'].lower() == 'fiducial': 
                     f_code = ''.join([code_dir,
-                        'FFT_cmass_fkp_w_fidcosmo_', str(spec['grid']), 'grid.f']) 
+                        'FFT-cmass-', str(spec['grid']), 'grid.f']) 
                 else: 
                     raise NotImplementedError('just dont do it') 
     
@@ -316,7 +317,7 @@ def fortran_code(fft_power, **cat_corr):
                 # normal FKP shot noise correction
                 if spec['grid'] == 360: 
                     f_code = ''.join([code_dir, 
-                        'power_cmass_fkp_360grid_180bin.f'])
+                        'power-cmass-360grid-180bin.f'])
                     #'power_cmass_fkp_Igal_360grid_180bin.f'])
                 else: 
                     raise NotImplementedError('asdfklj')
