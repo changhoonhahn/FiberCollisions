@@ -925,8 +925,8 @@ if __name__=='__main__':
                         'correction': corr} 
                 fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     '''
-    build_pk('bigmd1', 1, quad=False) 
-    build_pk('bigmd2', 1, quad=False) 
+    build_pk('bigmd1', 1, grid=960, quad=False) 
+    build_pk('bigmd2', 1, grid=960, quad=False) 
     #build_pk('ldgdownnz', 10, clobber=True, quad=False) 
     #build_pk('lasdamasgeo', 10, clobber=False, grid=360, quad=False) 
     #build_pk('patchy', 10, clobber=False, grid=960, quad=False) 

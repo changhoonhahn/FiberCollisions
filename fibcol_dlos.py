@@ -1933,8 +1933,8 @@ if __name__=="__main__":
     #ldg_idl_python_dlos_test(10)
     cat_corrs = [
             {'catalog': {'name': 'cmass'}, 'correction': {'name': 'upweight'}}, 
+            {'catalog': {'name': 'patchy'}, 'correction': {'name': 'upweight'}}, 
             {'catalog': {'name': 'qpm'}, 'correction': {'name': 'upweight'}}, 
-            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}, 
             {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}},
             {'catalog': {'name': 'bigmd1'}, 'correction': {'name': 'upweight'}}, 
             {'catalog': {'name': 'bigmd2'}, 'correction': {'name': 'upweight'}}

@@ -13,7 +13,8 @@
       integer, allocatable :: ig(:),ir(:)
       real zbin(Nbin),dbin(Nbin),sec3(Nbin),zt,dum,gfrac
       real cz,sec2(Nsel),chi,nbar,Rbox
-      real*8 Nrsys,Ngsys
+      real*8 Ngsys,Ngsyscomp,Ngsystot
+      real*8 Nrsys,Nrsyscomp,Nrsystot
       real, allocatable :: nbg(:),nbr(:),rg(:,:),rr(:,:),wg(:),wr(:) 
       real, allocatable :: cmp(:)
       real selfun(Nsel),z(Nsel),sec(Nsel),zmin,zmax,az,ra,dec,rad,numden
@@ -39,13 +40,6 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
       call fftwnd_f77_create_plan(planf,3,grid,FFTW_BACKWARD,
      $     FFTW_ESTIMATE + FFTW_IN_PLACE)
 
-      zmax=1.1
-      do ic=1,Nbin
-         zt=zmax*float(ic-1)/float(Nbin-1)
-         zbin(ic)=zt
-         dbin(ic)=chi(zt)
-      enddo
-      call spline(dbin,zbin,Nbin,3e30,3e30,sec3)
 !Arguments: Rbox, Mock/Random, P0, File, FFT file
       call getarg(1,Rboxstr)
       read(Rboxstr,*) Rbox
@@ -69,6 +63,8 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          open(unit=4,file=lssfile,status='old',form='formatted')
          Ngal=0 !Ngal will get determined later after survey is put into a box (Ng)
          Ngsys=0.d0
+         Ngsyscomp=0.d0
+         Ngsystot=0.d0
          do i=1,Nmax
             read(4,*,end=13)ra,dec,az,wfkp,wfc,wcomp
             ra=ra*(pi/180.)
@@ -77,23 +73,30 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
             rg(1,i)=rad*cos(dec)*cos(ra)
             rg(2,i)=rad*cos(dec)*sin(ra)
             rg(3,i)=rad*sin(dec)
-            n_bar = ((1.0/wfkp) - 1.0)/P0
-            nbg(i)=n_bar
+            n_bar=((1.0/wfkp)-1.0)/P0
+            nbg(i)=n_bar*wcomp
             cmp(i)=wcomp
             wg(i)=wfc/wcomp
             Ngal=Ngal+1
-            Ngsys=Ngsys+dble(wg(i))
+            Ngsys=Ngsys+dble(wfc)
+            Ngsyscomp=Ngsyscomp+dble(wg(i))
+            Ngsystot=Ngsystot+dble(wg(i)*wfc)
          enddo
  13      continue
          close(4)
 
-         WRITE(*,*) 'Ngal,sys=',Ngsys,'Ngal=',Ngal
-         WRITE(*,*) 'Ngal,sys/Ngal=',Ngsys/float(Ngal)
-
          call PutIntoBox(Ngal,rg,Rbox,ig,Ng,Nmax)
          gfrac=100. *float(Ng)/float(Ngal)
          WRITE(*,*) 'Ngal,box=',Ng,'Ngal=',Ngal,gfrac,'percent'
+
          Ngsys=Ngsys*dble(Ng)/dble(Ngal)
+         Ngsyscomp=Ngsyscomp*dble(Ng)/dble(Ngal)
+         Ngsystot=Ngsystot*dble(Ng)/dble(Ngal)
+
+         write(*,*) 'Ngal=',Ng
+         write(*,*) 'Ngal,sys=',Ngsys
+         write(*,*) 'Ngal,sys,comp=',Ngsyscomp
+         write(*,*) 'Ngal,sys,tot=',Ngsystot
 
          gI10=0.d0
          gI12=0.d0
@@ -102,8 +105,8 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          gI23=0.d0
          gI33=0.d0
          do i=1,Ng
-            nb=nbg(i)*cmp(i) 
-            weight=1.d0/(1.d0+nbg(i)*P0) 
+            nb=nbg(i) 
+            weight=1.d0/(1.d0+nbg(i)*P0/cmp(i)) 
             gI10=gI10+1.d0
             gI12=gI12+dble(weight**2*(wg(i)**2*xps+(1.d0-xps)*wg(i)))
             gI22=gI22+dble(nb*weight**2)
@@ -122,7 +125,7 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          write(6)(((dcg(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
          write(6)real(gI10),real(gI12),real(gI22),real(gI13),real(gI23),
      &   real(gI33)
-         write(6)P0,Ng,real(Ngsys)
+         write(6)P0,Ng,real(Ngsys),real(Ngsyscomp),real(Ngsystot)
          close(6)
 
        elseif (iflag.eq.1) then ! compute discretness integrals and FFT random mock
@@ -139,12 +142,14 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
             rr(1,i)=rad*cos(dec)*cos(ra)
             rr(2,i)=rad*cos(dec)*sin(ra)
             rr(3,i)=rad*sin(dec)
-            n_bar = ((1.0/wfkp) - 1.0)/P0
-            nbr(i)=n_bar
+            n_bar=((1.0/wfkp)-1.0)/P0
+            nbr(i)=n_bar*wcomp
             cmp(i)=wcomp
-            wr(i)=1.0/wcomp
-            Nrsys=Nrsys+dble(wr(i))
+            wr(i)=1.0   ! 1.0 already accounts for completeness limit 
             Nran=Nran+1
+            Nrsys=Nrsys+dble(wr(i)*wcomp)
+            Nrsyscomp=Nrsyscomp+dble(wr(i))
+            Nrsystot=Nrsystot+dble(wr(i)*wfkp)
          enddo
  15      continue
          close(4)
@@ -153,6 +158,15 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          gfrac=100. *float(Nr)/float(Nran)
          WRITE(*,*) 'Nran,box=',Nr,'Nran=',Nran, gfrac,'percent'
 
+         Nrsys=Nrsys*dble(Nr)/dble(Nran)
+         Nrsyscomp=Nrsyscomp*dble(Nr)/dble(Nran)
+         Nrsystot=Nrsystot*dble(Nr)/dble(Nran)
+         
+         write(*,*) 'Nran=',Nr
+         write(*,*) 'Nran,sys=',Nrsys
+         write(*,*) 'Nran,sys,comp=',Nrsyscomp
+         write(*,*) 'Nran,sys,tot=',Nrsystot
+
          I10=0.d0
          I12=0.d0
          I22=0.d0
@@ -160,8 +174,8 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          I23=0.d0
          I33=0.d0
          do i=1,Nr
-            nb=nbr(i)*cmp(i)
-            weight=dble(wr(i))/(1.d0+nbr(i)*P0) 
+            nb=nbr(i)
+            weight=dble(wr(i))/(1.d0+nbr(i)*P0/cmp(i)) 
             I10=I10+1.d0
             I12=I12+dble(weight**2)
             I22=I22+dble(nb*weight**2)
@@ -170,7 +184,6 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
             I33=I33+dble(nb**2 *weight**3)
          enddo
 
-         WRITE(*,*) 'W_r,sys=',Nrsys,'Ngal,sys=',Nrsys/float(Nran)
          allocate(dcr(Ngrid,Ngrid,Ngrid))
          call assign(Nran,rr,rm,Lm,dcr,P0,nbr,ir,wr)
          call fftwnd_f77_one(planf,dcr,dcr)      
@@ -182,7 +195,7 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          write(6)(((dcr(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
          write(6)real(I10),real(I12),real(I22),real(I13),real(I23),
      &   real(I33)
-         write(6)P0,Nr,real(Nrsys)
+         write(6)P0,Nr,real(Nrsys),real(Nrsyscomp),real(Nrsystot)
          close(6)
          
       endif
