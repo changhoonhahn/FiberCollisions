@@ -253,7 +253,7 @@ class galaxy_data:
                     # assign data column to class
                     setattr(self, catalog_column, column_data)
                 
-        elif catalog['name'].lower() == 'qpm':                              # QPM -------------------------------
+        elif catalog['name'].lower() == 'qpm':                      # QPM -------------------------------
             omega_m = 0.31  # survey cosmology 
 
             if DorR == 'data':                  # Data ------------------------------
@@ -297,7 +297,6 @@ class galaxy_data:
                 # assign to data columns class
                 for i_col, catalog_column in enumerate(catalog_columns): 
                     setattr(self, catalog_column, file_data[i_col]) 
-                        
             
             elif DorR == 'random':              # Random ------------------------------------
 
@@ -949,7 +948,6 @@ def get_galaxy_data_file(DorR, **cat_corr):
         data_dir = '/mount/riachuelo1/hahn/data/BigMD/'
         
         if DorR == 'data':  # mock catalogs 
-
             if correction['name'].lower() == 'true':    # true mocks
 
                 if catalog['name'].lower() == 'bigmd': 
@@ -1038,7 +1036,6 @@ def build_true(**cat_corr):
             fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
     elif catalog['name'].lower() == 'qpm':                                      # QPM ------------------------------------
-
         P0 = 20000.0    # hardcoded P0 value
 
         # import original true data 
@@ -1062,6 +1059,7 @@ def build_true(**cat_corr):
         true_ra = orig_true_data[:,0]
         true_dec = orig_true_data[:,1]
         true_z = orig_true_data[:,2]
+        true_wfkp = orig_true_data[:,3]
         true_wfc = np.array([1.0 for i in range(n_gal)])    # fiber collisions weights are all 1 for true
 
         # check to make sure that the redshifts correspond btw rdz file and rdz.info file 
@@ -1076,8 +1074,9 @@ def build_true(**cat_corr):
         
         true_file = get_galaxy_data_file('data', readdata=False, **cat_corr)
         np.savetxt(true_file, np.c_[
-            true_ra[vetomask], true_dec[vetomask], true_z[vetomask], true_wfc[vetomask], true_comp[vetomask]], 
-            fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+            true_ra[vetomask], true_dec[vetomask], true_z[vetomask], 
+            true_wfkp[vetomask], true_wfc[vetomask], true_comp[vetomask]], 
+            fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
     elif catalog['name'].lower() == 'nseries':                              # N Series ---------------------------------
     
@@ -1420,7 +1419,8 @@ def build_fibercollided(**cat_corr):
         os.system(fibcollided_cmd) 
 
     elif catalog['name'].lower() == 'qpm':              # QPM ------------------------
-        orig_true_file = ''.join(['/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/data/', 
+        orig_true_file = ''.join([
+            '/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/data/', 
             'a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.rdz']) 
         orig_true_data = np.loadtxt(orig_true_file) 
         
@@ -1429,11 +1429,13 @@ def build_fibercollided(**cat_corr):
         # gal_id, comp, z_real, z_red, mass_halo, flag_sta, id_halo
         orig_true_info_data = np.loadtxt(orig_true_info_file)    
 
-        if catalog['n_mock'] in (44, 46, 52, 53, 54, 56, 61, 707, 756, 794, 819, 831, 835, 838): 
-            orig_true_veto_file = ''.join(['/mount/riachuelo1/hahn/data/QPM/dr12d/a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.veto']) 
+        if catalog['n_mock'] in (44, 46, 52, 53, 54, 56, 61, 707, 756, 794, 819, 831, 835, 838):
+            orig_true_veto_file = ''.join(['/mount/riachuelo1/hahn/data/QPM/dr12d/a0.6452_', 
+                str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.veto']) 
         else:
             orig_true_veto_file = ''.join(['/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/data/', 
                 'a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.veto']) 
+
         orig_true_veto = np.loadtxt(orig_true_veto_file) 
         n_gal = len(orig_true_veto)
 
@@ -1446,6 +1448,7 @@ def build_fibercollided(**cat_corr):
         true_ra = orig_true_data[:,0]
         true_dec = orig_true_data[:,1]
         true_z = orig_true_data[:,2]
+        true_wfkp = orig_true_data[:,3]
         true_wfc = orig_true_data[:,4] 
 
         true_comp = orig_true_info_data[:,1]
@@ -1454,13 +1457,14 @@ def build_fibercollided(**cat_corr):
 
         fc_file = get_galaxy_data_file('data', **cat_corr)
         np.savetxt(fc_file, 
-                np.c_[true_ra[vetomask], true_dec[vetomask], true_z[vetomask], true_wfc[vetomask], true_comp[vetomask]], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+                np.c_[
+                    true_ra[vetomask], true_dec[vetomask], true_z[vetomask], 
+                    true_wfkp[vetomask], true_wfc[vetomask], true_comp[vetomask]], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
         fibcollided_cmd = ''
     
     elif catalog['name'].lower() == 'nseries':          # N-series --------------------
-    
         data_dir = '/mount/riachuelo1/hahn/data/Nseries/'   # directory
 
         # original file 

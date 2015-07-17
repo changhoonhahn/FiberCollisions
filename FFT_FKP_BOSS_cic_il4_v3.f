@@ -109,7 +109,7 @@ c      read(Omstr,*)Om0
          dir='/mount/riachuelo2/rs123/BOSS/PTHalos/'
          selfunfile=dir(1:len_trim(dir))//
      $    'nzfit_dr11_vm22_south.txt'
-      elseif (idata.eq.10) then ! Nseries
+      elseif (idata.eq.10 .or. idata.eq.12) then ! Nseries
          selfunfile='/mount/riachuelo1/hahn/data/Nseries'//
      $    '/nbar-nseries-fibcoll.dat'
       elseif (idata.eq.11) then 
@@ -140,7 +140,7 @@ c      read(Omstr,*)Om0
          enddo   
          close(4)
          call spline(z,selfun,Nsel,3e30,3e30,sec)
-      elseif (idata.eq.10 .or. idata.eq.11) then 
+      elseif (idata.eq.10 .or. idata.eq.11 .or. idata.eq.12) then 
          ! Nseries fiducial cosmology or Downsampled LasDamas Geo
          open(unit=4,file=selfunfile,status='old',form='formatted')
          do i=1,Nsel
@@ -274,7 +274,7 @@ c         fname='/mount/chichipio2/hahn/data/'//lssfile
                comp=1.
                nbg(i)=nbb*comp
             elseif (idata.eq.3 .or. idata.eq.4 .or. idata.eq.10) then ! QPM and Nseries
- 33            read(4,*,end=13)ra,dec,az,wred,comp
+ 33            read(4,*,end=13)ra,dec,az,dum,wred,comp
                !read(5,*,end=13)dum,comp,dum,az2,dum,dum,dum
                !if (abs(az2/az-1.).gt.1.e-5) then
                !   write(*,*)'problem matching info to std mock file'
@@ -584,7 +584,7 @@ c               read(4,*,end=15)ra,dec,az,nbb
                comp=1.
                nbr(i)=nbb*comp ! number density as given in randoms (comp weighted)
             elseif (idata.eq.3 .or. idata.eq.4 .or. idata.eq.10) then !QPM and Nseries
- 17            read(4,*,end=15)ra,dec,az,comp
+ 17            read(4,*,end=15)ra,dec,az,dum,comp
                !17            read(4,*,end=15)ra,dec,az,comp,iveto
                !if (ifc.eq.1) then ! fiber colls + veto mask
                !   if (iveto.eq.1) then  

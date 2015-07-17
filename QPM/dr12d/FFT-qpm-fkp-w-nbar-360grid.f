@@ -79,23 +79,23 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
             Ngal=Ngal+1
             Ngsys=Ngsys+dble(wfc)
             Ngsyscomp=Ngsyscomp+dble(wg(i)) ! contains comp upweighting
-            Ngsystot=Ngsystot+dble(wg(i)/(1.+n_bar*P0)) ! contains comp upweighting
+            Ngsystot=Ngsystot+dble(wg(i)*wfkp) ! contains comp upweighting
          enddo
  13      continue
          close(4)
-
+         
          call PutIntoBox(Ngal,rg,Rbox,ig,Ng,Nmax)
          gfrac=100. *float(Ng)/float(Ngal)
-         WRITE(*,*) 'Ngal,box=',Ng,'Ngal=',Ngal,gfrac,'percent'
+         WRITE(*,*)'Ngal,box=',Ng,'Ngal=',Ngal,gfrac,'percent'
 
          Ngsys=Ngsys*dble(Ng)/dble(Ngal)
          Ngsyscomp=Ngsyscomp*dble(Ng)/dble(Ngal)
          Ngsystot=Ngsystot*dble(Ng)/dble(Ngal)
          
-         write(*,*) 'Ngal=',Ng
-         write(*,*) 'Ngal,sys=',Ngsys
-         write(*,*) 'Ngal,sys,comp=',Ngsyscomp
-         write(*,*) 'Ngal,sys,tot=',Ngsystot
+         write(*,*)'Ngal=',Ng
+         write(*,*)'Ngal,sys=',Ngsys
+         write(*,*)'Ngal,sys,comp=',Ngsyscomp
+         write(*,*)'Ngal,sys,tot=',Ngsystot
 
          gI10=0.d0
          gI12=0.d0

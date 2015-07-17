@@ -867,14 +867,20 @@ def build_pk(catalog, n_mocks, quad=False, clobber=True, **kwargs):
     cat = {'name': catalog, 'cosmology': cosmology} 
     #corrections = [{'name': 'bigfc_peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}]
     #corrections = [{'name': 'bigfc'}]
-    corrections = [{'name': 'true'}]
+    corrections = [{'name': 'true'}, 
+            {'name': 'upweight'}
+            ]
     if catalog == 'cmass': 
         corrections = [{'name': 'upweight'}]
+    elif 'bigmd' in catalog: 
+        corrections = [{'name': 'true'}, {'name': 'upweight'}]
 
     spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':Ngrid, 'quad':quad}
 
     for i_mock in range(1, n_mocks+1): 
         for corr in corrections: 
+            print cat
+            print corr
             build_fibcol_pk(cat, i_mock, corr, spec=spec, clobber=clobber) 
 
 # Compare fiber collisions of data 
@@ -925,8 +931,10 @@ if __name__=='__main__':
                         'correction': corr} 
                 fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     '''
-    build_pk('bigmd1', 1, grid=960, quad=False) 
-    build_pk('bigmd2', 1, grid=960, quad=False) 
+    build_pk('qpm', 10, grid=360, clobber=True, quad=False) 
+    #build_pk('bigmd1', 1, grid=360, quad=True) 
+    #build_pk('bigmd2', 1, grid=360, quad=True) 
+    #build_pk('bigmd', 1, grid=360, quad=True) 
     #build_pk('ldgdownnz', 10, clobber=True, quad=False) 
     #build_pk('lasdamasgeo', 10, clobber=False, grid=360, quad=False) 
     #build_pk('patchy', 10, clobber=False, grid=960, quad=False) 
