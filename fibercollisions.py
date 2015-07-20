@@ -877,7 +877,7 @@ def build_pk(catalog, n_mocks, quad=False, clobber=True, **kwargs):
     elif catalog == 'nseries': 
         corrections = [{'name': 'true'}, 
                 {'name': 'upweight'}, 
-                {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}
+                {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.68, 'fit': 'gauss'}
                 ]
     '''
     if catalog == 'cmass': 
@@ -950,5 +950,5 @@ if __name__=='__main__':
     #build_pk('lasdamasgeo', 10, clobber=False, grid=360, quad=False) 
     #build_pk('patchy', 10, clobber=False, grid=960, quad=False) 
     #build_pk('cmass', 1, cosmology='fiducial', Ngrid=960, quad=False)
-    build_pk('tilingmock', 1, grid=960, quad=False)
-    #build_pk('nseries', 84, grid=960, quad=False)
+    #build_pk('tilingmock', 1, grid=960, quad=False)
+    build_pk('nseries', 20, grid=960, quad=False)

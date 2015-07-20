@@ -832,6 +832,7 @@ def plot_pk_mpfit_peakshotnoise_fcpaper(catalogs):
     '''
     ldg_nmock = 39 
     qpm_nmock = 100 
+    nseries_nmock = 19 
     prettyplot()
     pretty_colors = prettycolors()
     
@@ -841,7 +842,7 @@ def plot_pk_mpfit_peakshotnoise_fcpaper(catalogs):
         sub = fig.add_subplot(1, 3, i_cat+1) 
 
         catalog = {'name': catalogue}    # catalog dict
-
+        '''
         # default power/bispectrum box settings 
         if catalog['name'].lower() in ('lasdamasgeo', 'qpm', 'nseries'): 
             spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':960} 
@@ -849,6 +850,9 @@ def plot_pk_mpfit_peakshotnoise_fcpaper(catalogs):
             spec = {'P0': 20000, 'sscale':4000.0, 'Rbox':2000.0, 'box':4000, 'grid':960} 
         else: 
             raise NameError('not coded yet') 
+        '''
+            
+        spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':960} 
 
         # Gaussian fit
         if catalog['name'].lower() == 'lasdamasgeo': 
@@ -924,6 +928,26 @@ def plot_pk_mpfit_peakshotnoise_fcpaper(catalogs):
                         sum_Pk = sum_Pk + power_i.Pk
 
                     n_file = n_file+1
+
+            elif catalog['name'].lower() == 'nseries': 
+                n_file = 0  
+                for i_mock in range(1, nseries_nmock+1): 
+                    i_catalog = catalog.copy() 
+                    i_catalog['n_mock'] = i_mock
+                    i_cat_corr = {'catalog': i_catalog, 'correction': correction, 'spec':spec}
+                        
+                    power_i = fc_spec.Spec('power', **i_cat_corr)
+                    power_i.readfile()
+                        
+                    try: 
+                        avg_k 
+                    except NameError: 
+                        avg_k = power_i.k
+                        sum_Pk = power_i.Pk
+                    else: 
+                        sum_Pk = sum_Pk + power_i.Pk
+
+                    n_file = n_file+1
             else: 
                 raise NameError('not yet coded!')
 
@@ -965,10 +989,24 @@ def plot_pk_mpfit_peakshotnoise_fcpaper(catalogs):
                         
                         Pk_var = Pk_var + (avg_Pk_true - Pk_i)**2
                 
+                elif catalog['name'].lower() == 'nseries': 
+                    for i_mock in range(1, nseries_nmock+1): 
+                        i_catalog = catalog.copy() 
+                        i_catalog['n_mock'] = i_mock
+                        i_cat_corr = {'catalog': i_catalog, 'correction': correction, 'spec':spec}
+                            
+                        power_i = fc_spec.Spec('power', **i_cat_corr)
+                        power_i.readfile()
+                        
+                        Pk_i = power_i.Pk
+                        
+                        Pk_var = Pk_var + (avg_Pk_true - Pk_i)**2
+                
                 if catalog['name'].lower() != 'tilingmock': 
                     Pk_var = np.sqrt(Pk_var/np.float(n_file))
                     #print Pk_var/avg_Pk_true
-                    sub.plot(avg_k, Pk_var/avg_Pk_true+1.0, lw=2, ls='--', color=pretty_colors[0], label='Sample Variance')
+                    sub.plot(avg_k, Pk_var/avg_Pk_true+1.0, lw=2, ls='--', 
+                            color=pretty_colors[0], label=r'$\Delta P/P$')
                 else: 
                     sub.plot(avg_k, Pk_var/avg_Pk_true, lw=4, color=pretty_colors[0], label='Sample Variance')
             else: 
@@ -1002,6 +1040,8 @@ def plot_pk_mpfit_peakshotnoise_fcpaper(catalogs):
             cat_label = 'Las Damas'
         elif catalog['name'].lower() == 'qpm': 
             cat_label = 'QPM' 
+        elif catalog['name'].lower() == 'nseries': 
+            cat_label = 'N Series' 
         elif catalog['name'].lower() == 'tilingmock': 
             cat_label = 'Tiling Mock' 
         else: 
@@ -1019,7 +1059,7 @@ def plot_pk_mpfit_peakshotnoise_fcpaper(catalogs):
             #sub.axes.get_yaxis().set_ticks([])
     
     fig_name = ''.join(['fcpaper_pk_peakshotnoise_mpfit_comp.png'])     
-    fig.savefig(''.join(['/home/users/hahn/research/figures/boss/fiber_collision/', fig_name]), bbox_inches="tight")
+    fig.savefig(''.join(['figure/', fig_name]), bbox_inches="tight")
     fig.clear()
 
 def plot_chi2_fcpaper(catalogs): 
@@ -1165,6 +1205,6 @@ def plot_fcpaper():
     # ---------------------------------------------------------------
 
 if __name__=='__main__': 
-    catalogs = ['lasdamasgeo', 'tilingmock']
+    catalogs = ['lasdamasgeo', 'nseries', 'tilingmock']
     #plot_pk_upw_fcpaper(catalogs)
     plot_pk_mpfit_peakshotnoise_fcpaper(catalogs)
