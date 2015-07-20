@@ -194,12 +194,10 @@ class galaxy_data:
                     # assign to class
                     setattr(self, catalog_column, column_data)
 
-        elif catalog['name'].lower() == 'tilingmock':                       # Tiling Mock ----------------------
-
+        elif catalog['name'].lower() == 'tilingmock':       # Tiling Mock ----------------------
             omega_m = 0.274         # survey cosmology 
 
             if DorR == 'data':              # for mocks 
-
                 catalog_columns = ['ra', 'dec', 'z', 'weight']       # columns that this catalog data will have  
                 self.columns = catalog_columns
 
@@ -253,7 +251,7 @@ class galaxy_data:
                     # assign data column to class
                     setattr(self, catalog_column, column_data)
                 
-        elif catalog['name'].lower() == 'qpm':                      # QPM -------------------------------
+        elif catalog['name'].lower() == 'qpm':                      # QPM --------------------
             omega_m = 0.31  # survey cosmology 
 
             if DorR == 'data':                  # Data ------------------------------
@@ -276,7 +274,7 @@ class galaxy_data:
 
                     elif correction['name'].lower() in ('peaknbar', 'peakshot'): 
                         # peak corrected mocks 
-                        build_peakcorrected_fibcol(**cat_corr)  # build peak corrected file 
+                        build_peakcorrected_fibcol(doublecheck=True, **cat_corr)  # build peak corrected file 
 
                     elif correction['name'].lower() in ('peakshot_dnn'):
                         # peak + dLOS env correct mocks 
@@ -709,7 +707,7 @@ def get_galaxy_data_file(DorR, **cat_corr):
             file_name = ''.join(['/mount/riachuelo1/hahn/data/LasDamas/Geo/',
                 'sdssmock_gamma_lrgFull.rand_200x_no.rdcz.down_nz.dat']) 
 
-    elif catalog['name'].lower() == 'tilingmock':               # Tiling Mock -----------------------
+    elif catalog['name'].lower() == 'tilingmock':               # Tiling Mock ---------------
         if DorR == 'data': 
             data_dir = '/mount/riachuelo1/hahn/data/tiling_mocks/'      # data directory
 
@@ -733,12 +731,13 @@ def get_galaxy_data_file(DorR, **cat_corr):
                     raise NameError('peak fit has to be specified: gauss or expon') 
 
                 # correction string in file name 
-                corr_str = ''.join(['.', correction['fit'].lower(), '.', correction['name'].lower(), 
+                corr_str = ''.join([
+                    '.', correction['fit'].lower(), '.', correction['name'].lower(), 
                     '.sigma', str(correction['sigma']), '.fpeak', str(correction['fpeak'])])
 
                 file_name = data_dir+'cmass-boss5003sector-icoll012.zlim.dat'+corr_str 
                 
-            # Fibercollisions Corrected by all peak correction -----------------------------------------------------------
+            # Fibercollisions Corrected by all peak correction ------------------------------
             elif correction['name'].lower() in ('allpeak', 'allpeakshot'):
 
                 # specify peak correction fit (expon or gauss) 
@@ -755,7 +754,7 @@ def get_galaxy_data_file(DorR, **cat_corr):
             else: 
                 raise NameError('Correction Name Unknown') 
 
-        elif DorR.lower() == 'random':              # Randoms --------------------------------------------------------
+        elif DorR.lower() == 'random':      # Randoms 
             file_name = ''.join(['/mount/riachuelo1/hahn/data/tiling_mocks/', 
                 'randoms-boss5003-icoll012-vetoed.zlim.dat']) 
 
@@ -1075,11 +1074,10 @@ def build_true(**cat_corr):
         true_file = get_galaxy_data_file('data', readdata=False, **cat_corr)
         np.savetxt(true_file, np.c_[
             true_ra[vetomask], true_dec[vetomask], true_z[vetomask], 
-            true_wfkp[vetomask], true_wfc[vetomask], true_comp[vetomask]], 
-            fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+            true_wfc[vetomask], true_comp[vetomask]], 
+            fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
-    elif catalog['name'].lower() == 'nseries':                              # N Series ---------------------------------
-    
+    elif catalog['name'].lower() == 'nseries':              # N Series ---------------------------------
         P0 = 20000.0
 
         # read rdzw file 
@@ -1100,8 +1098,7 @@ def build_true(**cat_corr):
                 np.c_[orig_ra, orig_dec, orig_z, true_wfc, orig_wcomp], 
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
-    elif catalog['name'].lower() == 'lasdamasgeo':                          # Las Damas Geo -----------------------------
-
+    elif catalog['name'].lower() == 'lasdamasgeo':          # Las Damas Geo -----------------------------
         orig_true_file = ''.join(['/mount/chichipio2/rs123/MOCKS/LRGFull_zm_geo/gaussian/zspace/', 
             'sdssmock_gamma_lrgFull_zm_oriana', str("%02d" % catalog['n_mock']), catalog['letter'], '_no.rdcz.dat']) 
         orig_true_data = np.loadtxt(orig_true_file, unpack=True, usecols=[0,1,2])         # ra, dec, ***CZ***
@@ -1118,7 +1115,7 @@ def build_true(**cat_corr):
             true_ra, true_dec, true_z, true_weight],
             fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
-    elif catalog['name'].lower() == 'patchy':           # PATCHY mocks ------------------------
+    elif catalog['name'].lower() == 'patchy':               # PATCHY mocks ------------------------
         # read original mock data 
         orig_file = ''.join(['/mount/riachuelo1/hahn/data/PATCHY/dr12/v6c/', 
             'Patchy-Mocks-DR12CMASS-N-V6C-Portsmouth-mass_', 
@@ -1217,8 +1214,8 @@ def build_random(**cat_corr):
         
         np.savetxt(true_random_file, 
                 np.c_[
-                    (orig_true_random[:,0])[vetomask], (orig_true_random[:,1])[vetomask], (orig_true_random[:,2])[vetomask], 
-                    (orig_true_random_info[:,1])[vetomask]], 
+                    (orig_true_random[:,0])[vetomask], (orig_true_random[:,1])[vetomask], 
+                    (orig_true_random[:,2])[vetomask], (orig_true_random_info[:,1])[vetomask]], 
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
     elif catalog['name'].lower() == 'nseries':      # Nseries ----------------------------
@@ -1459,8 +1456,8 @@ def build_fibercollided(**cat_corr):
         np.savetxt(fc_file, 
                 np.c_[
                     true_ra[vetomask], true_dec[vetomask], true_z[vetomask], 
-                    true_wfkp[vetomask], true_wfc[vetomask], true_comp[vetomask]], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+                    true_wfc[vetomask], true_comp[vetomask]], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
         fibcollided_cmd = ''
     

@@ -1845,7 +1845,8 @@ def plot_fcpaper_dlos(cat_corrs):
     sub.set_xlabel(r"d$_{\rm{LOS}}$ (Mpc)", fontsize=24) 
     sub.set_xlim([-45.0, 45.0])
     #sub.set_xlim([0.1, 100.0])
-    sub.set_ylim([0.0, 0.125])
+    #sub.set_ylim([0.0, 0.125])
+    sub.set_ylim([0.0, 0.1])
     #sub.set_xscale('log') 
     #sub.set_yscale("log") 
     sub.legend(loc='upper left', scatterpoints=1, prop={'size':20}) 
@@ -1931,6 +1932,7 @@ if __name__=="__main__":
     #combined_catalog_dlos_fits('lasdamasgeo', 5)
     #nseries_idl_python_dlos_test(1)
     #ldg_idl_python_dlos_test(10)
+    '''
     cat_corrs = [
             {'catalog': {'name': 'cmass'}, 'correction': {'name': 'upweight'}}, 
             {'catalog': {'name': 'patchy'}, 'correction': {'name': 'upweight'}}, 
@@ -1938,5 +1940,12 @@ if __name__=="__main__":
             {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}},
             {'catalog': {'name': 'bigmd1'}, 'correction': {'name': 'upweight'}}, 
             {'catalog': {'name': 'bigmd2'}, 'correction': {'name': 'upweight'}}
+            ]
+    '''
+    cat_corrs = [
+            {'catalog': {'name': 'cmass'}, 'correction': {'name': 'upweight'}}, 
+            {'catalog': {'name': 'lasdamasgeo'}, 'correction': {'name': 'upweight'}}, 
+            {'catalog': {'name': 'qpm'}, 'correction': {'name': 'upweight'}},
+            {'catalog': {'name': 'tilingmock'}, 'correction': {'name': 'upweight'}},
             ]
     plot_fcpaper_dlos(cat_corrs)

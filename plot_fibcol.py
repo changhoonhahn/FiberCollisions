@@ -104,7 +104,23 @@ def plot_pk_fibcol_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
 
                     n_file = n_file+1
 
-        elif catalog['name'].lower() in ('tilingmock', 'bigmd', 'cmass'):       # Tiling Mocks
+        elif catalog['name'].lower() in ('tilingmock', 'cmass'):       # Tiling Mocks
+            i_cat_corr = {'catalog': catalog, 'correction': correction, 'spec':spec}
+
+            power = fc_spec.Spec('power', **i_cat_corr)         # read tiling mock P(k)
+            power.readfile()
+            print power.file_name
+
+            avg_k = power.k
+
+            if quad == True: 
+                sum_Pk = power.P2k
+            else: 
+                sum_Pk = power.Pk
+
+            n_file = 1          # only one file 
+        
+        elif 'bigmd' in catalog['name'].lower():                        # BigMD
             i_cat_corr = {'catalog': catalog, 'correction': correction, 'spec':spec}
 
             power = fc_spec.Spec('power', **i_cat_corr)         # read tiling mock P(k)
@@ -1183,26 +1199,30 @@ if __name__=="__main__":
     #            'correction': {'name': 'upweight'}},
     #        {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}
     #        ]
-    catcorr_methods = [
-            {'catalog': {'name': 'cmass', 'cosmology': 'fiducial'}, 
-                'correction': {'name': 'upweight'}},
-            {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}},
-            {'catalog': {'name': 'patchy'}, 'correction': {'name': 'upweight'}},
-            {'catalog': {'name': 'qpm'}, 'correction': {'name': 'upweight'}} 
-            ]
     #catcorr_methods = [
-    #        {'catalog': {'name': 'ldgdownnz'}, 'correction': {'name': 'true'}},
-    #        {'catalog': {'name': 'ldgdownnz'}, 'correction': {'name': 'bigfc'}},
-    #        {'catalog': {'name': 'ldgdownnz'}, 
-    #            'correction': {'name': 'bigfc_peakshot', 
-    #                'sigma':6.5, 'fpeak':0.76, 'fit':'gauss'}},
+    #        {'catalog': {'name': 'cmass', 'cosmology': 'fiducial'}, 
+    #            'correction': {'name': 'upweight'}},
+    #        {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}},
+    #        {'catalog': {'name': 'patchy'}, 'correction': {'name': 'upweight'}},
+    #        {'catalog': {'name': 'qpm'}, 'correction': {'name': 'upweight'}} 
     #        ]
-    n_mock_list = [1,1,10,10]
-    plot_pk_fibcol_comp( catcorr_methods, n_mock_list, quad=False, Ngrid=360, type='regular', 
+    catcorr_methods = [
+            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'true'}},
+            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}},
+            {'catalog': {'name': 'nseries'}, 
+                'correction': {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}
+                }
+            ]
+    #{'catalog': {'name': 'bigmd'}, 'correction': {'name': 'true'}},
+    #{'catalog': {'name': 'bigmd1'}, 'correction': {'name': 'true'}},
+    #{'catalog': {'name': 'bigmd2'}, 'correction': {'name': 'true'}}
+    n_mock_list = 10 
+    plot_pk_fibcol_comp( catcorr_methods, n_mock_list, \
+            quad=True, Ngrid=360, type='regular', 
             xrange=[0.001, 1.0], yrange=[10**3, 3*10**5])
     plot_pk_fibcol_comp(catcorr_methods, n_mock_list, 
-            quad=False, Ngrid=360, type='kPk', 
-            xrange=[0.001, 1.0], yrange=[10**0, 3*10**3])
-    plot_pk_fibcol_comp(catcorr_methods, n_mock_list, 
-            quad=False, Ngrid=360, type='ratio', 
-            xrange=[0.001, 1.0], yrange=[0.8, 1.2])
+            quad=True, Ngrid=360, type='ratio', 
+            xrange=[0.001, 1.0], yrange=[0.0, 2.0])
+    #plot_pk_fibcol_comp(catcorr_methods, n_mock_list, 
+    #        quad=False, Ngrid=960, type='kPk', 
+    #        xrange=[0.001, 1.0], yrange=[10**0, 3*10**3])

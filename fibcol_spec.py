@@ -53,7 +53,8 @@ class Spec:
             if correction['name'].lower() == 'hectorsn': data_file = data_file+'.hectorsn'
 
             # file naem  
-            file_prefix = ''.join([spec_file_flag, data_file.rsplit('/')[-1], '.corrnbar']) 
+            #file_prefix = ''.join([spec_file_flag, data_file.rsplit('/')[-1], '.corrnbar']) 
+            file_prefix = ''.join([spec_file_flag, data_file.rsplit('/')[-1]]) 
 
             # file ending  
             if spectrum == 'bispec': 

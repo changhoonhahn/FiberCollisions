@@ -1,15 +1,13 @@
       implicit none 
       integer Ngrid,ix,iy,iz,Nbins,nyq,iky,ikz,imk,i,Ibin,Ng,Nr
-      parameter(Ngrid=360,Nbins=180)
+      parameter(Ngrid=960,Nbins=480)
       complex, allocatable :: dcg(:,:,:),dcr(:,:,:)
 c      complex dcg(Ngrid/2+1,Ngrid,Ngrid),dcr(Ngrid/2+1,Ngrid,Ngrid)
       real avgk(Nbins),avgPg(Nbins),avgPr(Nbins),co(Nbins),rk,dk(Nbins)
       real avgPg2(Nbins),avgPr2(Nbins),avgPg4(Nbins),avgPr4(Nbins)
       character filecoef*200,filecoefr*200,filepower*200
       character lssfname*200,randfname*200,powerfname*200,sscale*200
-      real akfun,I10,I12,I22,I13,I23,I33,P0,alpha,P0m
-      real Ngsys,Ngsyscomp,Ngsystot
-      real Nrsys,Nrsyscomp,Nrsystot
+      real akfun,I10,I12,I22,I13,I23,I33,P0,alpha,P0m,wsys
       real gI10,gI12,gI22,gI13,gI23,gI33,wsysr
       real cot1,coga,Le2,Le4,pk
       complex ct
@@ -24,39 +22,21 @@ c      complex dcg(Ngrid/2+1,Ngrid,Ngrid),dcr(Ngrid/2+1,Ngrid,Ngrid)
       open(unit=4,file=lssfname,status='old',form='unformatted')
       read(4)dcg
       read(4)gI10,gI12,gI22,gI13,gI23,gI33
-      read(4)P0m,Ng,Ngsys,Ngsyscomp,Ngsystot
+      read(4)P0m,Ng,wsys
       close(4)
       open(unit=4,file=randfname,status='old',form='unformatted')
       read(4)dcr
       read(4)I10,I12,I22,I13,I23,I33
-      read(4)P0,Nr,Nrsys,Nrsyscomp,Nrsystot
+      read(4)P0,Nr,wsysr
       close(4)
       if (P0m.ne.P0) then
          write(*,*)'P0s do not match'
          stop
       endif
-
       WRITE(*,*) "Ngrid=",Ngrid,"Box=",akfun,"P0=",P0
-      write(*,*)'Ng=',Ng
-      write(*,*)'Ngsys=',Ngsys
-      write(*,*)'Ngsyscomp=',Ngsyscomp
-      write(*,*)'Ngsystot=',Ngsystot
-
-      write(*,*)'Nr=',Nr
-      write(*,*)'Nrsys=',Nrsys
-      write(*,*)'Nrsyscomp=',Nrsyscomp
-      write(*,*)'Nrsystot=',Nrsystot
-
-      !now scale random integrals by alpha
-      alpha=float(Ng)/float(Nr)
-      write(*,*)'alpha=',alpha
-      alpha=Ngsys/Nrsys 
-      write(*,*)'alpha,sys=',alpha
-      alpha=Ngsystot/Nrsystot
-      write(*,*)'alpha,systot=',alpha
-      alpha=Ngsyscomp/Nrsyscomp     ! final alpha
-      write(*,*)'alpha,syscomp=',alpha
-
+      WRITE(*,*) "Ng=",Ng,"Ng,sys=",wsys,"Nr=",Nr,"Nr,sys=",wsysr
+      alpha=wsys/wsysr !now scale random integrals by alpha
+      WRITE(*,*) "Alpha=",alpha
       I10=I10*alpha
       I12=I12*alpha
       I22=I22*alpha
@@ -65,9 +45,7 @@ c      complex dcg(Ngrid/2+1,Ngrid,Ngrid),dcr(Ngrid/2+1,Ngrid,Ngrid)
       I33=I33*alpha
       write(*,*) 'I12 =', I12, gI12
       write(*,*) 'I22 =', I22, gI22
-      write(*,*)'random, data shot noise=',I12/I22,gI12/I22
-      write(*,*) 'SN Ir= ',((1.+alpha)*I12)/I22
-      write(*,*) 'SN Ig= ',(gI12+alpha*I12)/I22
+      write(*,*) 'SN = ', (gI12-alpha*I12)/I22
 
       nyq=float(Ngrid/2)
       do 10 i=1,Nbins
@@ -118,8 +96,7 @@ c      complex dcg(Ngrid/2+1,Ngrid,Ngrid),dcr(Ngrid/2+1,Ngrid,Ngrid)
       do 110 Ibin=1,Nbins
          if(co(Ibin).gt.0.)then
             avgk(Ibin)=avgk(Ibin)/co(Ibin)*akfun
-            !avgPg(Ibin)=(avgPg(Ibin)/co(Ibin)-(1.+alpha)*I12)/I22
-            avgPg(Ibin)=(avgPg(Ibin)/co(Ibin)-(gI12+alpha*I12))/I22
+            avgPg(Ibin)=(avgPg(Ibin)/co(Ibin)-gI12-alpha*I12)/I22
             avgPr(Ibin)=avgPr(Ibin)/co(Ibin) 
             avgPg2(Ibin)=avgPg2(Ibin)/co(Ibin)/I22
             avgPr2(Ibin)=avgPr2(Ibin)/co(Ibin)/I22 

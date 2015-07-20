@@ -51,7 +51,7 @@ def fibcoll_data_prep(DorR, silent=True, clobber=False, **cat_corr):
         if (os.path.isfile(mock_file) == False) or (clobber == True):  
             print 'Constructing ', mock_file
             mock = fc_data.galaxy_data('data', clobber=True, **cat_corr) 
-            
+        '''        
         if catalog['name'].lower() == 'tilingmock':     # for tiling mock 
 
             # check if corrected nbar is appended
@@ -60,7 +60,7 @@ def fibcoll_data_prep(DorR, silent=True, clobber=False, **cat_corr):
                 # nbar does not change from peak correction so there is no need to append corrected nbar
                 print "appending corrected nbar to mock ", mock.file_name 
                 fc_nbar.append_corr_nbar('data', sanitycheck=False, **cat_corr)
-
+        '''
     elif DorR.lower() == 'random':          # Random --------------------------------------------
 
         # corrected random file 
@@ -72,13 +72,14 @@ def fibcoll_data_prep(DorR, silent=True, clobber=False, **cat_corr):
         if not os.path.isfile(corr_rand_file) or clobber: 
             print "Constructing ", corr_rand_file, ' (Will take a while!)'
             corr_rand = fc_data.galaxy_data('random', clobber=True, **cat_corr) 
-        
+        ''' 
         if (catalog['name'].lower() == 'tilingmock') and (clobber == True): 
             # does append corrected nbar corrected random file exist? 
             if os.path.isfile(corr_rand.file_name+'.corrnbar') == False: 
                 # if not 
                 print "appending corrected nbar to corrected random ", corr_rand.file_name
                 fc_nbar.append_corr_nbar('random', sanitycheck=False, **cat_corr)  
+        '''
     else: 
         raise NameError("Only 'data' or 'random'")
 
@@ -851,7 +852,8 @@ def build_pk(catalog, n_mocks, quad=False, clobber=True, **kwargs):
     -----
     * QPM peakshot bestfit parameters: {'name': 'peakshot', 'sigma': 4.4, 'fpeak': 0.65, 'fit': 'gauss'}
     * LasDamasGeo peakshot bestfit parameters: {'name': 'peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}
-    * Nseries peakshot bestfit parameters: {'name': 'peakshot', 'sigma', 4.0, 'fpeak': 0.7, 'fit': 'gauss'}
+    * Nseries peakshot bestfit parameters: {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}
+    * TilingMock peakshot bestfit parameters: {'name': 'peakshot', 'sigma': 4.8, 'fpeak': 0.62, 'fit': 'gauss'}
 
     '''
     try: 
@@ -867,14 +869,23 @@ def build_pk(catalog, n_mocks, quad=False, clobber=True, **kwargs):
     cat = {'name': catalog, 'cosmology': cosmology} 
     #corrections = [{'name': 'bigfc_peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}]
     #corrections = [{'name': 'bigfc'}]
-    corrections = [{'name': 'true'}, 
-            {'name': 'upweight'}
-            ]
+    if catalog == 'tilingmock':
+        corrections = [{'name': 'true'}, 
+                {'name': 'upweight'}, 
+                {'name': 'peakshot', 'sigma': 4.8, 'fpeak': 0.62, 'fit': 'gauss'}
+                ]
+    elif catalog == 'nseries': 
+        corrections = [{'name': 'true'}, 
+                {'name': 'upweight'}, 
+                {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}
+                ]
+    '''
     if catalog == 'cmass': 
         corrections = [{'name': 'upweight'}]
     elif 'bigmd' in catalog: 
-        corrections = [{'name': 'true'}, {'name': 'upweight'}]
-
+        corrections = [{'name': 'true'}] 
+        #corrections =[{'name': 'upweight'}] #[{'name': 'true'}]#, {'name': 'upweight'}]
+    '''
     spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':Ngrid, 'quad':quad}
 
     for i_mock in range(1, n_mocks+1): 
@@ -931,12 +942,13 @@ if __name__=='__main__':
                         'correction': corr} 
                 fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     '''
-    build_pk('qpm', 10, grid=360, clobber=True, quad=False) 
-    #build_pk('bigmd1', 1, grid=360, quad=True) 
-    #build_pk('bigmd2', 1, grid=360, quad=True) 
-    #build_pk('bigmd', 1, grid=360, quad=True) 
+    #build_pk('qpm', 10, grid=360, clobber=True, quad=False) 
+    #build_pk('bigmd1', 1, grid=960, quad=False) 
+    #build_pk('bigmd2', 1, grid=960, quad=False) 
+    #build_pk('bigmd', 1, grid=960, quad=False) 
     #build_pk('ldgdownnz', 10, clobber=True, quad=False) 
     #build_pk('lasdamasgeo', 10, clobber=False, grid=360, quad=False) 
     #build_pk('patchy', 10, clobber=False, grid=960, quad=False) 
-    #build_pk('cmass', 1, cosmology='fiducial', quad=False)
-    #build_pk('nseries', 84, quad=True)
+    #build_pk('cmass', 1, cosmology='fiducial', Ngrid=960, quad=False)
+    build_pk('tilingmock', 1, grid=960, quad=False)
+    #build_pk('nseries', 84, grid=960, quad=False)

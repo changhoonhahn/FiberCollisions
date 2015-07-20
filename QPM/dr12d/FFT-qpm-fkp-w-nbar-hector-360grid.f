@@ -40,6 +40,15 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
       call fftwnd_f77_create_plan(planf,3,grid,FFTW_BACKWARD,
      $     FFTW_ESTIMATE + FFTW_IN_PLACE)
 
+      selfunfile='/mount/riachuelo1/hahn/data/CMASS/'//
+     $     'nbar-cmass-dr12v4-N-Reid-om0p31_Pfkp10000.dat'
+      open(unit=4,file=selfunfile,status='old',form='formatted')
+      do i=1,Nsel
+         read(4,*)z(i),dum,dum,selfun(i)
+      enddo 
+      close(4)
+      call spline(z,selfun,Nsel,3e30,3e30,sec)
+
 !Arguments: Rbox, Mock/Random, P0, File, FFT file
       call getarg(1,Rboxstr)
       read(Rboxstr,*) Rbox
@@ -66,21 +75,22 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          Ngsyscomp=0.d0
          Ngsystot=0.d0
          do i=1,Nmax
-            read(4,*,end=13)ra,dec,az,wfkp,wfc,wcomp
+            read(4,*,end=13)ra,dec,az,wfc,wcomp
             ra=ra*(pi/180.)
             dec=dec*(pi/180.)
             rad=chi(az)
             rg(1,i)=rad*cos(dec)*cos(ra)
             rg(2,i)=rad*cos(dec)*sin(ra)
             rg(3,i)=rad*sin(dec)
-            n_bar=((1.0/wfkp)-1.0)/P0
+            !n_bar=((1.0/wfkp)-1.0)/P0
+            n_bar=nbar(az)
             nbg(i)=n_bar*wcomp
             cmp(i)=wcomp
             wg(i)=wfc/wcomp
             Ngal=Ngal+1
             Ngsys=Ngsys+dble(wfc)
             Ngsyscomp=Ngsyscomp+dble(wg(i))
-            Ngsystot=Ngsystot+dble(wg(i)*wfc)
+            Ngsystot=Ngsystot+dble(wg(i)/(1.+n_bar*P0))
          enddo
  13      continue
          close(4)
@@ -142,14 +152,15 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
             rr(1,i)=rad*cos(dec)*cos(ra)
             rr(2,i)=rad*cos(dec)*sin(ra)
             rr(3,i)=rad*sin(dec)
-            n_bar=((1.0/wfkp)-1.0)/P0
+            !n_bar=((1.0/wfkp)-1.0)/P0
+            n_bar=nbar(az)
             nbr(i)=n_bar*wcomp
             cmp(i)=wcomp
             wr(i)=1.0   ! 1.0 already accounts for completeness limit 
             Nran=Nran+1
             Nrsys=Nrsys+dble(wr(i)*wcomp)
             Nrsyscomp=Nrsyscomp+dble(wr(i))
-            Nrsystot=Nrsystot+dble(wr(i)*wfkp)
+            Nrsystot=Nrsystot+dble(wr(i)/(1.+n_bar*P0))
          enddo
  15      continue
          close(4)

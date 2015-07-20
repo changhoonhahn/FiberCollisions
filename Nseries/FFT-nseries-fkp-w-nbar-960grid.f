@@ -4,17 +4,16 @@
       real n_bar,wfkp,wfc,wcomp
       integer*8 planf
       real pi,cspeed,Om0,OL0,redtru,m1,m2,zlo,zhi,garb1,garb2,garb3,veto
-      parameter(Nsel=201,Nmax=2*10**8,Ngrid=360,Nbin=151,pi=3.141592654)
-      parameter(Om0=0.31,OL0=0.69)
+      parameter(Nsel=181,Nmax=2*10**8,Ngrid=960,Nbin=151,pi=3.141592654)
+      parameter(Om0=0.31,OL0=0.69)          ! hardcoded for Nseries
       integer grid
       dimension grid(3)
       parameter(cspeed=299800.0)
       integer, allocatable :: ig(:),ir(:)
       real zbin(Nbin),dbin(Nbin),sec3(Nbin),zt,dum,gfrac
       real cz,sec2(Nsel),chi,nbar,Rbox
-      real*8 Ngsys,Ngsyscomp,Ngsystot
-      real*8 Nrsys,Nrsyscomp,Nrsystot
-      real, allocatable :: nbg(:),nbr(:),rg(:,:),rr(:,:),wg(:),wr(:) 
+      real*8 Ngsys,Nrsys
+      real, allocatable :: nbg(:),nbr(:),rg(:,:),rr(:,:),wg(:),wr(:)
       real, allocatable :: cmp(:)
       real selfun(Nsel),z(Nsel),sec(Nsel),zmin,zmax,az,ra,dec,rad,numden
       real alpha,P0,nb,weight,ar,akf,Fr,Fi,Gr,Gi
@@ -39,8 +38,8 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
       call fftwnd_f77_create_plan(planf,3,grid,FFTW_BACKWARD,
      $     FFTW_ESTIMATE + FFTW_IN_PLACE)
 
-      selfunfile='/mount/riachuelo1/hahn/data/CMASS/'//
-     $     'nbar-cmass-dr12v4-N-Reid-om0p31_Pfkp10000.dat'
+      selfunfile='/mount/riachuelo1/hahn/data/Nseries/'//
+     $     'nbar-nseries-fibcoll.dat'
       open(unit=4,file=selfunfile,status='old',form='formatted')
       do i=1,Nsel
          read(4,*)z(i),dum,dum,selfun(i)
@@ -48,6 +47,13 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
       close(4)
       call spline(z,selfun,Nsel,3e30,3e30,sec)
 
+      zmax=1.1
+      do ic=1,Nbin
+         zt=zmax*float(ic-1)/float(Nbin-1)
+         zbin(ic)=zt
+         dbin(ic)=chi(zt)
+      enddo
+      call spline(dbin,zbin,Nbin,3e30,3e30,sec3)
 !Arguments: Rbox, Mock/Random, P0, File, FFT file
       call getarg(1,Rboxstr)
       read(Rboxstr,*) Rbox
@@ -71,8 +77,6 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          open(unit=4,file=lssfile,status='old',form='formatted')
          Ngal=0 !Ngal will get determined later after survey is put into a box (Ng)
          Ngsys=0.d0
-         Ngsyscomp=0.d0
-         Ngsystot=0.d0
          do i=1,Nmax
             read(4,*,end=13)ra,dec,az,wfc,wcomp
             ra=ra*(pi/180.)
@@ -81,31 +85,23 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
             rg(1,i)=rad*cos(dec)*cos(ra)
             rg(2,i)=rad*cos(dec)*sin(ra)
             rg(3,i)=rad*sin(dec)
-            !n_bar=((1.0/wfkp)- 1.0)/P0
-            n_bar=nbar(az)
-            nbg(i)=n_bar*wcomp  ! observed nbar(z)
-            cmp(i)=wcomp
-            wg(i)=wfc/wcomp     ! no comp variation
+            nbg(i)=nbar(az)
+            cmp(i)=wcomp    ! comp weight 
+            wg(i)=wfc/wcomp ! remove comp variations
             Ngal=Ngal+1
-            Ngsys=Ngsys+dble(wfc)
-            Ngsyscomp=Ngsyscomp+dble(wg(i))
-            Ngsystot=Ngsystot+dble(wg(i)/(1.+n_bar*P0))
+            Ngsys=Ngsys+dble(wg(i))           ! contains comp upweighting
          enddo
  13      continue
          close(4)
+
+         WRITE(*,*) 'Ngal,sys=',Ngsys,'Ngal=',Ngal
+         WRITE(*,*) 'Ngal,sys/Ngal=',Ngsys/float(Ngal)
 
          call PutIntoBox(Ngal,rg,Rbox,ig,Ng,Nmax)
          gfrac=100. *float(Ng)/float(Ngal)
          WRITE(*,*) 'Ngal,box=',Ng,'Ngal=',Ngal,gfrac,'percent'
 
          Ngsys=Ngsys*dble(Ng)/dble(Ngal)
-         Ngsyscomp=Ngsyscomp*dble(Ng)/dble(Ngal)
-         Ngsystot=Ngsystot*dble(Ng)/dble(Ngal)
-         
-         write(*,*) 'Ngal=',Ng
-         write(*,*) 'Ngal,sys=',Ngsys
-         write(*,*) 'Ngal,sys,comp=',Ngsyscomp
-         write(*,*) 'Ngal,sys,tot=',Ngsystot
 
          gI10=0.d0
          gI12=0.d0
@@ -114,10 +110,10 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          gI23=0.d0
          gI33=0.d0
          do i=1,Ng
-            nb=nbg(i)            ! yes comp variation
-            weight=1.d0/(1.d0+nbg(i)*P0/cmp(i))    ! no comp variation
+            nb=nbg(i)*cmp(i)                    ! yes comp variation 
+            weight=dble(wg(i))/(1.d0+nbg(i)*P0) ! no comp variation
             gI10=gI10+1.d0
-            gI12=gI12+dble(wg(i)*weight**2)
+            gI12=gI12+dble(weight**2)
             gI22=gI22+dble(nb*weight**2)
             gI13=gI13+dble(weight**3)
             gI23=gI23+dble(nb*weight**3 )
@@ -134,7 +130,7 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          write(6)(((dcg(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
          write(6)real(gI10),real(gI12),real(gI22),real(gI13),real(gI23),
      &   real(gI33)
-         write(6)P0,Ng,real(Ngsys),real(Ngsyscomp),real(Ngsystot)
+         write(6)P0,Ng,real(Ngsys)
          close(6)
 
        elseif (iflag.eq.1) then ! compute discretness integrals and FFT random mock
@@ -143,25 +139,19 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          open(unit=4,file=randomfile,status='old',form='formatted')
          Nran=0 !Ngal will get determined later after survey is put into a box (Nr)
          Nrsys=0.d0
-         Nrsyscomp=0.d0
-         Nrsystot=0.d0
          do i=1,Nmax
-            read(4,*,end=15)ra,dec,az,wfkp,wcomp
+            read(4,*,end=15)ra,dec,az,wcomp
             ra=ra*(pi/180.)
             dec=dec*(pi/180.)
             rad=chi(az)
+            wr(i)=1.0/wcomp         
             rr(1,i)=rad*cos(dec)*cos(ra)
             rr(2,i)=rad*cos(dec)*sin(ra)
             rr(3,i)=rad*sin(dec)
-            !n_bar=((1.0/wfkp)-1.0)/P0
-            n_bar=nbar(az)
-            nbr(i)=n_bar*wcomp  ! observed nbar(z)
-            cmp(i)=wcomp
-            wr(i)=1.0/wcomp     ! no comp variation
+            nbr(i)=nbar(az)            ! nbar_true no comp variation
+            cmp(i)=wcomp            ! save comp weights
+            Nrsys=Nrsys+dble(wr(i))
             Nran=Nran+1
-            Nrsys=Nrsys+dble(wr(i)*wcomp)
-            Nrsyscomp=Nrsyscomp+dble(wr(i))
-            Nrsystot=Nrsystot+dble(wr(i)/(1.+n_bar*P0))
          enddo
  15      continue
          close(4)
@@ -169,15 +159,6 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          call PutIntoBox(Nran,rr,Rbox,ir,Nr,Nmax)
          gfrac=100. *float(Nr)/float(Nran)
          WRITE(*,*) 'Nran,box=',Nr,'Nran=',Nran, gfrac,'percent'
-         
-         Nrsys=Nrsys*dble(Nr)/dble(Nran)
-         Nrsyscomp=Nrsyscomp*dble(Nr)/dble(Nran)
-         Nrsystot=Nrsystot*dble(Nr)/dble(Nran)
-         
-         write(*,*) 'Nran=',Nr
-         write(*,*) 'Nran,sys=',Nrsys
-         write(*,*) 'Nran,sys,comp=',Nrsyscomp
-         write(*,*) 'Nran,sys,tot=',Nrsystot
 
          I10=0.d0
          I12=0.d0
@@ -186,8 +167,8 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          I23=0.d0
          I33=0.d0
          do i=1,Nr
-            nb=nbr(i)               ! yes comp variation
-            weight=dble(wr(i))/(1.d0+nbr(i)*P0/cmp(i))     !no comp variation
+            nb=nbr(i)*cmp(i)            ! yes comp variations
+            weight=dble(wr(i))/(1.d0+nbr(i)*P0)  ! no comp variations
             I10=I10+1.d0
             I12=I12+dble(weight**2)
             I22=I22+dble(nb*weight**2)
@@ -196,7 +177,7 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
             I33=I33+dble(nb**2 *weight**3)
          enddo
 
-         WRITE(*,*) 'W_r,sys=',Nrsys,'Ngal,sys=',Nrsys/float(Nran)
+         WRITE(*,*) 'N_r,sys=',Nrsys,'N_r,sys/Nr=',Nrsys/float(Nran)
          allocate(dcr(Ngrid,Ngrid,Ngrid))
          call assign(Nran,rr,rm,Lm,dcr,P0,nbr,ir,wr)
          call fftwnd_f77_one(planf,dcr,dcr)      
@@ -208,7 +189,7 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          write(6)(((dcr(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
          write(6)real(I10),real(I12),real(I22),real(I13),real(I23),
      &   real(I33)
-         write(6)P0,Nr,real(Nrsys),real(Nrsyscomp),real(Nrsystot)
+         write(6)P0,Nr,real(Nrsys)
          close(6)
          
       endif
@@ -477,9 +458,9 @@ c
       return
       end
 c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      REAL function nbar(QQ,iflag) !nbar(z)
+      REAL function nbar(QQ) !nbar(z)
 c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-      parameter(Nsel=201)!80)
+      parameter(Nsel=181)!80)
       integer iflag
       real z(Nsel),selfun(Nsel),sec(Nsel),self,az,qq,area_ang
       common /interpol/z,selfun,sec
@@ -488,21 +469,12 @@ c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       real Om0,OL0
       external chi
       az=QQ
-      if (az.lt.0.3 .or. az.gt.0.8) then
+      if (az.lt.0.43 .or. az.gt.0.7) then
          nbar=0.0
       else
-      call splint(z,selfun,sec,Nsel,az,self)
+         call splint(z,selfun,sec,Nsel,az,self)
          nbar=self 
       endif
-      RETURN
-      END
-c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      REAL function zdis(ar) !interpolation redshift(distance)
-c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-      parameter(Nbin=151)
-      common /interp3/dbin,zbin,sec3
-      real dbin(Nbin),zbin(Nbin),sec3(Nbin)
-      call splint(dbin,zbin,sec3,Nbin,ar,zdis)
       RETURN
       END
 c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -37,6 +37,15 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
       call fftwnd_f77_create_plan(planf,3,grid,FFTW_BACKWARD,
      $     FFTW_ESTIMATE + FFTW_IN_PLACE)
 
+      selfunfile='/mount/riachuelo1/hahn/data/tiling_mocks/'//
+     $     'nbar-cmass-boss5003sector-icoll012.dat'
+      open(unit=4,file=selfunfile,status='old',form='formatted')
+      do i=1,Nsel
+         read(4,*)z(i),dum,dum,selfun(i)
+      enddo 
+      close(4)
+      call spline(z,selfun,Nsel,3e30,3e30,sec)
+
       zmax=1.1
       do ic=1,Nbin
          zt=zmax*float(ic-1)/float(Nbin-1)
@@ -68,14 +77,14 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          Ngal=0 !Ngal will get determined later after survey is put into a box (Ng)
          Ngsys=0.d0
          do i=1,Nmax
-            read(4,*,end=13)ra,dec,az,n_bar,wcomp
+            read(4,*,end=13)ra,dec,az,wcomp
             ra=ra*(pi/180.)
             dec=dec*(pi/180.)
             rad=chi(az)
             rg(1,i)=rad*cos(dec)*cos(ra)
             rg(2,i)=rad*cos(dec)*sin(ra)
             rg(3,i)=rad*sin(dec)
-            nbg(i)=n_bar
+            nbg(i)=nbar(az)
             wg(i)=wcomp
             Ngal=Ngal+1
             Ngsys=Ngsys+dble(wg(i))
@@ -129,17 +138,17 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          Nran=0 !Ngal will get determined later after survey is put into a box (Nr)
          Nrsys=0.d0
          do i=1,Nmax
-            read(4,*,end=15)ra,dec,az,n_bar
+            read(4,*,end=15)ra,dec,az
             ra=ra*(pi/180.)
             dec=dec*(pi/180.)
             rad=chi(az)
-            wr(i)=1.0
-            Nrsys=Nrsys+dble(wr(i))
-            Nran=Nran+1
             rr(1,i)=rad*cos(dec)*cos(ra)
             rr(2,i)=rad*cos(dec)*sin(ra)
             rr(3,i)=rad*sin(dec)
-            nbr(i)=n_bar
+            nbr(i)=nbar(az)
+            wr(i)=1.0
+            Nrsys=Nrsys+dble(wr(i))
+            Nran=Nran+1
          enddo
  15      continue
          close(4)
@@ -457,7 +466,7 @@ c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       real Om0,OL0
       external chi
       az=QQ
-      if (az.lt.0.3 .or. az.gt.0.8) then
+      if (az.lt.0.43 .or. az.gt.0.7) then
          nbar=0.0
       else
       call splint(z,selfun,sec,Nsel,az,self)
