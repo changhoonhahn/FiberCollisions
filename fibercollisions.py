@@ -867,8 +867,6 @@ def build_pk(catalog, n_mocks, quad=False, clobber=True, **kwargs):
         cosmology = 'fiducial'
 
     cat = {'name': catalog, 'cosmology': cosmology} 
-    #corrections = [{'name': 'bigfc_peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}]
-    #corrections = [{'name': 'bigfc'}]
     if catalog == 'tilingmock':
         corrections = [{'name': 'true'}, 
                 {'name': 'upweight'}, 
@@ -879,13 +877,13 @@ def build_pk(catalog, n_mocks, quad=False, clobber=True, **kwargs):
                 {'name': 'upweight'}, 
                 {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.68, 'fit': 'gauss'}
                 ]
-    '''
-    if catalog == 'cmass': 
-        corrections = [{'name': 'upweight'}]
+    elif catalog == 'cmass': 
+        corrections = [{'name': 'upweight'}, 
+                {'name': 'peakshot', 'sigma': 6.9, 'fpeak': 0.7, 'fit': 'gauss'}]
+
     elif 'bigmd' in catalog: 
-        corrections = [{'name': 'true'}] 
-        #corrections =[{'name': 'upweight'}] #[{'name': 'true'}]#, {'name': 'upweight'}]
-    '''
+        corrections = [{'name': 'true'}, {'name': 'upweight'}] 
+
     spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':Ngrid, 'quad':quad}
 
     for i_mock in range(1, n_mocks+1): 
@@ -943,12 +941,17 @@ if __name__=='__main__':
                 fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     '''
     #build_pk('qpm', 10, grid=360, clobber=True, quad=False) 
-    #build_pk('bigmd1', 1, grid=960, quad=False) 
-    #build_pk('bigmd2', 1, grid=960, quad=False) 
-    #build_pk('bigmd', 1, grid=960, quad=False) 
+    '''
+    for bmd in ['bigmd1', 'bigmd2', 'bigmd3']:
+        build_pk(bmd, 1, grid=360, quad=False) 
+        build_pk(bmd, 1, grid=960, quad=False) 
+    '''
+    #build_pk('bigmd3', 1, grid=360, quad=False) 
+    build_pk('bigmd3', 1, grid=960, quad=False) 
     #build_pk('ldgdownnz', 10, clobber=True, quad=False) 
     #build_pk('lasdamasgeo', 10, clobber=False, grid=360, quad=False) 
     #build_pk('patchy', 10, clobber=False, grid=960, quad=False) 
-    #build_pk('cmass', 1, cosmology='fiducial', Ngrid=960, quad=False)
-    #build_pk('tilingmock', 1, grid=960, quad=False)
-    build_pk('nseries', 20, grid=960, quad=False)
+    #build_pk('cmass', 1, cosmology='fiducial', grid=360, quad=False)
+    #build_pk('cmass', 1, cosmology='fiducial', grid=960, quad=False)
+    #build_pk('tilingmock', 1, grid=360, quad=True)
+    #build_pk('nseries', 20, grid=960, quad=False)

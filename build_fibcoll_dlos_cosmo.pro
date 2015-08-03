@@ -152,7 +152,8 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
         spherematch, ra_nocp, dec_nocp, ra_upcp, dec_upcp, fib_angscale, m_nocp, m_upcp, d12, maxmatch=0
 
     endif else if (strlowcase(catalog) EQ 'cmass') then begin 
-        omega_m = 0.274
+        ; omega_m = 0.274
+        omega_m = 0.31
         readcol, mock_file, mock_ra, mock_dec, mock_redshift, mock_wsys, mock_wnoz, mock_wfc, mock_nbar, mock_comp
 
         upcp_indx = where(mock_wfc GT 1.) 

@@ -1207,22 +1207,32 @@ if __name__=="__main__":
     #        {'catalog': {'name': 'qpm'}, 'correction': {'name': 'upweight'}} 
     #        ]
     catcorr_methods = [
-            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'true'}},
-            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}},
-            {'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}
-                }
+            {'catalog': {'name': 'cmass', 'cosmology': 'fiducial'}, 
+                'correction': {'name': 'upweight'}},
+            {'catalog': {'name': 'bigmd3'}, 'correction': {'name': 'upweight'}}
             ]
-    #{'catalog': {'name': 'bigmd'}, 'correction': {'name': 'true'}},
-    #{'catalog': {'name': 'bigmd1'}, 'correction': {'name': 'true'}},
-    #{'catalog': {'name': 'bigmd2'}, 'correction': {'name': 'true'}}
-    n_mock_list = 10 
+
+    n_mock_list = 1 
     plot_pk_fibcol_comp( catcorr_methods, n_mock_list, \
-            quad=True, Ngrid=360, type='regular', 
-            xrange=[0.001, 1.0], yrange=[10**3, 3*10**5])
+            quad=False, Ngrid=960, type='regular', 
+            xrange=[0.01, 1.0], yrange=[10**2, 3*10**5])
     plot_pk_fibcol_comp(catcorr_methods, n_mock_list, 
-            quad=True, Ngrid=360, type='ratio', 
-            xrange=[0.001, 1.0], yrange=[0.0, 2.0])
+            quad=False, Ngrid=960, type='ratio', 
+            xrange=[0.01, 1.0], yrange=[0.5, 1.5])
+    
+    plot_pk_fibcol_comp( catcorr_methods, n_mock_list, \
+            quad=False, Ngrid=360, type='regular', 
+            xrange=[0.01, 1.0], yrange=[10**2, 3*10**5])
+    plot_pk_fibcol_comp(catcorr_methods, n_mock_list, 
+            quad=False, Ngrid=360, type='ratio', 
+            xrange=[0.01, 1.0], yrange=[0.5, 1.5])
+    
+    catcorr_methods = [
+            {'catalog': {'name': 'cmass', 'cosmology': 'fiducial'}, 
+                'correction': {'name': 'peakshot', 'sigma':6.9, 'fpeak':0.7, 'fit':'gauss'}},
+            {'catalog': {'name': 'bigmd3'}, 'correction': {'name': 'true'}}
+            ]
+
     #plot_pk_fibcol_comp(catcorr_methods, n_mock_list, 
     #        quad=False, Ngrid=960, type='kPk', 
     #        xrange=[0.001, 1.0], yrange=[10**0, 3*10**3])

@@ -860,7 +860,7 @@ def plot_pk_mpfit_peakshotnoise_fcpaper(catalogs):
         elif catalog['name'].lower() == 'qpm': 
             corr = {'name': 'peakshot', 'sigma': 4.4, 'fpeak':0.65, 'fit':'gauss'}
         elif catalog['name'].lower() == 'nseries': 
-            corr = {'name': 'peakshot', 'sigma': 4.0, 'fpeak':0.7, 'fit':'gauss'}
+            corr = {'name': 'peakshot', 'sigma': 4.0, 'fpeak':0.68, 'fit':'gauss'}
         elif catalog['name'].lower() == 'tilingmock': 
             corr = {'name': 'peakshot', 'sigma': 4.8, 'fpeak':0.62, 'fit':'gauss'}
         else: 
@@ -1062,6 +1062,249 @@ def plot_pk_mpfit_peakshotnoise_fcpaper(catalogs):
     fig.savefig(''.join(['figure/', fig_name]), bbox_inches="tight")
     fig.clear()
 
+def plot_p2k_fcpaper(catalogs): 
+    ''' Comparison of P2(k)avg (powerspectrum quadrupole) for peak+shotnoise fc correction method 
+    with sample variance of P(k) mocks. 
+
+    '''
+    ldg_nmock = 40 
+    qpm_nmock = 100 
+    nseries_nmock = 9 
+    prettyplot()
+    pretty_colors = prettycolors()
+    
+    fig = plt.figure(1, figsize=(15, 5))
+
+    for i_cat, catalogue in enumerate(catalogs): 
+        sub = fig.add_subplot(1, 3, i_cat+1) 
+
+        catalog = {'name': catalogue}    # catalog dict
+        '''
+        # default power/bispectrum box settings 
+        if catalog['name'].lower() in ('lasdamasgeo', 'qpm', 'nseries'): 
+            spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':960} 
+        '''
+        if catalog['name'].lower() == 'tilingmock': 
+            spec = {'P0': 20000, 'sscale':4000.0, 'Rbox':2000.0, 'box':4000, 'grid':360} 
+        else: 
+            spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':360} 
+
+        # Gaussian fit
+        if catalog['name'].lower() == 'lasdamasgeo': 
+            corr = {'name': 'peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit':'gauss'}
+        elif catalog['name'].lower() == 'qpm': 
+            corr = {'name': 'peakshot', 'sigma': 4.4, 'fpeak':0.65, 'fit':'gauss'}
+        elif catalog['name'].lower() == 'nseries': 
+            corr = {'name': 'peakshot', 'sigma': 4.0, 'fpeak':0.7, 'fit':'gauss'}
+        elif catalog['name'].lower() == 'tilingmock': 
+            corr = {'name': 'peakshot', 'sigma': 4.8, 'fpeak':0.63, 'fit':'gauss'}
+        else: 
+            raise NameError('not coded yet') 
+
+        spec['quad'] = True 
+
+        corr_methods = [{'name': 'true'}, {'name': 'upweight'}, corr]
+
+        for i_corr, correction in enumerate(corr_methods):     # loop through correction methods
+            # for LasDamasGeo 
+            if catalog['name'].lower() == 'lasdamasgeo': 
+                n_file = 0
+                for i_mock in range(1, ldg_nmock+1):                       # compute average[P(k)] for each correction method
+                    for letter in ['a', 'b', 'c', 'd']: 
+                        # set catalog correction dictionary for specific file 
+                        i_catalog = catalog.copy() 
+                        i_catalog['n_mock'] = i_mock
+                        i_catalog['letter'] = letter
+                        i_cat_corr = {'catalog': i_catalog, 'correction': correction, 'spec':spec}
+                        
+                        if correction['name'] != 'Upweight Igal_Irand': 
+                            # import power spectrum 
+                            power_i = fc_spec.Spec('power', **i_cat_corr)
+                        else: 
+                            i_cat_corr = {'catalog': i_catalog, 'correction': {'name':'upweight'}, 'spec':spec}
+                            power_i = fc_spec.Spec('power', Igal_Irand==True, **i_cat_corr)
+                        power_i.readfile()
+                        
+                        try: 
+                            avg_k 
+                        except NameError: 
+                            avg_k = power_i.k
+                            sum_P2k = power_i.P2k
+                        else: 
+                            sum_P2k = sum_P2k + power_i.P2k
+
+                        n_file = n_file+1
+
+            # Tiling Mocks
+            elif catalog['name'].lower() == 'tilingmock': 
+                i_cat_corr = {'catalog': catalog, 'correction': correction, 'spec':spec}
+                # read tiling mock P(k)
+                power = fc_spec.Spec('power', **i_cat_corr)
+                power.readfile()
+
+                avg_k = power.k
+                sum_P2k = power.P2k
+                n_file = 1          # only one file 
+
+            elif catalog['name'].lower() == 'qpm': 
+                n_file = 0  
+                for i_mock in range(1, qpm_nmock+1): 
+                    i_catalog = catalog.copy() 
+                    i_catalog['n_mock'] = i_mock
+                    i_cat_corr = {'catalog': i_catalog, 'correction': correction, 'spec':spec}
+                        
+                    power_i = fc_spec.Spec('power', **i_cat_corr)
+                    power_i.readfile()
+                        
+                    try: 
+                        avg_k 
+                    except NameError: 
+                        avg_k = power_i.k
+                        sum_P2k = power_i.P2k
+                    else: 
+                        sum_P2k = sum_P2k + power_i.P2k
+
+                    n_file = n_file+1
+
+            elif catalog['name'].lower() == 'nseries': 
+                n_file = 0  
+                for i_mock in range(1, nseries_nmock+1): 
+                    i_catalog = catalog.copy() 
+                    i_catalog['n_mock'] = i_mock
+                    i_cat_corr = {'catalog': i_catalog, 'correction': correction, 'spec':spec}
+                        
+                    power_i = fc_spec.Spec('power', **i_cat_corr)
+                    power_i.readfile()
+                        
+                    try: 
+                        avg_k 
+                    except NameError: 
+                        avg_k = power_i.k
+                        sum_P2k = power_i.P2k
+                    else: 
+                        sum_P2k = sum_P2k + power_i.P2k
+
+                    n_file = n_file+1
+            else: 
+                raise NameError('not yet coded!')
+
+            avg_P2k = [sum_P2k[i]/np.float(n_file) for i in range(len(sum_P2k))]    # average P(k)
+        
+            # P(k) residual comparison
+            if correction['name'].lower() == 'true':
+                # Should be first and the demoninator otherwise code crashes 
+                avg_P2k_true = avg_P2k
+
+                Pk_var = np.zeros(len(avg_k)) 
+                if catalog['name'].lower() == 'lasdamasgeo': 
+                    for i_mock in range(1, ldg_nmock+1):                       # compute average[P(k)] for each correction method
+                        for letter in ['a', 'b', 'c', 'd']: 
+                            # set catalog correction dictionary for specific file 
+                            i_catalog = catalog.copy() 
+                            i_catalog['n_mock'] = i_mock
+                            i_catalog['letter'] = letter
+                            i_cat_corr = {'catalog': i_catalog, 'correction': correction, 'spec':spec}
+                            
+                            power_i = fc_spec.Spec('power', **i_cat_corr)
+                            power_i.readfile()
+                            
+                            Pk_i = power_i.P2k
+                            
+                            # calculate sample variance
+                            Pk_var = Pk_var + (avg_P2k_true - Pk_i)**2
+
+                elif catalog['name'].lower() == 'qpm': 
+                    for i_mock in range(1, qpm_nmock+1): 
+                        i_catalog = catalog.copy() 
+                        i_catalog['n_mock'] = i_mock
+                        i_cat_corr = {'catalog': i_catalog, 'correction': correction, 'spec':spec}
+                            
+                        power_i = fc_spec.Spec('power', **i_cat_corr)
+                        power_i.readfile()
+                        
+                        Pk_i = power_i.P2k
+                        
+                        Pk_var = Pk_var + (avg_P2k_true - Pk_i)**2
+                
+                elif catalog['name'].lower() == 'nseries': 
+                    for i_mock in range(1, nseries_nmock+1): 
+                        i_catalog = catalog.copy() 
+                        i_catalog['n_mock'] = i_mock
+                        i_cat_corr = {'catalog': i_catalog, 'correction': correction, 'spec':spec}
+                            
+                        power_i = fc_spec.Spec('power', **i_cat_corr)
+                        power_i.readfile()
+                        
+                        Pk_i = power_i.P2k
+                        
+                        Pk_var = Pk_var + (avg_P2k_true - Pk_i)**2
+                
+                if catalog['name'].lower() != 'tilingmock': 
+
+                    Pk_var = np.sqrt(Pk_var/np.float(n_file))
+                    #print Pk_var/avg_Pk_true
+                    sub.plot(avg_k, Pk_var/avg_P2k_true+1.0, lw=2, ls='--', 
+                            color=pretty_colors[0], label=r'$\Delta P/P$')
+                else: 
+                    sub.plot(avg_k, Pk_var/avg_P2k_true, lw=4, color=pretty_colors[0], label='Sample Variance')
+            else: 
+                if correction['name'].lower() == 'upweight':
+                    corr_label = 'NN-upweight'
+                    corr_color = 1
+                else: 
+                    corr_label = 'Hahn et al.'
+                    corr_color = 7  
+
+                # set residual label
+                #resid_label = ''.join([r"$\mathtt{", "\overline{P(k)_{", corr_label,"}}/\overline{P(k)_{True}}}$"])
+                
+                # plot residual 
+                sub.scatter(avg_k, fc_plot.residual(avg_P2k, avg_P2k_true), 
+                        color=pretty_colors[corr_color], label=corr_label)
+                #print resid_label 
+                print catalog['name'].lower() 
+                print np.min(fc_plot.residual(avg_P2k, avg_P2k_true)), \
+                        np.max(fc_plot.residual(avg_P2k, avg_P2k_true))
+    
+
+            sub.plot((10**-3, 10**0), (1.0, 1.0), 'k--') 
+            del avg_k
+            del avg_P2k
+
+        # set axes
+        ylimit = [0.95,1.15] 
+        
+        #sub.text(1.5*10**-3, np.mean(ylimit), ''.join([str(n_file), ' ', catalog['name'].upper()]))              # number of mocks + Catalog name 
+        sub.set_xscale('log')
+        sub.set_xlim([2*10**-2,10**0])
+        sub.set_ylim([0.5, 1.8]) 
+        
+        if catalog['name'].lower() == 'lasdamasgeo': 
+            cat_label = 'Las Damas'
+        elif catalog['name'].lower() == 'qpm': 
+            cat_label = 'QPM' 
+        elif catalog['name'].lower() == 'nseries': 
+            cat_label = 'N Series' 
+        elif catalog['name'].lower() == 'tilingmock': 
+            cat_label = 'Tiling Mock' 
+        else: 
+            raise NameError('asdf') 
+        sub.set_title(cat_label) 
+
+        if i_cat == 0 : 
+            sub.set_ylabel(r"$\mathtt{\overline{P_2^{\rm{corr}}(k)}/\overline{P_2^{\rm{true}}(k)}}$", fontsize=20)
+        elif i_cat == 1: 
+            sub.set_yticklabels([])
+            sub.legend(loc='lower left', scatterpoints=1, prop={'size':18})
+        else: 
+            sub.set_yticklabels([])
+            sub.set_xlabel('k (h/Mpc)', fontsize=24)
+            #sub.axes.get_yaxis().set_ticks([])
+    
+    fig_name = ''.join(['fcpaper_p2k.png'])     
+    fig.savefig(''.join(['figure/', fig_name]), bbox_inches="tight")
+    fig.clear()
+
 def plot_chi2_fcpaper(catalogs): 
     '''
     chi-squared comparison for mock catalogues, correction scheme specified 
@@ -1207,4 +1450,6 @@ def plot_fcpaper():
 if __name__=='__main__': 
     catalogs = ['lasdamasgeo', 'nseries', 'tilingmock']
     #plot_pk_upw_fcpaper(catalogs)
-    plot_pk_mpfit_peakshotnoise_fcpaper(catalogs)
+    #plot_pk_mpfit_peakshotnoise_fcpaper(catalogs)
+    plot_p2k_fcpaper(['lasdamasgeo', 'nseries'])
+

@@ -112,6 +112,9 @@ c      read(Omstr,*)Om0
       elseif (idata.eq.10 .or. idata.eq.12) then ! Nseries
          selfunfile='/mount/riachuelo1/hahn/data/Nseries'//
      $    '/nbar-nseries-fibcoll.dat'
+      elseif (idata.eq.9) then 
+         selfunfile='/mount/riachuelo1/hahn/data/tiling_mocks'//
+     $    '/nbar-cmass-boss5003sector-icoll012.dat'
       elseif (idata.eq.11) then 
          selfunfile='/mount/riachuelo1/hahn/data/LasDamas/Geo'//
      $    '/nbar-lasdamasgeo.down_nz.dat'
@@ -130,13 +133,20 @@ c      read(Omstr,*)Om0
          enddo   
          close(4)
          call spline(z,selfun,Nsel,3e30,3e30,sec)
-      elseif (idata.lt.7 .or. idata.eq.9) then 
+      elseif (idata.lt.7) then 
          open(unit=4,file=selfunfile,status='old',form='formatted')
          do i=1,3 !skip 2 comment lines
             read(4,'(a)')dummy
          enddo
          do i=1,Nsel
             read(4,*)z(i),selfun(i)
+         enddo   
+         close(4)
+         call spline(z,selfun,Nsel,3e30,3e30,sec)
+      elseif (idata.eq.9) then 
+         open(unit=4,file=selfunfile,status='old',form='formatted')
+         do i=1,Nsel
+            read(4,*)z(i),dum,dum,selfun(i)
          enddo   
          close(4)
          call spline(z,selfun,Nsel,3e30,3e30,sec)
@@ -315,10 +325,10 @@ c               read(4,*,end=13)ra,dec,az,nbb
                nbb=nbar2(az)
                nbg(i)=nbb*comp
             elseif (idata.eq.9) then 
-               read(4,*,end=13)ra,dec,az,nbb,wred
+               read(4,*,end=13)ra,dec,az,wred
                wsys=1.
                comp=1.
-               nbg(i)=nbb
+               nbg(i)=nbar(az)
             endif
             
             if (icomp.eq.1) then ! COMP=1 analysis
@@ -616,11 +626,11 @@ c               read(4,*,end=15)ra,dec,az,nbb
                nbb=nbar2(az)
                nbr(i)=nbb*comp ! number density as given in randoms (comp weighted)
             elseif (idata.eq.9) then 
-               read(4,*,end=15)ra,dec,az,nbb
+               read(4,*,end=15)ra,dec,az
                wsys=1.
                wred=1.
                comp=1.
-               nbr(i)=nbb
+               nbr(i)=nbar(az)
             endif
             
             Nran=Nran+1
@@ -638,7 +648,6 @@ c               read(4,*,end=15)ra,dec,az,nbb
             Nrsyscomp=Nrsyscomp+dble(wsys*wred/comp)
             Nrsystot=Nrsystot+dble(wr(i))
             
-
             ra=ra*(pi/180.)
             dec=dec*(pi/180.)
             rad=chi(az)

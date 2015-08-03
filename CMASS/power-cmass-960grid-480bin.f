@@ -1,6 +1,6 @@
       implicit none 
       integer Ngrid,ix,iy,iz,Nbins,nyq,iky,ikz,imk,i,Ibin,Ng,Nr
-      parameter(Ngrid=360,Nbins=180)
+      parameter(Ngrid=960,Nbins=480)
       complex, allocatable :: dcg(:,:,:),dcr(:,:,:)
 c      complex dcg(Ngrid/2+1,Ngrid,Ngrid),dcr(Ngrid/2+1,Ngrid,Ngrid)
       real avgk(Nbins),avgPg(Nbins),avgPr(Nbins),co(Nbins),rk,dk(Nbins)
@@ -118,8 +118,8 @@ c      complex dcg(Ngrid/2+1,Ngrid,Ngrid),dcr(Ngrid/2+1,Ngrid,Ngrid)
       do 110 Ibin=1,Nbins
          if(co(Ibin).gt.0.)then
             avgk(Ibin)=avgk(Ibin)/co(Ibin)*akfun
-            avgPg(Ibin)=(avgPg(Ibin)/co(Ibin)-(1.+alpha)*I12)/I22
-            !avgPg(Ibin)=(avgPg(Ibin)/co(Ibin)-(gI12+alpha*I12))/I22
+            !avgPg(Ibin)=(avgPg(Ibin)/co(Ibin)-(1.+alpha)*I12)/I22
+            avgPg(Ibin)=(avgPg(Ibin)/co(Ibin)-(gI12+alpha*I12))/I22
             avgPr(Ibin)=avgPr(Ibin)/co(Ibin) 
             avgPg2(Ibin)=avgPg2(Ibin)/co(Ibin)/I22
             avgPr2(Ibin)=avgPr2(Ibin)/co(Ibin)/I22 

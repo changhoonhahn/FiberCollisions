@@ -373,7 +373,7 @@ class galaxy_data:
                 for i_col, catalog_column in enumerate(catalog_columns): 
                     setattr(self, catalog_column, file_data[i_col])
 
-        elif catalog['name'].lower() == 'patchy':                           # PATCHY Mocks --------------------------------------------------
+        elif catalog['name'].lower() == 'patchy':                   # PATCHY ------------------
             omega_m = 0.31              # survey cosmology 
 
             if DorR == 'data':                      
@@ -449,6 +449,10 @@ class galaxy_data:
                         # upweighted mocks
                         build_fibercollided(**cat_corr) 
 
+                    elif correction['name'].lower() in ('peakshot'): 
+                        # peak corrected
+                        build_peakcorrected_fibcol(doublecheck=True, **cat_corr)
+
                     else: 
                         raise NotImplementedError() 
 
@@ -479,12 +483,13 @@ class galaxy_data:
                     omega_m = 0.31      # (fiducial cosmology) 
                 else:
                     raise NotImplementedError('You should use fiducial cosmology') 
+
             except KeyError: 
                 catalog['cosmology'] = 'fiducial'
                 omega_m = 0.31      # (fiducial cosmology) 
 
             if DorR == 'data':              # data --------------------
-                catalog_columns = ['ra', 'dec', 'z', 'wsys', 'wnoz', 'wfc', 'nbar', 'comp']
+                catalog_columns = ['ra', 'dec', 'z', 'wsys', 'wnoz', 'wfc', 'comp']
                 self.columns = catalog_columns
                 
                 if not os.path.isfile(file_name) or clobber:
@@ -492,19 +497,23 @@ class galaxy_data:
                     print 'Constructing ', file_name 
                     
                     if correction['name'].lower() in ('upweight'): 
+                        # upweighted
                         build_fibercollided(**cat_corr) 
+                    elif correction['name'].lower() in ('peakshot'): 
+                        # peak correction  
+                        build_peakcorrected_fibcol(doublecheck=True, **cat_corr) 
                     else: 
                         raise NotImplementedError('Only upweight works for now') 
 
                 #ra,dec,z,wsys,wnoz,wfc,nbar,comp
-                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4,5,6,7])   
+                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4,5,6])   
 
                 # assign to data columns class
                 for i_col, catalog_column in enumerate(catalog_columns): 
                     setattr(self, catalog_column, file_data[i_col]) 
 
             elif DorR == 'random': 
-                catalog_columns = ['ra', 'dec', 'z', 'nbar', 'comp']
+                catalog_columns = ['ra', 'dec', 'z', 'comp']
                 self.columns = catalog_columns
                 
                 if not os.path.isfile(file_name) or clobber: 
@@ -512,7 +521,7 @@ class galaxy_data:
                     build_random(**cat_corr) 
 
                 #ra,dec,z,nbar,comp
-                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4])  
+                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])  
 
                 # assign to data columns class
                 for i_col, catalog_column in enumerate(catalog_columns): 
@@ -948,7 +957,6 @@ def get_galaxy_data_file(DorR, **cat_corr):
         
         if DorR == 'data':  # mock catalogs 
             if correction['name'].lower() == 'true':    # true mocks
-
                 if catalog['name'].lower() == 'bigmd': 
                     file_name = ''.join([data_dir, 
                         'bigMD-cmass-dr12v4_vetoed.dat']) # hardcoded
@@ -958,6 +966,10 @@ def get_galaxy_data_file(DorR, **cat_corr):
                 elif catalog['name'].lower() == 'bigmd2': 
                     file_name = ''.join([data_dir, 
                         'bigMD-cmass-dr12v4-RST-quadru_vetoed.dat']) # hardcoded
+                elif catalog['name'].lower() == 'bigmd3':   
+                    # "best" bigMD August 3, 2015 
+                    file_name = ''.join([data_dir, 
+                        'BigMD-cmass-dr12v4-RST-standHAM-Vpeak_vetoed.dat']) 
                 else: 
                     raise NotImplementedError('asdfkj')
     
@@ -971,6 +983,30 @@ def get_galaxy_data_file(DorR, **cat_corr):
                 elif catalog['name'].lower() == 'bigmd2': 
                     file_name = ''.join([data_dir, 
                         'bigMD-cmass-dr12v4-RST-quadru_vetoed.fibcoll.dat'])                 
+                elif catalog['name'].lower() == 'bigmd3': 
+                    file_name = ''.join([data_dir, 
+                        'BigMD-cmass-dr12v4-RST-standHAM-Vpeak_vetoed.fibcoll.dat']) 
+                else: 
+                    raise NotImplementedError('asdfkj')
+            
+            elif correction['name'].lower() in ('peakshot'):    # peak + shotnoise 
+
+                corr_str = ''.join([
+                    '.', correction['fit'].lower(), '.', correction['name'].lower(), 
+                    '.sigma', str(correction['sigma']), '.fpeak', str(correction['fpeak'])])
+
+                if catalog['name'].lower() == 'bigmd':
+                    file_name = ''.join([data_dir, 
+                        'bigMD-cmass-dr12v4_vetoed.fibcoll.dat', corr_str]) # hardcoded
+                elif catalog['name'].lower() == 'bigmd1': 
+                    file_name = ''.join([data_dir, 
+                        'bigMD-cmass-dr12v4-RST-standardHAM_vetoed.fibcoll.dat', corr_str]) 
+                elif catalog['name'].lower() == 'bigmd2': 
+                    file_name = ''.join([data_dir, 
+                        'bigMD-cmass-dr12v4-RST-quadru_vetoed.fibcoll.dat', corr_str]) 
+                elif catalog['name'].lower() == 'bigmd3': 
+                    file_name = ''.join([data_dir, 
+                        'BigMD-cmass-dr12v4-RST-standHAM-Vpeak_vetoed.fibcoll.dat', corr_str]) 
                 else: 
                     raise NotImplementedError('asdfkj')
             else: 
@@ -984,6 +1020,8 @@ def get_galaxy_data_file(DorR, **cat_corr):
                 file_name = ''.join([data_dir, 'bigMD-cmass-dr12v4-RST-standardHAM_vetoed.ran'])
             elif catalog['name'].lower() == 'bigmd2': 
                 file_name = ''.join([data_dir, 'bigMD-cmass-dr12v4-RST-quadru_vetoed.ran'])
+            elif catalog['name'].lower() == 'bigmd3': 
+                file_name = ''.join([data_dir, 'BigMD-cmass-dr12v4-RST-standHAM-Vpeak_vetoed.ran']) 
             else: 
                 raise NotImplementedError('asdlfkj')
     
@@ -994,6 +1032,16 @@ def get_galaxy_data_file(DorR, **cat_corr):
             if correction['name'].lower() in ('upweight'): # upweighted
                 file_name = ''.join([data_dir, 
                     'cmass-dr12v4-N-Reid.dat']) # hardcoded
+            elif correction['name'].lower() in ('peakshot'): 
+                
+                # correction string in file name 
+                corr_str = ''.join([
+                    '.', correction['fit'].lower(), '.', correction['name'].lower(), 
+                    '.sigma', str(correction['sigma']), '.fpeak', str(correction['fpeak'])])
+
+                file_name = ''.join([data_dir, 
+                    'cmass-dr12v4-N-Reid.dat', corr_str]) 
+
             else: 
                 raise NotImplementedError('not yet coded') 
     
@@ -1150,6 +1198,8 @@ def build_true(**cat_corr):
             orig_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-RST-standardHAM-veto.dat'])
         elif catalog['name'].lower() == 'bigmd2': 
             orig_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-RST-quadru-veto.dat'])
+        elif catalog['name'].lower() == 'bigmd3': 
+            orig_file = ''.join([data_dir, 'BigMD-cmass-dr12v4-RST-standHAM-Vpeak-veto.dat']) 
         else: 
             raise NotImplementedError('asdlfkjadf') 
 
@@ -1198,9 +1248,8 @@ def build_random(**cat_corr):
         random_file = get_galaxy_data_file('random', **cat_corr) 
         np.savetxt(random_file, 
                 np.c_[
-                    (cmass.ra)[zlimit], (cmass.dec)[zlimit], (cmass.z)[zlimit], 
-                    (cmass.nz)[zlimit], comp], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e', '%10.5f'], delimiter='\t') 
+                    (cmass.ra)[zlimit], (cmass.dec)[zlimit], (cmass.z)[zlimit], comp], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
     elif catalog['name'].lower() == 'qpm':            # QPM ------------------------------
         # read original random catalog  
@@ -1261,6 +1310,10 @@ def build_random(**cat_corr):
             orig_rand_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-RST-standardHAM-veto.ran']) 
         elif catalog['name'].lower() == 'bigmd2': 
             orig_rand_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-RST-quadru-veto.ran']) 
+        elif catalog['name'].lower() == 'bigmd3': 
+            orig_rand_file = ''.join([data_dir, 'BigMD-cmass-dr12v4-RST-standHAM-Vpeak-veto.ran'])
+        else: 
+            raise NameError('catalo does not exist') 
 
         # RA, Decl, Redhsift, veto  
         ra, dec, z, wfkp, veto = np.loadtxt(orig_rand_file, unpack=True, usecols=[0,1,2,3,4]) 
@@ -1390,12 +1443,11 @@ def build_fibercollided(**cat_corr):
                 np.c_[
                     (data.ra)[zlimit], (data.dec)[zlimit], (data.z)[zlimit], 
                     (data.weight_systot)[zlimit], (data.weight_noz)[zlimit], 
-                    (data.weight_cp)[zlimit], 
-                    (data.nz)[zlimit], (data.comp)[zlimit]
+                    (data.weight_cp)[zlimit], (data.comp)[zlimit]
                     ], 
                 fmt=['%10.5f', '%10.5f', '%10.5f', 
-                    '%10.5f', '%10.5f', '%10.5f', 
-                    '%.5e', '%10.5f'], delimiter='\t') 
+                    '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
+                delimiter='\t') 
 
         fibcollided_cmd = ''
 
@@ -1514,6 +1566,10 @@ def build_fibercollided(**cat_corr):
             orig_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-RST-standardHAM-veto.dat']) 
         elif catalog['name'].lower() == 'bigmd2': 
             orig_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-RST-quadru-veto.dat']) 
+        elif catalog['name'].lower() == 'bigmd3': 
+            orig_file = ''.join([data_dir, 'BigMD-cmass-dr12v4-RST-standHAM-Vpeak-veto.dat']) 
+        else: 
+            raise NameError('catalog does not exit') 
 
         # RA, Decl, Redhsift, veto  
         ra, dec, z, wfkp, veto, wfc = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,3,4,5]) 
@@ -1973,7 +2029,7 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
     else: 
         raise NameError('correction fit has to be specified as gauss or expon') 
 
-    if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz'):    # LasDamasGeo 
+    if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz'):     # LasDamasGeo 
         n_mocks = 160   # total number of mocks
         survey_zmin, survey_zmax = 0.16, 0.44
 
@@ -1983,6 +2039,11 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
             n_mocks = 100
         elif catalog['name'].lower() == 'nseries': 
             n_mocks = 1 
+    
+    elif catalog['name'].lower() in ('cmass', 'bigmd'):             # CMASS, BigMD
+        survey_zmin, survey_zmax = 0.43, 0.7    # survey redshift limits
+        n_mocks = 1 
+
     else: 
         raise NotImplementedError('Mock Catalog not included')
 
@@ -2009,7 +2070,7 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
         true_cat_corr = {'catalog':catalog, 'correction': {'name': 'true'}}
         true_data = galaxy_data('data', **true_cat_corr)
         
-        if catalog['name'].lower() in ('qpm',  'patchy', 'nseries'): 
+        if catalog['name'].lower() in ('qpm',  'patchy', 'nseries', 'cmass'): 
             true_weight = true_data.wfc
         else: 
             true_weight = true_data.weight
@@ -2030,6 +2091,10 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
 
     if catalog['name'].lower() in ('qpm', 'nseries'): 
         appended_comp = []   # save comp
+    elif catalog['name'].lower() in ('cmass'): 
+        appended_comp = [] 
+        appended_wsys = [] 
+        appended_wnoz = [] 
             
     if doublecheck:     # check that the peak p(r) is generated properly
         dlos_values = [] 
@@ -2045,13 +2110,15 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
                 
             rand_num = np.random.random(1) 
             if rand_num <= f_peak:          # if in the peak 
-
-                # keep ra and dec
-                appended_ra.append(fibcoll_mock.ra[i_mock])
+                appended_ra.append(fibcoll_mock.ra[i_mock])     # keep ra and dec
                 appended_dec.append(fibcoll_mock.dec[i_mock])
 
                 if catalog['name'].lower() in ('qpm', 'nseries'):  
                     appended_comp.append(fibcoll_mock.comp[i_mock]) 
+                elif catalog['name'].lower() in ('cmass'): 
+                    appended_comp.append(fibcoll_mock.comp[i_mock]) 
+                    appended_wsys.append(fibcoll_mock.wsys[i_mock]) 
+                    appended_wnoz.append(1.0) 
 
                 if correction['name'].lower() in ('allpeak', 'allpeakshot'): 
                     # appended galaxy has weight of peak fraction 
@@ -2074,8 +2141,8 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
 
                         rand2 = (-3.0+rand2*6.0)*correction['sigma']
                         peakpofr = fit_func(rand2, correction['sigma']) 
-                    #--------------------------------------------------------------------- 
 
+                    #--------------------------------------------------------------------- 
                 elif correction['fit'].lower() == 'true': 
                     # compute the displacement within peak using actual distribution   
                     dlos_comb_peak_file = ''.join([
@@ -2113,8 +2180,7 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
                 if doublecheck: 
                     dlos_values.append(rand2) 
 
-            else:                           # if not in the peak ------------------------------------
-
+            else:                           # if not in the peak ----------------------------
                 if correction['name'] in ('peak', 'peaknbar'): 
                     '''
                     generate random z based on redshift distribution of galaxies 
@@ -2153,6 +2219,10 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
         
     if catalog['name'].lower() in ('qpm', 'nseries'): 
         fibcoll_mock.comp = np.concatenate([fibcoll_mock.comp, appended_comp])
+    elif catalog['name'].lower() in ('cmass'):
+        fibcoll_mock.comp = np.concatenate([fibcoll_mock.comp, appended_comp])
+        fibcoll_mock.wsys = np.concatenate([fibcoll_mock.wsys, appended_wsys])
+        fibcoll_mock.wnoz = np.concatenate([fibcoll_mock.wnoz, appended_wnoz])
 
     fibcoll_mock.z = np.concatenate([fibcoll_mock.z, appended_z])
 
@@ -2160,8 +2230,19 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
     
     if catalog['name'].lower() in ('qpm', 'nseries'): 
         np.savetxt(peakcorr_file, 
-                np.c_[fibcoll_mock.ra, fibcoll_mock.dec, fibcoll_mock.z, fibcoll_mock.weight, fibcoll_mock.comp], 
+                np.c_[
+                    fibcoll_mock.ra, fibcoll_mock.dec, fibcoll_mock.z, 
+                    fibcoll_mock.weight, fibcoll_mock.comp], 
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
+                delimiter='\t') 
+
+    elif catalog['name'].lower() in ('cmass'):          # CAMSS
+        np.savetxt(peakcorr_file, 
+                np.c_[
+                    fibcoll_mock.ra, fibcoll_mock.dec, fibcoll_mock.z, 
+                    fibcoll_mock.wsys, fibcoll_mock.wnoz, fibcoll_mock.weight, 
+                    fibcoll_mock.comp], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
                 delimiter='\t') 
 
     elif catalog['name'].lower() in ('tilingmock', 'lasdamasgeo', 'ldgdownnz'): 

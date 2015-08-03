@@ -4,7 +4,7 @@
       real n_bar,wstar,wnoz,wfc,wcomp
       integer*8 planf
       real pi,cspeed,Om0,OL0,redtru,m1,m2,zlo,zhi,garb1,garb2,garb3,veto
-      parameter(Nsel=201,Nmax=2*10**8,Ngrid=360,Nbin=151,pi=3.141592654)
+      parameter(Nsel=201,Nmax=2*10**8,Ngrid=960,Nbin=151,pi=3.141592654)
       parameter(Om0=0.31,OL0=0.69)  ! hardcoded to fiducial cosmology 
       integer grid
       dimension grid(3)

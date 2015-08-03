@@ -179,6 +179,9 @@ class dlos:
             elif catalog['name'].lower() == 'bigmd2': 
                 file_name = ''.join([file_dir, 
                     'DLOS_bigMD-cmass-dr12v4-RST-quadru_vetoed.fibcoll.dat']) 
+            elif catalog['name'].lower() == 'bigmd3': 
+                file_name = ''.join([file_dir, 
+                    'DLOS_BigMD-cmass-dr12v4-RST-standHAM-Vpeak_vetoed.fibcoll.dat'])
             else: 
                 NotImplementedError('lkasdfkjadsf')
             
@@ -201,7 +204,7 @@ class dlos:
                 self.neigh_z = readin_data[6]
 
         elif catalog['name'].lower() == 'cmass':            # CMASS -------------------------
-            file_dir = '/mount/riachuelo1/hahn/data/'        # directory
+            file_dir = '/mount/riachuelo1/hahn/data/CMASS/'        # directory
             # File name 
             file_name = ''.join([file_dir, 'DLOS_cmass-dr12v4-N-Reid-weights-zlim.dat']) 
             self.file_name = file_name 
@@ -212,10 +215,18 @@ class dlos:
                     # if file does not exist then
                     build_dlos(**cat_corr) 
 
-                readin_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2]) 
+                readin_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4,5,6]) 
                 self.dlos = readin_data[0]
-                self.targ_z = readin_data[1]
-                self.neigh_z = readin_data[2]
+                self.targ_ra = readin_data[1]
+                self.targ_dec = readin_data[2]
+                self.targ_z = readin_data[3]
+                self.neigh_ra = readin_data[4] 
+                self.neigh_dec = readin_data[5] 
+                self.neigh_z = readin_data[6]
+                #readin_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2]) 
+                #self.dlos = readin_data[0]
+                #self.targ_z = readin_data[1]
+                #self.neigh_z = readin_data[2]
 
         else: 
             raise NameError('not coded yet') 
@@ -786,8 +797,7 @@ def combined_dlos_fit(n_mocks, fit='gauss', sanitycheck=False, clobber=False, **
     correction = cat_corr['correction']
    
     # Read dLOS data 
-    if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz'):
-        # LasDamasGeo ------------------------------------------------
+    if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz'): # LasDamasGeo ----------------
         for i_mock in range(1, n_mocks+1): 
             for letter in ['a', 'b', 'c', 'd']: 
                 # individual catalog_correction dictonary 
@@ -814,15 +824,15 @@ def combined_dlos_fit(n_mocks, fit='gauss', sanitycheck=False, clobber=False, **
         n_mocks = 1
 
     elif 'bigmd' in catalog['name'].lower():        # BigMD --------------------------------
-
         # import DLOS values for mock 
         los_disp = dlos(**cat_corr)
 
         combined_dlos = los_disp.dlos
+        #rand_sub = np.random.randint(len(los_disp.dlos), size=2500)
+        #combined_dlos = (los_disp.dlos)[rand_sub]
         n_mocks = 1
 
-    elif catalog['name'].lower() in ('qpm', 'patchy', 'nseries'):
-        # QPM and PATCHY ------------------------------------------------------------
+    elif catalog['name'].lower() in ('qpm', 'patchy', 'nseries'):   # QPM and PATCHY 
         for i_mock in range(1, n_mocks+1): 
             # individual catalog_correction dictonary 
             i_catalog = catalog.copy() 
@@ -839,6 +849,12 @@ def combined_dlos_fit(n_mocks, fit='gauss', sanitycheck=False, clobber=False, **
             else: 
                 combined_dlos = np.concatenate([combined_dlos, los_disp_i.dlos]) 
     
+    elif catalog['name'].lower() == 'cmass':        # CMASS ---------------------------------
+        # import DLOS values for mock 
+        los_disp = dlos(**cat_corr)
+
+        combined_dlos = los_disp.dlos
+        n_mocks = 1
     else: 
         raise NameError("not yet coded") 
 
@@ -864,7 +880,7 @@ def combined_dlos_fit(n_mocks, fit='gauss', sanitycheck=False, clobber=False, **
     
     binsize = 2.0*iqr*(2.0*n_sample)**(-1.0/3.0)        # appropriate bin size 
     print 'Freedman-Diaconis binsize = ', binsize
-    #----------------------------------------------------------------------------------------------
+    #-------------------------------------------------------------------------------------
     # recompute histogram using freedman-diaconis binsize 
     n_bins = int((x_max-x_min)/binsize) 
 
@@ -873,7 +889,7 @@ def combined_dlos_fit(n_mocks, fit='gauss', sanitycheck=False, clobber=False, **
     xhigh = mpc_binedges[1:] 
     xmid = np.array([0.5*(xlow[i]+xhigh[i]) for i in range(len(xlow))])
 
-    # fitting ---------------------------------------------------------------------------------------
+    # fitting ------------------------------------------------------------------------------
     #if fit.lower() == 'gauss': 
     #elif fit.lower() == 'expon': 
     #    peak_xrange = (xmid > -25.0) & (xmid < 25.0) 
@@ -902,8 +918,8 @@ def combined_dlos_fit(n_mocks, fit='gauss', sanitycheck=False, clobber=False, **
     
     #--------------------------------------------------------------------------------------------------------------------
     # compute fpeak 
-    fpeak_xmin = -5.0*sigma
-    fpeak_xmax = 5.0*sigma
+    fpeak_xmin = -3.0*sigma
+    fpeak_xmax = 3.0*sigma
     xrange = (xmid >= fpeak_xmin) & (xmid < fpeak_xmax) 
     #fpeak = (np.sum(peak(xmid[xrange], popt[0])))/np.float(np.sum(dlos_hist)) 
     if fit.lower() == 'expon': 
@@ -918,9 +934,163 @@ def combined_dlos_fit(n_mocks, fit='gauss', sanitycheck=False, clobber=False, **
     print 'fpeak from fitting = ', fpeak
     print 'fpeak from distrib = ', fpeak_dist 
     
-    fpeak_dist = np.float(len(combined_dlos[(combined_dlos > -30.0) & (combined_dlos < 30.0)]))/np.float(len(combined_dlos))  # computed from the distribution
+    #fpeak_dist = np.float(len(combined_dlos[(combined_dlos > -30.0) & (combined_dlos < 30.0)]))/np.float(len(combined_dlos))  # computed from the distribution
 
+    #print 'fpeak from distrib = ', fpeak_dist 
+
+    if sanitycheck == True:             # plot the distributions and fits for santicy check 
+        prettyplot() 
+        pretty_colors = prettycolors() 
+        fig = plt.figure(1, figsize=[14,5]) 
+        sub = fig.add_subplot(111) 
+
+        # fitting labels 
+        if fit.lower() == 'expon': 
+            fit_label = "Exponential "+r"$(\sigma = "+str(peak_pars.params[1])+", A="+str(peak_pars.params[0])+")$"
+        else: 
+            fit_label = "Gaussian "+r"$(\sigma = "+str(peak_pars.params[1])+", A="+str(peak_pars.params[0])+")$"
+    
+        #guess_scale = binsize/0.1
+        #sub.plot(guess_xmid, guess_scale*guess_dlos_hist, lw=2, color=pretty_colors[-1], label=r"$d_{LOS}$ binsize $=0.1$") 
+
+        sub.plot(xmid, dlos_hist, lw=4, color=pretty_colors[0], label=r"$d_{LOS}$ binsize $="+str(binsize)+"$")         # plot DLOS distribution
+
+        # plot best fit 
+        if fit.lower() == 'expon': 
+            sub.plot(xmid, peak_expon(xmid, peak_pars.params), lw=4, color=pretty_colors[2], label=fit_label)
+        elif fit.lower() == 'gauss': 
+            sub.plot(xmid, peak_gauss(xmid, peak_pars.params), lw=4, color=pretty_colors[2], label=fit_label)
+        else: 
+            raise NameError("Fit not yet coded") 
+
+        # indicate the fpeak range (for sanity check purposes)
+        sub.vlines(fpeak_xmin, 0.0, 10.0*np.max(dlos_hist), color='k', lw=4)
+        sub.vlines(fpeak_xmax, 0.0, 10.0*np.max(dlos_hist), color='k', lw=4)
+
+        sub.text(-1.0*sigma, 0.25*np.max(dlos_hist), r"$f_{peak} = "+str(fpeak)+"$") 
+        sub.text(-1.0*sigma, 0.2*np.max(dlos_hist), r"$f_{peak,dist} = "+str(fpeak_dist)+"$") 
+        sub.set_xlabel(r"$d_{LOS}$ (Mpc/h)", fontsize=20) 
+        sub.set_xlim([-50.0, 50.0])
+        #sub.set_xlim([-5.0, 5.0])
+        sub.set_ylim([0.0, 1.25*np.max(dlos_hist)])
+        sub.legend(loc='upper right', scatterpoints=1, prop={'size':14}) 
+    
+        if correction['name'].lower() == 'bigfc': 
+            bigfc_flag = '_bigfc'
+        else: 
+            bigfc_flag = ''
+
+        fig_dir = 'figure/'
+        fig_file = ''.join([fig_dir, 
+            catalog['name'].lower(), '_', str(n_mocks), 
+            'mocks_combined_dlos_peakfit_', fit.lower(), bigfc_flag, '.png'])
+        fig.savefig(fig_file, bbox_inches="tight")
+        fig.clear() 
+
+    return [sigma, fpeak]
+
+def cmass_dlos_fit_jackknife(**kwargs):
+    ''' Fits CMASS dLOS distribution to specified function type 
+    using Freedman-Diaconis binsizes and MPfit
+
+    Parameters
+    ----------
+    kwargs : 
+    
+    Returns 
+    ------- 
+    '''
+    cat_corr = { 'catalog': {'name': 'cmass'}, 'correction': {'name': 'upweight'}} 
+   
+    # Read dLOS data 
+    # import DLOS values for mock 
+    los_disp = dlos(**cat_corr)
+    n_dlos = len(los_disp.dlos)
+
+    for i in range(10): 
+        int(n_dlos/10)
+        rand_sub = np.random.randint(len(los_disp.dlos), size=2500)
+        combined_dlos = (los_disp.dlos)[rand_sub]
+
+    # Determine appropriate binsize for dist (not too important)
+    # Create histogram for combined dLOS values  (binsize is just guessed)
+    x_min = -1000.0
+    x_max = 1000.0
+    binsize = 0.1 
+    n_bins = int((x_max-x_min)/binsize) 
+    
+    guess_dlos_hist, mpc_binedges = np.histogram(combined_dlos, bins=n_bins, range=[x_min, x_max])
+    guess_xlow = mpc_binedges[:-1]
+    guess_xhigh = mpc_binedges[1:] 
+    guess_xmid = np.array([0.5*(guess_xlow[i]+guess_xhigh[i]) for i in range(len(guess_xlow))])
+    
+    # determine appropriate bin size using Freedman-Diaconis Rule 
+    peak_range = (guess_xmid >= 0.0) & (guess_xmid < 15.0) 
+    dlos_cumu = (guess_dlos_hist[peak_range]).cumsum() 
+    n_sample = dlos_cumu[-1]
+
+    iqr_index = fc_util.find_nearest(dlos_cumu, np.int(np.floor(n_sample/2.0)), index=True)
+    iqr = 2.0*(guess_xmid[peak_range])[iqr_index]         #interquartile range 
+    
+    binsize = 2.0*iqr*(2.0*n_sample)**(-1.0/3.0)        # appropriate bin size 
+    print 'Freedman-Diaconis binsize = ', binsize
+    #-------------------------------------------------------------------------------------
+    # recompute histogram using freedman-diaconis binsize 
+    n_bins = int((x_max-x_min)/binsize) 
+
+    dlos_hist, mpc_binedges = np.histogram(combined_dlos, bins=n_bins, range=[x_min, x_max])
+    xlow = mpc_binedges[:-1]
+    xhigh = mpc_binedges[1:] 
+    xmid = np.array([0.5*(xlow[i]+xhigh[i]) for i in range(len(xlow))])
+
+    # fitting ------------------------------------------------------------------------------
+    #if fit.lower() == 'gauss': 
+    #elif fit.lower() == 'expon': 
+    #    peak_xrange = (xmid > -25.0) & (xmid < 25.0) 
+    #else: 
+    #    raise NameError('Error')
+    peak_xrange = (xmid > -25.0) & (xmid < 25.0)            # rough peak range 
+
+    # amplitude of dLOS distribution 
+    dlos_amp = np.mean(dlos_hist[(xmid >= -1.0) & (xmid < 1.0)])
+    #print 'Amplitude = ', dlos_amp, np.max(dlos_hist)
+  
+    # MPFIT ------------------------------------------------------------------------------------
+    p0 = [dlos_amp, 5.0]            # initial guess
+
+    fa = {'x': xmid[peak_xrange], 'y': dlos_hist[peak_xrange]}
+    if fit.lower() == 'expon': 
+        peak_pars = mpfit.mpfit(mpfit_peak_expon, p0, functkw=fa, nprint=0)
+    elif fit.lower() == 'gauss': 
+        peak_pars = mpfit.mpfit(mpfit_peak_gauss, p0, functkw=fa, nprint=0)
+    else: 
+        raise NameError("Fit not yet coded") 
+    
+    bestfit_amp = peak_pars.params[0]
+    sigma = peak_pars.params[1]
+    print fit.lower(), ' Best FIt Sigma = ', sigma
+    
+    #--------------------------------------------------------------------------------------------------------------------
+    # compute fpeak 
+    fpeak_xmin = -3.0*sigma
+    fpeak_xmax = 3.0*sigma
+    xrange = (xmid >= fpeak_xmin) & (xmid < fpeak_xmax) 
+    #fpeak = (np.sum(peak(xmid[xrange], popt[0])))/np.float(np.sum(dlos_hist)) 
+    if fit.lower() == 'expon': 
+        fpeak = (np.sum(peak_expon(xmid[xrange], peak_pars.params)))/np.float(np.sum(dlos_hist)) 
+    elif fit.lower() == 'gauss': 
+        fpeak = (np.sum(peak_gauss(xmid[xrange], peak_pars.params)))/np.float(np.sum(dlos_hist)) 
+    else: 
+        raise NameError("Fit not yet coded") 
+    
+    fpeak_dist = np.float(len(combined_dlos[(combined_dlos > fpeak_xmin) & (combined_dlos < fpeak_xmax)]))/np.float(len(combined_dlos))  # computed from the distribution
+
+    print 'fpeak from fitting = ', fpeak
     print 'fpeak from distrib = ', fpeak_dist 
+    
+    #fpeak_dist = np.float(len(combined_dlos[(combined_dlos > -30.0) & (combined_dlos < 30.0)]))/np.float(len(combined_dlos))  # computed from the distribution
+
+    #print 'fpeak from distrib = ', fpeak_dist 
 
     if sanitycheck == True:             # plot the distributions and fits for santicy check 
         prettyplot() 
@@ -1835,6 +2005,11 @@ def plot_fcpaper_dlos(cat_corrs):
             elif catalog['name'].lower() == 'bigmd2': 
                 cat_label = 'Big MultiDark RST Quadru'
                 cat_color = pretty_colors[13]
+            elif catalog['name'].lower() == 'bigmd3': 
+                cat_label = 'Big MultiDark RST StandardHAM Vpeak'
+                cat_color = pretty_colors[14]
+            else: 
+                raise NameError('asdlkfjasdf') 
         else: 
             raise NameError('asdf') 
 
@@ -1902,50 +2077,33 @@ def combined_catalog_dlos_fits(catalog, n_mock):
         cat_corr = {'catalog': {'name':catalog}, 'correction': {'name': 'upweight'}}
         print 'Gauss ', combined_dlos_fit(1, fit='gauss', sanitycheck=True, 
                 clobber=True, **cat_corr) 
+    
+    elif 'cmass' in catalog: 
+        print 'CMASS -------------------------------------------------------'
+        cat_corr = {'catalog': {'name':catalog}, 'correction': {'name': 'upweight'}}
+        print 'Gauss ', combined_dlos_fit(1, fit='gauss', sanitycheck=True, 
+                clobber=True, **cat_corr) 
 
     else: 
         raise NameError('asdfasdfasdf')  
 
 if __name__=="__main__": 
     cat_corr = {
-            'catalog': {'name': 'bigmd1'}, 
+            'catalog': {'name': 'cmass'}, 
             'correction': {'name': 'upweight'}} 
-    #Dlos = dlos(readdata=True, clobber=True, **cat_corr)
+    #fc_data.galaxy_data('data', clobber=True, **cat_corr) 
+    #build_dlos(**cat_corr)
+
     #combined_dlos_dist(1, **cat_corr)
     #combined_catalog_dlos_fits('lasdamasgeo', 10)
     #combined_catalog_dlos_fits('ldgdownnz', 10)
-    '''
-    for i in np.arange(1, 11): 
-        for letter in ['a', 'b', 'c', 'd']: 
-            cat_corr = {'catalog': {'name': 'ldgdownnz', 'n_mock': i, 'letter': letter}, 
-                    'correction': {'name': 'upweight'}} 
-            Dlos = dlos(readdata=True, clobber=True, **cat_corr)
-    '''
-            #build_dlos_ldg_test(**cat_corr)
-    #        fc_data.galaxy_data('data', clobber=True, **cat_corr) 
-    #        build_dlos(**cat_corr) 
-    #for i in np.arange(1,2): 
-    #    cat_corr = {'catalog': {'name': 'nseries', 'n_mock': i}, 'correction': {'name': 'upweight'}} 
-    #    build_dlos(**cat_corr) 
-    #combined_catalog_dlos_fits('bigmd1', 1)
-    #combined_catalog_dlos_fits('bigmd2', 1)
-    #combined_catalog_dlos_fits('lasdamasgeo', 5)
-    #nseries_idl_python_dlos_test(1)
-    #ldg_idl_python_dlos_test(10)
-    '''
+    combined_catalog_dlos_fits('cmass', 1)
+    #combined_catalog_dlos_fits('bigmd3', 1)
     cat_corrs = [
             {'catalog': {'name': 'cmass'}, 'correction': {'name': 'upweight'}}, 
-            {'catalog': {'name': 'patchy'}, 'correction': {'name': 'upweight'}}, 
-            {'catalog': {'name': 'qpm'}, 'correction': {'name': 'upweight'}}, 
-            {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}},
-            {'catalog': {'name': 'bigmd1'}, 'correction': {'name': 'upweight'}}, 
-            {'catalog': {'name': 'bigmd2'}, 'correction': {'name': 'upweight'}}
+            {'catalog': {'name': 'bigmd3'}, 'correction': {'name': 'upweight'}}
             ]
-    '''
-    cat_corrs = [
-            {'catalog': {'name': 'cmass'}, 'correction': {'name': 'upweight'}}, 
-            {'catalog': {'name': 'lasdamasgeo'}, 'correction': {'name': 'upweight'}}, 
-            {'catalog': {'name': 'qpm'}, 'correction': {'name': 'upweight'}},
-            {'catalog': {'name': 'tilingmock'}, 'correction': {'name': 'upweight'}},
-            ]
-    plot_fcpaper_dlos(cat_corrs)
+    #{'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}},
+    #{'catalog': {'name': 'bigmd1'}, 'correction': {'name': 'upweight'}}, 
+    #{'catalog': {'name': 'bigmd2'}, 'correction': {'name': 'upweight'}}, 
+    #plot_fcpaper_dlos(cat_corrs)
