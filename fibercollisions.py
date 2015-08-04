@@ -878,8 +878,8 @@ def build_pk(catalog, n_mocks, quad=False, clobber=True, **kwargs):
                 {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.68, 'fit': 'gauss'}
                 ]
     elif catalog == 'cmass': 
-        corrections = [{'name': 'upweight'}, 
-                {'name': 'peakshot', 'sigma': 6.9, 'fpeak': 0.7, 'fit': 'gauss'}]
+        corrections = [{'name': 'upweight'}] 
+        #        {'name': 'peakshot', 'sigma': 6.9, 'fpeak': 0.7, 'fit': 'gauss'}]
 
     elif 'bigmd' in catalog: 
         corrections = [{'name': 'true'}, {'name': 'upweight'}] 
@@ -947,11 +947,11 @@ if __name__=='__main__':
         build_pk(bmd, 1, grid=960, quad=False) 
     '''
     #build_pk('bigmd3', 1, grid=360, quad=False) 
-    build_pk('bigmd3', 1, grid=960, quad=False) 
+    #build_pk('bigmd3', 1, grid=960, quad=False) 
     #build_pk('ldgdownnz', 10, clobber=True, quad=False) 
     #build_pk('lasdamasgeo', 10, clobber=False, grid=360, quad=False) 
     #build_pk('patchy', 10, clobber=False, grid=960, quad=False) 
     #build_pk('cmass', 1, cosmology='fiducial', grid=360, quad=False)
-    #build_pk('cmass', 1, cosmology='fiducial', grid=960, quad=False)
+    build_pk('cmass', 1, cosmology='fiducial', grid=960, quad=False)
     #build_pk('tilingmock', 1, grid=360, quad=True)
     #build_pk('nseries', 20, grid=960, quad=False)

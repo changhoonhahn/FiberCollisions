@@ -1911,7 +1911,7 @@ def plot_dlos_tail(**cat_corr):
     sub.set_ylim([0.0, 0.2])
     plt.show() 
 
-def plot_fcpaper_dlos(cat_corrs): 
+def plot_fcpaper_dlos(cat_corrs, **kwargs): 
     '''
     dLOS distribution of mocks for fc paper 
     Takes in multiple different files 
@@ -1985,8 +1985,9 @@ def plot_fcpaper_dlos(cat_corrs):
         elif catalog['name'].lower() == 'nseries': 
             cat_label = 'N Series' 
             cat_color = pretty_colors[9]
+            lwid=2
         elif catalog['name'].lower() == 'patchy': 
-            cat_label = 'patchy' 
+            cat_label = 'PATCHY v6c' 
             cat_color = pretty_colors[7]
         elif catalog['name'].lower() == 'tilingmock': 
             cat_label = 'Tiling Mock' 
@@ -2097,13 +2098,15 @@ if __name__=="__main__":
     #combined_dlos_dist(1, **cat_corr)
     #combined_catalog_dlos_fits('lasdamasgeo', 10)
     #combined_catalog_dlos_fits('ldgdownnz', 10)
-    combined_catalog_dlos_fits('cmass', 1)
+    #combined_catalog_dlos_fits('cmass', 1)
     #combined_catalog_dlos_fits('bigmd3', 1)
     cat_corrs = [
             {'catalog': {'name': 'cmass'}, 'correction': {'name': 'upweight'}}, 
-            {'catalog': {'name': 'bigmd3'}, 'correction': {'name': 'upweight'}}
+            {'catalog': {'name': 'Nseries'}, 'correction': {'name': 'upweight'}}, 
+            {'catalog': {'name': 'bigmd3'}, 'correction': {'name': 'upweight'}}, 
+            {'catalog': {'name': 'patchy'}, 'correction': {'name': 'upweight'}}
             ]
     #{'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}},
     #{'catalog': {'name': 'bigmd1'}, 'correction': {'name': 'upweight'}}, 
     #{'catalog': {'name': 'bigmd2'}, 'correction': {'name': 'upweight'}}, 
-    #plot_fcpaper_dlos(cat_corrs)
+    plot_fcpaper_dlos(cat_corrs)
