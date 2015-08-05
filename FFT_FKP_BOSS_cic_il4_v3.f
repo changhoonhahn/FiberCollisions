@@ -5,7 +5,7 @@
       integer Nsel,Nran,i,iwr,Ngal,Nmax,n,kx,ky,kz,Lm,Ngrid,ix,iy,iz,j,k
       integer Ng,Nr,iflag,ic,Nbin, l,interpol,Nariel,idata, Nsel2, iveto
       integer*8 planf,plan_real
-      real pi,cspeed,wfc,wrf,xmin,xmax,ymin,ymax,zmin,zmax,nbar2
+      real pi,cspeed,wrf,xmin,xmax,ymin,ymax,zmin,zmax,nbar2
       parameter(Nsel=181,Nmax=3*10**8,Nbin=201,Nsel2=10)
       parameter(pi=3.141592654)
       integer grid, ifc, icomp
@@ -13,7 +13,7 @@
       parameter(cspeed=299800.0)
       integer, allocatable :: ig(:),ir(:)      
       real zbin(Nbin),dbin(Nbin),sec3(Nbin),zt,dum,gfrac,az2
-      real cz,Om0,OL0,chi,nbar,Rbox,x0,y0,z0,wnoz,wcp
+      real cz,Om0,OL0,chi,nbar,Rbox,x0,y0,z0,wcp
       real, allocatable :: nbg(:),nbr(:),rg(:,:),rr(:,:)
       real, allocatable :: wg(:),wr(:),ws(:)
       real*8, allocatable :: compg(:),compr(:)
@@ -21,6 +21,7 @@
       real w, nbb, xcm, ycm, zcm, rcm, bias, wboss, veto
       real thetaobs,phiobs, selfun2(Nsel2),z2(Nsel2),sec2(Nsel2)
       real alpha,P0,nb,weight,ar,akf,Fr,Fi,Gr,Gi,wsys,wred,comp,wfkp
+      real wstar,wnoz,wfc,wcomp
       real*8 I10,I12,I22,I13,I23,I33,I12F
       real*8 compavg,Nrsys,Nrsyscomp,Ngsys,Ngsyscomp,Ngsystot,Nrsystot
       real rsq,xr,yr,zr,xg,yg,zg
@@ -84,6 +85,8 @@ c      read(Omstr,*)Om0
          Om0=0.25 
       elseif (idata.eq.12) then ! bigMD
          Om0=0.31! fiducial cosmology 
+      elseif (idata.eq.13) then ! CMASS fiducial  
+         Om0=0.31! fiducial cosmology 
       else
          write(*,*)'specify which dataset you want!'
          stop
@@ -118,6 +121,10 @@ c      read(Omstr,*)Om0
       elseif (idata.eq.11) then 
          selfunfile='/mount/riachuelo1/hahn/data/LasDamas/Geo'//
      $    '/nbar-lasdamasgeo.down_nz.dat'
+      elseif (idata.eq.13) then 
+         ! CMASS with fidicuial cosmology
+         selfunfile='/mount/riachuelo1/hahn/data/CMASS'//
+     $    '/nbar-cmass-dr12v4-N-Reid-om0p31_Pfkp10000.dat'
       else !just to have z(Nsel)            
          dir='/mount/riachuelo2/rs123/BOSS/QPM/cmass/'
          ! directy has been changed in order to remove header
@@ -152,6 +159,14 @@ c      read(Omstr,*)Om0
          call spline(z,selfun,Nsel,3e30,3e30,sec)
       elseif (idata.eq.10 .or. idata.eq.11 .or. idata.eq.12) then 
          ! Nseries fiducial cosmology or Downsampled LasDamas Geo
+         open(unit=4,file=selfunfile,status='old',form='formatted')
+         do i=1,Nsel
+            read(4,*)z(i),dum,dum,selfun(i)
+         enddo   
+         close(4)
+         call spline(z,selfun,Nsel,3e30,3e30,sec)
+      elseif (idata.eq.13) then 
+         ! CMASS fiducial cosmology
          open(unit=4,file=selfunfile,status='old',form='formatted')
          do i=1,Nsel
             read(4,*)z(i),dum,dum,selfun(i)
@@ -210,7 +225,6 @@ c      read(*,*)interpol
       rm(1)=float(Lm)/xscale
       rm(2)=1.-rlow*rm(1)
 
-      
 c      write(*,*)'mock (0) or random mock(1)?'
 c      read(*,*)iflag
       call getarg(5,iflagstr) 
@@ -282,6 +296,13 @@ c         fname='/mount/chichipio2/hahn/data/'//lssfile
                read(4,*,end=13)ra,dec,az,nbb,wred
                wsys=1.
                comp=1.
+               nbg(i)=nbb*comp
+            elseif (idata.eq.13) then ! CMASS fiducial 
+               read(4,*,end=13)ra,dec,az,wstar,wnoz,wfc,wcomp
+               wsys=wstar
+               comp=wcomp
+               wred=wnoz+wfc-1.
+               nbb=nbar(az)
                nbg(i)=nbb*comp
             elseif (idata.eq.3 .or. idata.eq.4 .or. idata.eq.10) then ! QPM and Nseries
  33            read(4,*,end=13)ra,dec,az,dum,wred,comp
@@ -592,6 +613,13 @@ c               read(4,*,end=15)ra,dec,az,nbb
                wsys=1.
                wred=1.
                comp=1.
+               nbr(i)=nbb*comp ! number density as given in randoms (comp weighted)
+            elseif (idata.eq.13) then ! CMASS fiducial
+               read(4,*,end=15)ra,dec,az,wcomp
+               wsys=1.
+               wred=1.
+               comp=wcomp
+               nbb=nbar(az)
                nbr(i)=nbb*comp ! number density as given in randoms (comp weighted)
             elseif (idata.eq.3 .or. idata.eq.4 .or. idata.eq.10) then !QPM and Nseries
  17            read(4,*,end=15)ra,dec,az,dum,comp

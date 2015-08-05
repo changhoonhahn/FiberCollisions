@@ -144,6 +144,9 @@ def build_fibcol_fft(DorR, **cat_corr):
         elif 'bigmd' in catalog['name'].lower(): 
             idata = 12
             ifc = 0 
+        elif catalog['name'].lower() == 'cmass': 
+            idata = 13 
+            ifc = 0 
         else: 
             raise NameError('not included in Quadrupole code') 
             

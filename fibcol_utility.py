@@ -288,10 +288,13 @@ def fortran_code(fft_power, **cat_corr):
                     f_code = code_dir+'power-bigmd-fkp-w-nbar-360grid-180bin.f'
                 elif spec['grid'] == 960: 
                     f_code = code_dir+'power-bigmd-fkp-w-nbar-960grid-480bin.f'
+                elif spec['grid'] == 1920: 
+                    f_code = code_dir+'power-bigmd-fkp-w-nbar-1920grid-960bin.f'
                 else: 
                     raise NotImplementedError('asdfklj')
             else: 
                 raise NotImplementedError('asdfklj')
+
         # quadrupole codes --------------------------------------------
         elif fft_power.lower() == 'quadfft': 
             code_dir = '/home/users/hahn/powercode/FiberCollisions/' 
@@ -328,6 +331,11 @@ def fortran_code(fft_power, **cat_corr):
                 elif spec['grid'] == 960: 
                     f_code = ''.join([code_dir, 
                         'power-cmass-960grid-480bin.f'])
+                
+                elif spec['grid'] == 1920: 
+                    f_code = ''.join([code_dir, 
+                        'power-cmass-1920grid-960bin.f'])
+
                 else: 
                     raise NotImplementedError('asdfklj')
 
@@ -343,6 +351,15 @@ def fortran_code(fft_power, **cat_corr):
                         'power-cmass-Igal-960grid-480bin.f'])
             else: 
                 raise NotImplementedError('asdfklj')
+
+        # quadrupole codes --------------------------------------------
+        elif fft_power.lower() == 'quadfft': 
+            code_dir = '/home/users/hahn/powercode/FiberCollisions/' 
+            f_code = code_dir+'FFT_FKP_BOSS_cic_il4_v3.f' 
+
+        elif fft_power.lower() == 'quadpower': 
+            code_dir = '/home/users/hahn/powercode/FiberCollisions/' 
+            f_code = code_dir+'power_FKP_SDSS_BOSS_v3.f'
 
         else: 
             raise NameError("not Yet coded") 

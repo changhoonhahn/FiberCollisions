@@ -1214,18 +1214,14 @@ if __name__=="__main__":
 
     n_mock_list = 1 
     plot_pk_fibcol_comp( catcorr_methods, n_mock_list, \
-            quad=False, Ngrid=960, type='regular', 
+            quad=True, Ngrid=360, type='regular', 
             xrange=[0.01, 1.0], yrange=[10**2, 3*10**5])
     plot_pk_fibcol_comp(catcorr_methods, n_mock_list, 
-            quad=False, Ngrid=960, type='ratio', 
-            xrange=[0.01, 1.0], yrange=[0.5, 1.5])
-    
-    plot_pk_fibcol_comp( catcorr_methods, n_mock_list, \
-            quad=False, Ngrid=360, type='regular', 
-            xrange=[0.01, 1.0], yrange=[10**2, 3*10**5])
+            quad=True, Ngrid=360, type='ratio', 
+            xrange=[0.01, 1.0], yrange=[0.0, 2.0])
     plot_pk_fibcol_comp(catcorr_methods, n_mock_list, 
-            quad=False, Ngrid=360, type='ratio', 
-            xrange=[0.01, 1.0], yrange=[0.5, 1.5])
+            quad=True, Ngrid=360, type='kPk', 
+            xrange=[0.01, 1.0], yrange=[10**0, 3*10**3])
     
     catcorr_methods = [
             {'catalog': {'name': 'cmass', 'cosmology': 'fiducial'}, 
