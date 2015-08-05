@@ -2333,13 +2333,15 @@ def build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr):
         appended_wsys = [] 
         appended_wnoz = [] 
             
-    if doublecheck:     # check that the peak p(r) is generated properly
+    if doublecheck:     
+        # check that the peak p(r) is generated properly
         dlos_values = [] 
     
-    for i_mock in range(len(fibcoll_mock.weight)):  # go through every galaxy in fibercollided mock catalog
+    for i_mock in range(len(fibcoll_mock.weight)):  
+        # go through every galaxy in fibercollided mock catalog
 
-        while fibcoll_mock.weight[i_mock] > 1:      # for galaxies with wcp > 1
-
+        while fibcoll_mock.weight[i_mock] > 1:      
+            # for galaxies with wcp > 1
             fibcoll_mock.weight[i_mock] -= 1.0
 
             # LOS comoving distance of the galaxy 
@@ -2357,12 +2359,8 @@ def build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr):
                     appended_wsys.append(fibcoll_mock.wsys[i_mock]) 
                     appended_wnoz.append(1.0) 
 
-                if correction['name'].lower() in ('allpeak', 'allpeakshot'): 
-                    # appended galaxy has weight of peak fraction 
-                    appended_weight.append(correction['fpeak'])
-                else: 
-                    # appended galaxy has weight of 1.0 
-                    appended_weight.append(1.0)
+                # appended galaxy has fiber collision weight of 1.0 
+                appended_weight.append(1.0)
 
                 if correction['fit'].lower() in ('gauss', 'expon'):   
                     # compute the displacement within peak using best-fit --------------
