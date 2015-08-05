@@ -26,16 +26,84 @@ import pyspherematch as pysph
 from utility.fitstables import mrdfits
 import bovy_plot as bovy
 
-def assign_photoz(**cat_corr): 
-    ''' Assign photometric redshifts to fiber collided galaxies in mock catalog
+def build_fibcol_assign_photoz(qaplot=False, **cat_corr): 
+    ''' Assign photometric redshifts to fiber collided galaxies in mock catalog based on their
+    actual redshifts in order to reproduce Delta z / z relation
     
     Parameters
     ----------
     * cat_corr : catalog and correction dictionary for mock catalog 
 
+
+    Notes
+    -----
+    * Implemented for Nseries 
+    * Appends photo zs at the last column  
+
     '''
     catalog = cat_corr['catalog']
     correction = cat_corr['correction']
+
+    if correction['name'] != 'upweight': 
+        raise NameError("Correction method has to be upweight") 
+    if catalog['name'] == 'cmass': 
+        raise NameError("Only available for mock catalogs NOT CMASS") 
+    
+    # read data from the fiber collided mock catalog 
+    data = fc_data.galaxy_data('data', **cat_corr) 
+    redshift = data.z # galaxy redshifts
+
+    if 'weight' in data.columns: 
+        wfc = data.weight
+    else: 
+        wfc = data.wfc
+    fced = np.where(wfc == 0)   # fiber collided galaxies
+    #fced = [range(len(redshift))]
+    
+    # read delta z/(1+z) Gaussian values from table
+    photo_dir = '/mount/riachuelo1/hahn/photoz/'
+    output_name = ''.join([photo_dir, 
+        'cmass_photoz_error_gauss_table.dat']) 
+    Dz_zmid, Dz_zlow, Dz_zhigh, mean_Dz, sigma_Dz = np.loadtxt(output_name, 
+            skiprows=1, unpack=True, usecols=[0,1,2,3,4])
+    
+    photoz = np.array([-999. for i in range(len(redshift))])
+    for i_fc in fced[0]: 
+        closest_zbin = min(range(len(Dz_zmid)), key=lambda i: abs(Dz_zmid[i] - redshift[i_fc])) 
+        photoz[i_fc] = redshift[i_fc] - \
+                np.random.normal(mean_Dz[closest_zbin], sigma_Dz[closest_zbin]) * \
+                (1. + redshift[i_fc])
+    
+    deltaz_z = (redshift[fced] - photoz[fced]) / (1. + redshift[fced])
+    
+    if qaplot: 
+        prettyplot()                         # set up plot 
+        pretty_colors = prettycolors()
+
+        plt.figure(figsize=(8,8))
+        
+        bovy.scatterplot(redshift[fced], deltaz_z, 
+                scatter=True, levels=[0.68, 0.95, 0.997], color=pretty_colors[1], s=3,
+                xrange=[0.43, 0.7], yrange=[-0.3, 0.3], 
+                xlabel='\mathtt{z_{spec}}', 
+                ylabel=r'\mathtt{\frac{|z_{spec} - z_{photo}|}{z_{spec}}}')
+        
+        fig_file = ''.join(['figure/', 'match_deltaphotoz_specz_', catalog['name'], '.png']) 
+        plt.savefig(fig_file, bbox_inches='tight') 
+    
+    correction['name'] = 'photoz'
+    photo_cat_corr = {
+            'catalog': catalog, 
+            'correction': correction
+            }
+    photoz_file = fc_data.get_galaxy_data_file('data', **photo_cat_corr)
+    print photoz_file 
+    
+    if catalog['name'].lower() == 'nseries': 
+        np.savetxt(photoz_file, 
+                np.c_[data.ra, data.dec, redshift, wfc, data.comp, photoz], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
+                delimiter='\t') 
 
 def match_photoz_specz_cmass(): 
     ''' Compare photometric redshift to spectroscopic redshift. 
@@ -217,15 +285,28 @@ def delta_photoz_specz_cmass():
     # calculate sigma assuming delta_z is a Gaussian
     # loop through redshift bins 
     z_low = np.arange(0.43, 0.7, 0.01)
+    z_mid = np.arange(0.43, 0.7, 0.01) + 0.005
     z_high = np.arange(0.43, 0.7, 0.01) + 0.01
     mu_deltaz, sigma_deltaz = [], []  
     for i_z in range(len(z_low)): 
         zbin = np.where((zspec > z_low[i_z]) & (zspec < z_high[i_z])) 
         
-        sigma_deltaz.append(np.std(delta_z[zbin]))
         mu_deltaz.append(np.mean(delta_z[zbin]))
+        sigma_deltaz.append(np.std(delta_z[zbin]))
         #print np.mean(delta_z[zbin]), np.std(delta_z[zbin])
+    
+    # save to file: zmid, zlow, zhigh, mu_deltaz, sigma_deltaz 
+    output_name = ''.join([photo_dir, 
+        'cmass_photoz_error_gauss_table.dat']) 
+    output_header = 'Columns: zmid, zlow, zhigh, mean(deltaz/(1+z)), stddev(deltaz/(1+z))'
+    np.savetxt(output_name, 
+            np.c_[
+                z_mid, z_low, z_high, mu_deltaz, sigma_deltaz 
+                ], 
+            fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e', '%.5e'], 
+            header=output_header, delimiter='\t')
 
+    '''
     fig = plt.figure(1)
     sub = fig.add_subplot(111)
     sub.errorbar( z_low + 0.005, mu_deltaz, yerr=sigma_deltaz, c='k') 
@@ -237,8 +318,13 @@ def delta_photoz_specz_cmass():
     fig_file = ''.join(['figure/', 'delta_photoz_specz_cmass.png']) 
     fig.savefig(fig_file, bbox_inches='tight') 
     fig.clear()
-
+    '''
 
 if __name__=='__main__': 
     #match_photoz_specz_cmass()
-    delta_photoz_specz_cmass()
+    #delta_photoz_specz_cmass()
+    cat_corr = { 
+            'catalog': {'name': 'nseries', 'n_mock': 1}, 
+            'correction': {'name': 'upweight'}
+            }
+    build_fibcol_assign_photoz(qaplot=True, **cat_corr)

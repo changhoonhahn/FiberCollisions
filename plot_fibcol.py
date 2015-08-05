@@ -1206,22 +1206,29 @@ if __name__=="__main__":
     #        {'catalog': {'name': 'patchy'}, 'correction': {'name': 'upweight'}},
     #        {'catalog': {'name': 'qpm'}, 'correction': {'name': 'upweight'}} 
     #        ]
+    #catcorr_methods = [
+    #        {'catalog': {'name': 'cmass', 'cosmology': 'fiducial'}, 
+    #            'correction': {'name': 'upweight'}},
+    #        {'catalog': {'name': 'bigmd3'}, 'correction': {'name': 'upweight'}}
+    #        ]
+    
     catcorr_methods = [
-            {'catalog': {'name': 'cmass', 'cosmology': 'fiducial'}, 
-                'correction': {'name': 'upweight'}},
-            {'catalog': {'name': 'bigmd3'}, 'correction': {'name': 'upweight'}}
+            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'true'}}, 
+            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}, 
+            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'peakshot', 
+                'sigma': '4.0', 'fpeak': '0.68', 'fit':'gauss'}}
             ]
 
-    n_mock_list = 1 
+    n_mock_list = 20
     plot_pk_fibcol_comp( catcorr_methods, n_mock_list, \
-            quad=True, Ngrid=360, type='regular', 
+            quad=False, Ngrid=960, type='regular', 
             xrange=[0.01, 1.0], yrange=[10**2, 3*10**5])
     plot_pk_fibcol_comp(catcorr_methods, n_mock_list, 
-            quad=True, Ngrid=360, type='ratio', 
+            quad=False, Ngrid=960, type='ratio', 
             xrange=[0.01, 1.0], yrange=[0.0, 2.0])
-    plot_pk_fibcol_comp(catcorr_methods, n_mock_list, 
-            quad=True, Ngrid=360, type='kPk', 
-            xrange=[0.01, 1.0], yrange=[10**0, 3*10**3])
+    #plot_pk_fibcol_comp(catcorr_methods, n_mock_list, 
+    #        quad=True, Ngrid=960, type='kPk', 
+    #        xrange=[0.01, 1.0], yrange=[10**0, 3*10**3])
     
     catcorr_methods = [
             {'catalog': {'name': 'cmass', 'cosmology': 'fiducial'}, 
