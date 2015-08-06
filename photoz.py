@@ -44,19 +44,22 @@ def build_fibcol_assign_photoz(qaplot=False, **cat_corr):
     catalog = cat_corr['catalog']
     correction = cat_corr['correction']
 
-    if correction['name'] != 'upweight': 
-        raise NameError("Correction method has to be upweight") 
     if catalog['name'] == 'cmass': 
         raise NameError("Only available for mock catalogs NOT CMASS") 
     
-    # read data from the fiber collided mock catalog 
-    data = fc_data.galaxy_data('data', **cat_corr) 
-    redshift = data.z # galaxy redshifts
-
-    if 'weight' in data.columns: 
-        wfc = data.weight
+    # read data of mock catalog 
+    if catalog['name'].lower() == 'nseries': 
+        correction['name'] = 'original'
+        data_file = fc_data.get_galaxy_data_file('data', **cat_corr) 
+        ra, dec, redshift, wfc, zupw = np.loadtxt(data_file,  
+                unpack=True, usecols=[0, 1, 2, 4, 5]) 
+        
+        correction['name'] = 'wcompfile'
+        wcomp_file = fc_data.get_galaxy_data_file('data', **cat_corr) 
+        wcomp = np.loadtxt(wcomp_file, unpack=True, usecols=[0])
     else: 
-        wfc = data.wfc
+        raise NotImplementedError('Not yet implemented') 
+
     fced = np.where(wfc == 0)   # fiber collided galaxies
     #fced = [range(len(redshift))]
     
@@ -101,8 +104,8 @@ def build_fibcol_assign_photoz(qaplot=False, **cat_corr):
     
     if catalog['name'].lower() == 'nseries': 
         np.savetxt(photoz_file, 
-                np.c_[data.ra, data.dec, redshift, wfc, data.comp, photoz], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
+                np.c_[ra, dec, redshift, wfc, wcomp, zupw, photoz], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
                 delimiter='\t') 
 
 def match_photoz_specz_cmass(): 

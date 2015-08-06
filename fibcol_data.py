@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 # --- Local ----
 import fibcol_dlos as fc_dlos
 import fibcol_nbar as fc_nbar
+import photoz as photoz 
 import galaxy_environment as genv
 import pyspherematch as pysph
 from utility.fitstables import mrdfits
@@ -322,8 +323,10 @@ class galaxy_data:
 
             if DorR == 'data':                          # Data ------------------------------
                 # catalog columns 
+                # ra, dec, z, wfc, comp
                 catalog_columns = ['ra', 'dec', 'z', 'wfc', 'comp'] 
                 self.columns = catalog_columns
+                column_indices = [0,1,2,3,4]
 
                 if not os.path.isfile(file_name) or clobber:
                     # File does not exist or Clobber = True!
@@ -334,30 +337,39 @@ class galaxy_data:
                         # all weights = 1 (fibercollisions *not* imposed) 
                         build_true(**cat_corr) 
 
-                    elif correction['name'].lower() in ('upweight', 'shotnoise', 'floriansn', 'hectorsn'): 
+                    elif correction['name'].lower() in (
+                            'upweight', 'shotnoise', 'floriansn', 'hectorsn'): 
                         # upweighted mocks
                         build_fibercollided(**cat_corr) 
 
                     elif correction['name'].lower() in ('peaknbar', 'peakshot'): 
                         # peak corrected mocks 
                         build_peakcorrected_fibcol(doublecheck=True, **cat_corr)  # build peak corrected file 
-
                         #elif correction['name'].lower() in ('noweight'): 
                         #    # n oweight 
                         #    build_noweight(**cat_corr) 
-                    elif 'scratch' in correction['name'].lower():           # scratch pad for different methods 
-
+                    elif 'scratch' in correction['name'].lower():           
+                        # scratch pad for different methods 
                         build_nseries_scratch(**cat_corr) 
+
+                    elif correction['name'].lower() == 'photoz': 
+                        # photoz assigned fiber collided mock 
+                        photoz.build_fibcol_assign_photoz(qaplot=False, **cat_corr) 
 
                     else: 
                         raise NotImplementedError() 
 
-                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4])         # ra, dec, z, wfc, comp
+                # corrections to column assignment
+                if correction['name'].lower() == 'photoz': 
+                    catalog_columns = ['ra', 'dec', 'z', 'wfc', 'comp', 'zupw', 'z_photo'] 
+                    self.columns = catalog_columns
+                    column_indices = [0,1,2,3,4,5,6]
+
+                file_data = np.loadtxt(file_name, unpack=True, usecols=column_indices)         
 
                 # assign to data columns class
                 for i_col, catalog_column in enumerate(catalog_columns): 
                     setattr(self, catalog_column, file_data[i_col]) 
-                        
             
             elif DorR == 'random':              # Random ------------------------------------
 
@@ -905,17 +917,21 @@ def get_galaxy_data_file(DorR, **cat_corr):
             except KeyError: 
                 cosmo_str = '_fidcosmo' 
 
-            if correction['name'].lower() == 'true': 
+            if correction['name'].lower() in ('true'): 
                 # true mocks
                 file_name = ''.join([data_dir, 
                     'CutskyN', str(catalog['n_mock']), '.dat']) 
-                
-            elif correction['name'].lower() in ('upweight', 'shotnoise', 
-                    'floriansn', 'hectorsn'): 
+            elif correction['name'].lower() in ('original'): 
+                file_name = ''.join([data_dir, 
+                    'CutskyN', str(catalog['n_mock']), '.rdzwc']) 
+            elif correction['name'].lower() in ('wcompfile'):  
+                file_name = ''.join([data_dir, 
+                    'CutskyN', str(catalog['n_mock']), '.mask_info']) 
+            elif correction['name'].lower() in (
+                    'upweight', 'shotnoise', 'floriansn', 'hectorsn'): 
                 # upweighted mocks 
                 file_name = ''.join([data_dir, 
                     'CutskyN', str(catalog['n_mock']), '.fibcoll.dat']) 
-
             elif correction['name'].lower() in ('peaknbar', 'peakshot'): 
                 # peak corrected mocks 
                 if correction['name'].lower() == 'peaknbar': 
@@ -939,18 +955,15 @@ def get_galaxy_data_file(DorR, **cat_corr):
 
                 file_name = ''.join([data_dir, 
                     'CutskyN', str(catalog['n_mock']), '.fibcoll', corr_str, cosmo_str, '.dat' ]) 
-
             elif 'scratch' in correction['name'].lower():
                 
                 file_name = ''.join([data_dir, 
                     'CutskyN', str(catalog['n_mock']), '.fibcoll.', correction['name'].lower(), cosmo_str, '.dat' ]) 
-
             elif correction['name'].lower() == 'photoz':
                 # photoz assigned fiber collided mock  
                 file_name = ''.join([data_dir, 
-                    'CutskyN', str(catalog['n_mock']), '.fibcoll.', correction['name'].lower(), 
-                    cosmo_str, '.dat' ]) 
-
+                    'CutskyN', str(catalog['n_mock']), 
+                    '.fibcoll.', correction['name'].lower(), '.dat' ]) 
             else: 
                 raise NameError('not yet coded') 
 
@@ -2262,7 +2275,7 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
         np.savetxt(peakcorr_file+'.dlosvalues', np.c_[dlos_values], fmt=['%10.5f'], delimiter='\t') 
 
 def build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr): 
-    ''' Build peak corrected fibercollided mock catalogs with assigned photometric redshifts
+    ''' Build peak corrected pfibercollided mock catalogs using assigned photometric redshifts
     that emulated photometric redshift errors (using cosmolopy) 
 
     Parameters
@@ -2292,7 +2305,6 @@ def build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr):
     if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz'):     # LasDamasGeo 
         n_mocks = 160   # total number of mocks
         survey_zmin, survey_zmax = 0.16, 0.44
-
     elif catalog['name'].lower() in ('tilingmock', 'qpm', 'patchy', 'nseries'): 
         # set up mock catalogs 
         survey_zmin, survey_zmax = 0.43, 0.7    # survey redshift limits
@@ -2300,11 +2312,9 @@ def build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr):
             n_mocks = 100
         elif catalog['name'].lower() == 'nseries': 
             n_mocks = 1 
-    
     elif catalog['name'].lower() in ('cmass', 'bigmd'):             # CMASS, BigMD
         survey_zmin, survey_zmax = 0.43, 0.7    # survey redshift limits
         n_mocks = 1 
-
     else: 
         raise NotImplementedError('Mock Catalog not included')
 
@@ -2322,7 +2332,12 @@ def build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr):
         fibcoll_mock.weight = fibcoll_mock.wfc            
 
     f_peak = correction['fpeak'] 
-    
+   
+
+
+
+
+
     # lists to be saved
     appended_ra, appended_dec, appended_z, appended_weight = [], [], [], []
     upweight_again = []
@@ -2526,7 +2541,6 @@ def build_ldg_scratch(**cat_corr):
                 'formats': (np.float64, np.float64, np.float64, np.float64, np.float64, np.int32)})
 
     if correction['name'].lower() in ('scratch_peakknown'): 
-
         now_index = np.where(orig_wfc < 1)   # galaxies with w_fc = 0 
         
         now_Dc = cosmos.distance.comoving_distance(orig_z[now_index], **cosmo)*cosmo['h']  # in units of Mpc/h
