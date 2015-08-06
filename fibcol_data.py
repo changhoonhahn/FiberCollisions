@@ -1071,6 +1071,7 @@ def get_galaxy_data_file(DorR, **cat_corr):
 
 # ------------------------------------------------------------------------
 # Build galaxy data  
+# ------------------------------------------------------------------------
 
 def build_true(**cat_corr): 
     ''' Adjust original data for convenience purposes: 
@@ -2302,21 +2303,12 @@ def build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr):
         raise NameError('correction fit has to be specified as gauss or expon') 
     
     # redshift limits 
-    if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz'):     # LasDamasGeo 
-        n_mocks = 160   # total number of mocks
-        survey_zmin, survey_zmax = 0.16, 0.44
-    elif catalog['name'].lower() in ('tilingmock', 'qpm', 'patchy', 'nseries'): 
+    if catalog['name'].lower() in ('nseries'): 
         # set up mock catalogs 
-        survey_zmin, survey_zmax = 0.43, 0.7    # survey redshift limits
-        if catalog['name'].lower() == 'qpm':
-            n_mocks = 100
-        elif catalog['name'].lower() == 'nseries': 
-            n_mocks = 1 
-    elif catalog['name'].lower() in ('cmass', 'bigmd'):             # CMASS, BigMD
         survey_zmin, survey_zmax = 0.43, 0.7    # survey redshift limits
         n_mocks = 1 
     else: 
-        raise NotImplementedError('Mock Catalog not included')
+        raise NotImplementedError('Catalog not yet included')
 
     # read in fiber collided mocks with assigned photometric redshift  
     fibcoll_cat_corr = {'catalog':catalog, 'correction': {'name': 'photoz'}}
@@ -2331,8 +2323,10 @@ def build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr):
         # resolve nomenclature issue
         fibcoll_mock.weight = fibcoll_mock.wfc            
 
-    f_peak = correction['fpeak'] 
-   
+    f_peak = correction['fpeak']        # peak fraction 
+
+
+    # first determine the  
 
 
 

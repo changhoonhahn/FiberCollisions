@@ -60,102 +60,111 @@ def photoz_dlos_nseries(**cat_corr):
     
     # Determine appropriate binsize for dist (not too important)
     # Create histogram for combined dLOS values  (binsize is just guessed)
-    x_min, x_max, binsize = -1000.0, 1000.0, 0.1
+    x_min, x_max, binsize = -1000.0, 1000.0, 0.5
     n_bins = int((x_max-x_min)/binsize) 
     
-    dlos_hist, mpc_binedges = np.histogram(
-            combined_dlos, bins=n_bins, range=[x_min, x_max])
+    # calculate dLOS distributions 
+    dlos_spec_hist, mpc_binedges = np.histogram(
+            LOS_d, bins=n_bins, range=[x_min, x_max])
+    dlos_photo_hist, mpc_binedges = np.histogram(
+            LOS_d_photo, bins=n_bins, range=[x_min, x_max])
     xlow = mpc_binedges[:-1]
     xhigh = mpc_binedges[1:] 
-    xmid = np.array([0.5*(guess_xlow[i]+guess_xhigh[i]) for i in range(len(guess_xlow))])
+    xmid = np.array([
+        0.5*(xlow[i] + xhigh[i]) for i in range(len(xlow))
+        ])
 
-    # MPFIT ------------------------------------------------------------------------------------
-    p0 = [dlos_amp, 5.0]            # initial guess
-
-    fa = {'x': xmid[peak_xrange], 'y': dlos_hist[peak_xrange]}
-    if fit.lower() == 'expon': 
-        peak_pars = mpfit.mpfit(mpfit_peak_expon, p0, functkw=fa, nprint=0)
-    elif fit.lower() == 'gauss': 
-        peak_pars = mpfit.mpfit(mpfit_peak_gauss, p0, functkw=fa, nprint=0)
-    else: 
-        raise NameError("Fit not yet coded") 
+    # For galaxies actually in the peak  
+    in_peak = np.where((LOS_d < 20.) & (LOS_d > -20.))
+    dlos_spec_hist_peak, mpc_binedges = np.histogram(
+            LOS_d[in_peak], bins=n_bins, range=[x_min, x_max])
+    dlos_photo_hist_peak, mpc_binedges = np.histogram(
+            LOS_d_photo[in_peak], bins=n_bins, range=[x_min, x_max])
     
-    bestfit_amp = peak_pars.params[0]
-    sigma = peak_pars.params[1]
-    print fit.lower(), ' Best FIt Sigma = ', sigma
+    prettyplot() 
+    pretty_colors = prettycolors() 
+    fig = plt.figure(1, figsize=[14,5]) 
+    sub = fig.add_subplot(111) 
+
+    sub.plot(xmid, dlos_spec_hist, 
+            lw=4, color=pretty_colors[0], label=r"$d_{LOS}$; $z_\mathtt{spec}$")
+    sub.plot(xmid, dlos_photo_hist, 
+            lw=4, color=pretty_colors[2], label=r"$d_{LOS}$; $z_\mathtt{photo}$")
+
+    sub.set_xlabel(r"$d_{LOS}$ (Mpc/h)", fontsize=20) 
+    sub.set_xlim([-100.0, 100.0])
+    sub.set_ylim([0.0, 1.25*np.max(dlos_spec_hist)])
+    sub.legend(loc='upper right', scatterpoints=1, prop={'size':14}) 
     
-    #--------------------------------------------------------------------------------------------------------------------
-    # compute fpeak 
-    fpeak_xmin = -3.0*sigma
-    fpeak_xmax = 3.0*sigma
-    xrange = (xmid >= fpeak_xmin) & (xmid < fpeak_xmax) 
-    #fpeak = (np.sum(peak(xmid[xrange], popt[0])))/np.float(np.sum(dlos_hist)) 
-    if fit.lower() == 'expon': 
-        fpeak = (np.sum(peak_expon(xmid[xrange], peak_pars.params)))/np.float(np.sum(dlos_hist)) 
-    elif fit.lower() == 'gauss': 
-        fpeak = (np.sum(peak_gauss(xmid[xrange], peak_pars.params)))/np.float(np.sum(dlos_hist)) 
-    else: 
-        raise NameError("Fit not yet coded") 
+    fig_dir = 'figure/'
+    fig_file = ''.join([fig_dir, 
+        'photoz_dlos_specz_dlos_nseries.png'])
+    fig.savefig(fig_file, bbox_inches="tight")
+    fig.clear() 
+
+    fig = plt.figure(1, figsize=[14,5])
+    sub = fig.add_subplot(111) 
+
+    sub.plot(xmid, dlos_spec_hist_peak, 
+            lw=4, color=pretty_colors[0], label=r"Peak $d_{LOS}$; $z_\mathtt{spec}$")
+    sub.plot(xmid, dlos_photo_hist_peak, 
+            lw=4, color=pretty_colors[2], label=r"Peak $d_{LOS}$; $z_\mathtt{photo}$")
+
+    sub.set_xlabel(r"$d_{LOS}$ (Mpc/h)", fontsize=20) 
+    sub.set_xlim([-200.0, 200.0])
+    sub.set_ylim([0.0, 1.25*np.max(dlos_spec_hist)])
+    sub.legend(loc='upper right', scatterpoints=1, prop={'size':14}) 
     
-    fpeak_dist = np.float(len(combined_dlos[(combined_dlos > fpeak_xmin) & (combined_dlos < fpeak_xmax)]))/np.float(len(combined_dlos))  # computed from the distribution
-
-    print 'fpeak from fitting = ', fpeak
-    print 'fpeak from distrib = ', fpeak_dist 
+    fig_dir = 'figure/'
+    fig_file = ''.join([fig_dir, 
+        'photoz_dlos_specz_dlos_peak_nseries.png'])
+    fig.savefig(fig_file, bbox_inches="tight")
+    fig.clear() 
     
-    #fpeak_dist = np.float(len(combined_dlos[(combined_dlos > -30.0) & (combined_dlos < 30.0)]))/np.float(len(combined_dlos))  # computed from the distribution
+    fig = plt.figure(1, figsize=[14,5])
+    sub = fig.add_subplot(111) 
 
-    #print 'fpeak from distrib = ', fpeak_dist 
+    sub.plot(xmid, dlos_photo_hist, 
+            lw=4, color=pretty_colors[0], label=r"$d_{LOS}$; $z_\mathtt{photo}$")
+    sub.plot(xmid, dlos_photo_hist_peak, 
+            lw=4, color=pretty_colors[2], label=r"Peak $d_{LOS}$; $z_\mathtt{photo}$")
 
-    if sanitycheck == True:             # plot the distributions and fits for santicy check 
-        prettyplot() 
-        pretty_colors = prettycolors() 
-        fig = plt.figure(1, figsize=[14,5]) 
-        sub = fig.add_subplot(111) 
-
-        # fitting labels 
-        if fit.lower() == 'expon': 
-            fit_label = "Exponential "+r"$(\sigma = "+str(peak_pars.params[1])+", A="+str(peak_pars.params[0])+")$"
-        else: 
-            fit_label = "Gaussian "+r"$(\sigma = "+str(peak_pars.params[1])+", A="+str(peak_pars.params[0])+")$"
+    sub.set_xlabel(r"$d_{LOS}$ (Mpc/h)", fontsize=20) 
+    sub.set_xlim([-1000.0, 1000.0])
+    sub.set_ylim([0.0, 100.])
+    sub.legend(loc='upper right', scatterpoints=1, prop={'size':14}) 
     
-        #guess_scale = binsize/0.1
-        #sub.plot(guess_xmid, guess_scale*guess_dlos_hist, lw=2, color=pretty_colors[-1], label=r"$d_{LOS}$ binsize $=0.1$") 
-
-        sub.plot(xmid, dlos_hist, lw=4, color=pretty_colors[0], label=r"$d_{LOS}$ binsize $="+str(binsize)+"$")         # plot DLOS distribution
-
-        # plot best fit 
-        if fit.lower() == 'expon': 
-            sub.plot(xmid, peak_expon(xmid, peak_pars.params), lw=4, color=pretty_colors[2], label=fit_label)
-        elif fit.lower() == 'gauss': 
-            sub.plot(xmid, peak_gauss(xmid, peak_pars.params), lw=4, color=pretty_colors[2], label=fit_label)
-        else: 
-            raise NameError("Fit not yet coded") 
-
-        # indicate the fpeak range (for sanity check purposes)
-        sub.vlines(fpeak_xmin, 0.0, 10.0*np.max(dlos_hist), color='k', lw=4)
-        sub.vlines(fpeak_xmax, 0.0, 10.0*np.max(dlos_hist), color='k', lw=4)
-
-        sub.text(-1.0*sigma, 0.25*np.max(dlos_hist), r"$f_{peak} = "+str(fpeak)+"$") 
-        sub.text(-1.0*sigma, 0.2*np.max(dlos_hist), r"$f_{peak,dist} = "+str(fpeak_dist)+"$") 
-        sub.set_xlabel(r"$d_{LOS}$ (Mpc/h)", fontsize=20) 
-        sub.set_xlim([-50.0, 50.0])
-        #sub.set_xlim([-5.0, 5.0])
-        sub.set_ylim([0.0, 1.25*np.max(dlos_hist)])
-        sub.legend(loc='upper right', scatterpoints=1, prop={'size':14}) 
+    fig_dir = 'figure/'
+    fig_file = ''.join([fig_dir, 
+        'photoz_dlos_peak_comparison_nseries.png'])
+    fig.savefig(fig_file, bbox_inches="tight")
+    fig.clear() 
     
-        if correction['name'].lower() == 'bigfc': 
-            bigfc_flag = '_bigfc'
-        else: 
-            bigfc_flag = ''
+    fig = plt.figure(1, figsize=[14,5])
+    sub = fig.add_subplot(111) 
+    
+    dlos_photo_ratio = []
+    for i in range(len(dlos_photo_hist_peak)): 
+        if dlos_photo_hist[i] == 0.: 
+            dlos_photo_ratio.append(0.0)
+        else:  
+            dlos_photo_ratio.append(
+                    np.float(dlos_photo_hist_peak[i])/np.float(dlos_photo_hist[i]))
 
-        fig_dir = 'figure/'
-        fig_file = ''.join([fig_dir, 
-            catalog['name'].lower(), '_', str(n_mocks), 
-            'mocks_combined_dlos_peakfit_', fit.lower(), bigfc_flag, '.png'])
-        fig.savefig(fig_file, bbox_inches="tight")
-        fig.clear() 
+    sub.plot(xmid, dlos_photo_ratio, 
+            lw=4, color=pretty_colors[0], label=r"Peak $d_{LOS}$ Ratio; $z_\mathtt{photo}$")
 
-    return [sigma, fpeak]
+    sub.set_xlabel(r"$d_{LOS}$ (Mpc/h)", fontsize=20) 
+    sub.set_xlim([-1000.0, 1000.0])
+    sub.set_ylim([0.0, 1.0])
+    sub.legend(loc='upper right', scatterpoints=1, prop={'size':14}) 
+    
+    fig_dir = 'figure/'
+    fig_file = ''.join([fig_dir, 
+        'photoz_dlos_peak_ratio_comparison_nseries.png'])
+    fig.savefig(fig_file, bbox_inches="tight")
+    fig.clear() 
+
 
 # ------------------------------------------------------------------------------------
 # Set up LOS displacement class
@@ -2229,8 +2238,9 @@ def combined_catalog_dlos_fits(catalog, n_mock):
 
 if __name__=="__main__": 
     cat_corr = {
-            'catalog': {'name': 'cmass'}, 
-            'correction': {'name': 'upweight'}} 
+            'catalog': {'name': 'nseries', 'n_mock': 1}, 
+            'correction': {'name': 'photoz'}} 
+    photoz_dlos_nseries(**cat_corr)
     #fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     #build_dlos(**cat_corr)
 
@@ -2248,4 +2258,4 @@ if __name__=="__main__":
     #{'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}},
     #{'catalog': {'name': 'bigmd1'}, 'correction': {'name': 'upweight'}}, 
     #{'catalog': {'name': 'bigmd2'}, 'correction': {'name': 'upweight'}}, 
-    plot_fcpaper_dlos(cat_corrs)
+    #plot_fcpaper_dlos(cat_corrs)
