@@ -327,6 +327,7 @@ class galaxy_data:
                 catalog_columns = ['ra', 'dec', 'z', 'wfc', 'comp'] 
                 self.columns = catalog_columns
                 column_indices = [0,1,2,3,4]
+                dtypes = None
 
                 if not os.path.isfile(file_name) or clobber:
                     # File does not exist or Clobber = True!
@@ -361,11 +362,19 @@ class galaxy_data:
 
                 # corrections to column assignment
                 if correction['name'].lower() == 'photoz': 
-                    catalog_columns = ['ra', 'dec', 'z', 'wfc', 'comp', 'zupw', 'z_photo'] 
+                    catalog_columns = ['ra', 'dec', 'z', 'wfc', 'comp', 
+                            'zupw', 'upw_index', 'z_photo'] 
                     self.columns = catalog_columns
-                    column_indices = [0,1,2,3,4,5,6]
+                    column_indices = [0,1,2,3,4,5,6,7]
+                    dtypes = {
+                            'names': ('ra', 'dec', 'z', 
+                                'wfc', 'comp', 'zupw', 'upw_index', 'z_photo'), 
+                            'formats': (np.float, np.float, np.float, 
+                                np.float, np.float, np.float, np.int, np.float)
+                            }
 
-                file_data = np.loadtxt(file_name, unpack=True, usecols=column_indices)         
+                file_data = np.loadtxt(file_name, 
+                        unpack=True, usecols=column_indices, dtype=dtypes)         
 
                 # assign to data columns class
                 for i_col, catalog_column in enumerate(catalog_columns): 
@@ -2275,7 +2284,7 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
     if doublecheck: 
         np.savetxt(peakcorr_file+'.dlosvalues', np.c_[dlos_values], fmt=['%10.5f'], delimiter='\t') 
 
-def build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr): 
+def build_photoz_peakcorrected_fibcol(**cat_corr): 
     ''' Build peak corrected pfibercollided mock catalogs using assigned photometric redshifts
     that emulated photometric redshift errors (using cosmolopy) 
 
@@ -2293,14 +2302,7 @@ def build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr):
     correction = cat_corr['correction']
 
     # fit functions (using lambda) ------------------------------------------------------------
-    if correction['fit'].lower() == 'gauss': 
-        fit_func = lambda x, sig: np.exp(-0.5 *x**2/sig**2)
-    elif correction['fit'].lower() == 'expon': 
-        fit_func = lambda x, sig: np.exp(-1.0*np.abs(x)/sig)
-    elif correction['fit'].lower() == 'true': 
-        pass 
-    else: 
-        raise NameError('correction fit has to be specified as gauss or expon') 
+    fit_func = lambda x, sig: np.exp(-0.5 *x**2/sig**2)
     
     # redshift limits 
     if catalog['name'].lower() in ('nseries'): 
@@ -2313,38 +2315,71 @@ def build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr):
     # read in fiber collided mocks with assigned photometric redshift  
     fibcoll_cat_corr = {'catalog':catalog, 'correction': {'name': 'photoz'}}
 
-    fibcoll_mock = galaxy_data('data', **fibcoll_cat_corr) 
-    cosmo = fibcoll_mock.cosmo      # survey comoslogy 
+    data = galaxy_data('data', **fibcoll_cat_corr) 
+    cosmo = data.cosmo      # survey comoslogy 
 
     survey_comdis_min = cosmos.distance.comoving_distance( survey_zmin, **cosmo ) * cosmo['h']
     survey_comdis_max = cosmos.distance.comoving_distance( survey_zmax, **cosmo ) * cosmo['h']
     
-    if 'weight' not in fibcoll_mock.columns:
+    if 'weight' not in data.columns:
         # resolve nomenclature issue
-        fibcoll_mock.weight = fibcoll_mock.wfc            
+        data.weight = data.wfc            
 
     f_peak = correction['fpeak']        # peak fraction 
+    
+    fcoll = np.where(data.weight == 0)     # fiber collided
+    n_fcoll = len(fcoll[0])
+    n_fc_peak = int(f_peak * np.float(n_fcoll))     # Ngal fc peak 
+    n_fc_tail = n_fcoll - n_fc_peak                 # Ngal fc tail 
+    
+    # Comoving distance of upweighted galaxy
+    Dc_upw = cosmos.distance.comoving_distance(
+            data.zupw[fcoll], **cosmo) * cosmo['h']
+    # Comoving distance of fibcollided galaxy photoz
+    Dc_zphoto = cosmos.distance.comoving_distance(
+            data.z_photo[fcoll], **cosmo) * cosmo['h']
+   
+    # photometric redshit dLOS 
+    LOS_d_photo = Dc_zphoto - Dc_upw
+    
+    # first, determine the definite tails  
+    def_tail_dlos = np.where( (LOS_d_photo < -175.0) | (LOS_d_photo > 175.0) ) 
+    def_tail = (fcoll[0])[def_tail_dlos]
+    n_def_tail = len(def_tail) 
+    print n_fcoll
+    print n_fc_tail 
+    print n_def_tail 
+    
+    # not definitely tails
+    not_def_tail = list(
+            set(list(fcoll[0])) - set(list(def_tail))
+            )
+    print len(not_def_tail)
+    upw_def_tail = (data.upw_index)[def_tail]
+    upw_def_not_tail = (data.upw_index)[not_def_tail]
+    
+    not_tail_fpeak = 1.0 - np.float(n_fc_tail - n_def_tail)/np.float(n_fcoll - n_def_tail)
+    print not_tail_fpeak 
 
-
-    # first determine the  
-
-
-
-
-
-    # lists to be saved
     appended_ra, appended_dec, appended_z, appended_weight = [], [], [], []
     upweight_again = []
-    if catalog['name'].lower() in ('qpm', 'nseries'): 
+    if catalog['name'].lower() in ('nseries'): 
         appended_comp = []   # save comp
-    elif catalog['name'].lower() in ('cmass'): 
-        appended_comp = [] 
-        appended_wsys = [] 
-        appended_wnoz = [] 
-            
-    if doublecheck:     
-        # check that the peak p(r) is generated properly
-        dlos_values = [] 
+    
+    for i_mock in not_def_tail: 
+        # go through each fibercollided galaxy definitely not in the tail        
+        
+        # use new fpeak that excludes definitely tail galaxies
+        # to deterimine whether galxay is in peak or not 
+        rand_num = np.random.random(1)
+        if rand_num < = not_tail_fpeak:     # in peak 
+            fibcoll_mock.weight[ (data.upw_index)[i_mock] ] -= 1.0 
+        
+            appended_ra.append(fibcoll_mock.ra[i_mock])     # keep ra and dec
+            appended_dec.append(fibcoll_mock.dec[i_mock])
+            if catalog['name'].lower() in ('nseries'):  
+                appended_comp.append(fibcoll_mock.comp[i_mock]) 
+    """
     
     for i_mock in range(len(fibcoll_mock.weight)):  
         # go through every galaxy in fibercollided mock catalog
@@ -2498,6 +2533,7 @@ def build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr):
 
     if doublecheck: 
         np.savetxt(peakcorr_file+'.dlosvalues', np.c_[dlos_values], fmt=['%10.5f'], delimiter='\t') 
+    """
 
 def build_ldg_scratch(**cat_corr): 
     ''' Quick function to test fiber collision correction methods on LasDamasGeo mocks

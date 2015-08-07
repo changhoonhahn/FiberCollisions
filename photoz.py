@@ -51,8 +51,8 @@ def build_fibcol_assign_photoz(qaplot=False, **cat_corr):
     if catalog['name'].lower() == 'nseries': 
         correction['name'] = 'original'
         data_file = fc_data.get_galaxy_data_file('data', **cat_corr) 
-        ra, dec, redshift, wfc, zupw = np.loadtxt(data_file,  
-                unpack=True, usecols=[0, 1, 2, 4, 5]) 
+        ra, dec, redshift, wfc, zupw, upw_index = np.loadtxt(data_file,  
+                unpack=True, usecols=[0, 1, 2, 4, 5, 6]) 
         
         correction['name'] = 'wcompfile'
         wcomp_file = fc_data.get_galaxy_data_file('data', **cat_corr) 
@@ -104,8 +104,8 @@ def build_fibcol_assign_photoz(qaplot=False, **cat_corr):
     
     if catalog['name'].lower() == 'nseries': 
         np.savetxt(photoz_file, 
-                np.c_[ra, dec, redshift, wfc, wcomp, zupw, photoz], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
+                np.c_[ra, dec, redshift, wfc, wcomp, zupw, upw_index, photoz], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%i', '%10.5f'], 
                 delimiter='\t') 
 
 def match_photoz_specz_cmass(): 
@@ -326,8 +326,9 @@ def delta_photoz_specz_cmass():
 if __name__=='__main__': 
     #match_photoz_specz_cmass()
     #delta_photoz_specz_cmass()
-    cat_corr = { 
-            'catalog': {'name': 'nseries', 'n_mock': 1}, 
-            'correction': {'name': 'upweight'}
-            }
-    build_fibcol_assign_photoz(qaplot=True, **cat_corr)
+    for i in range(1, 11): 
+        cat_corr = { 
+                'catalog': {'name': 'nseries', 'n_mock': i}, 
+                'correction': {'name': 'upweight'}
+                }
+        build_fibcol_assign_photoz(qaplot=True, **cat_corr)

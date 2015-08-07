@@ -945,9 +945,14 @@ if __name__=='__main__':
         build_pk(bmd, 1, grid=360, quad=False) 
         build_pk(bmd, 1, grid=960, quad=False) 
     '''
+    cat_corr = { 
+            'catalog': {'name': 'nseries', 'n_mock': 1}, 
+            'correction': {'name': 'photoz', 'fpeak': 0.7}
+            }
+    fc_data.build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr)
     #build_pk('bigmd3', 1, grid=360, quad=False) 
     #build_pk('bigmd3', 1, grid=960, quad=False) 
-    build_pk('bigmd3', 1, grid=1920, quad=False) 
+    #build_pk('bigmd3', 1, grid=1920, quad=False) 
     #build_pk('ldgdownnz', 10, clobber=True, quad=False) 
     #build_pk('lasdamasgeo', 10, clobber=False, grid=360, quad=False) 
     #build_pk('patchy', 10, clobber=False, grid=960, quad=False) 

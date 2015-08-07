@@ -22,7 +22,7 @@ import mpfit as mpfit
 import galaxy_environment as genv
 import pyspherematch as pysph
 
-def photoz_dlos_nseries(**cat_corr): 
+def photoz_dlos_nseries(n_mock, **cat_corr): 
     ''' Calculate dLOS using photometric redshifts; hardcoded for Nseries mocks 
 
     Parameters
@@ -39,21 +39,37 @@ def photoz_dlos_nseries(**cat_corr):
     if catalog['name'].lower() != 'nseries':
         raise NotImplementedError('Only for Nseries') 
     correction['name'] = 'photoz'
+   
+    for i_mock in range(1, n_mock+1): 
+        catalog['n_mock'] = i_mock 
+        cat_corr = {
+                'catalog': catalog, 
+                'correction': correction 
+                } 
+        data = fc_data.galaxy_data('data', **cat_corr)
+        print data.file_name
+        cosmo = data.cosmo      # survey cosmology 
 
-    data = fc_data.galaxy_data('data', **cat_corr)
-    cosmo = data.cosmo      # survey cosmology 
+        fcoll = np.where(data.wfc == 0) # fiber collided
+        
+        try: 
+            tot_zupw = np.append(tot_zupw, data.zupw[fcoll]) 
+            tot_z = np.append(tot_z, data.z[fcoll])
+            tot_zphoto = np.append(tot_zphoto, data.z_photo[fcoll])
+        except UnboundLocalError: 
+            tot_zupw = data.zupw[fcoll]
+            tot_z = data.z[fcoll]
+            tot_zphoto = data.z_photo[fcoll]
 
-    fcoll = np.where(data.wfc == 0) # fiber collided
-    
     # Comoving distance of upweighted galaxy
     Dc_upw = cosmos.distance.comoving_distance(
-            data.zupw[fcoll], **cosmo) * cosmo['h']
+            tot_zupw, **cosmo) * cosmo['h']
     # Comoving distance of fibcollided galaxy
     Dc_zspec = cosmos.distance.comoving_distance(
-            data.z[fcoll], **cosmo) * cosmo['h']
+            np.array(tot_z), **cosmo) * cosmo['h']
     # Comoving distance of fibcollided galaxy photoz
     Dc_zphoto = cosmos.distance.comoving_distance(
-            data.z_photo[fcoll], **cosmo) * cosmo['h']
+            np.array(tot_zphoto), **cosmo) * cosmo['h']
     
     LOS_d = Dc_zspec - Dc_upw
     LOS_d_photo = Dc_zphoto - Dc_upw
@@ -131,7 +147,7 @@ def photoz_dlos_nseries(**cat_corr):
 
     sub.set_xlabel(r"$d_{LOS}$ (Mpc/h)", fontsize=20) 
     sub.set_xlim([-1000.0, 1000.0])
-    sub.set_ylim([0.0, 100.])
+    sub.set_ylim([0.0, 1.25*np.max(dlos_photo_hist_peak)])
     sub.legend(loc='upper right', scatterpoints=1, prop={'size':14}) 
     
     fig_dir = 'figure/'
@@ -155,7 +171,7 @@ def photoz_dlos_nseries(**cat_corr):
             lw=4, color=pretty_colors[0], label=r"Peak $d_{LOS}$ Ratio; $z_\mathtt{photo}$")
 
     sub.set_xlabel(r"$d_{LOS}$ (Mpc/h)", fontsize=20) 
-    sub.set_xlim([-1000.0, 1000.0])
+    sub.set_xlim([-500.0, 500.0])
     sub.set_ylim([0.0, 1.0])
     sub.legend(loc='upper right', scatterpoints=1, prop={'size':14}) 
     
@@ -2240,7 +2256,7 @@ if __name__=="__main__":
     cat_corr = {
             'catalog': {'name': 'nseries', 'n_mock': 1}, 
             'correction': {'name': 'photoz'}} 
-    photoz_dlos_nseries(**cat_corr)
+    photoz_dlos_nseries(10, **cat_corr)
     #fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     #build_dlos(**cat_corr)
 
