@@ -2285,7 +2285,7 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
         np.savetxt(peakcorr_file+'.dlosvalues', np.c_[dlos_values], fmt=['%10.5f'], delimiter='\t') 
 
 def build_photoz_peakcorrected_fibcol(**cat_corr): 
-    ''' Build peak corrected pfibercollided mock catalogs using assigned photometric redshifts
+    ''' Build peak corrected fibercollided mock catalogs using assigned photometric redshifts
     that emulated photometric redshift errors (using cosmolopy) 
 
     Parameters
@@ -2317,7 +2317,8 @@ def build_photoz_peakcorrected_fibcol(**cat_corr):
 
     data = galaxy_data('data', **fibcoll_cat_corr) 
     cosmo = data.cosmo      # survey comoslogy 
-
+    
+    # comoving distance of min and max redshifts    
     survey_comdis_min = cosmos.distance.comoving_distance( survey_zmin, **cosmo ) * cosmo['h']
     survey_comdis_max = cosmos.distance.comoving_distance( survey_zmax, **cosmo ) * cosmo['h']
     
@@ -2328,7 +2329,7 @@ def build_photoz_peakcorrected_fibcol(**cat_corr):
     f_peak = correction['fpeak']        # peak fraction 
     
     fcoll = np.where(data.weight == 0)     # fiber collided
-    n_fcoll = len(fcoll[0])
+    n_fcoll = len(fcoll[0])                 # Ngal fiber collided
     n_fc_peak = int(f_peak * np.float(n_fcoll))     # Ngal fc peak 
     n_fc_tail = n_fcoll - n_fc_peak                 # Ngal fc tail 
     
@@ -2346,20 +2347,20 @@ def build_photoz_peakcorrected_fibcol(**cat_corr):
     def_tail_dlos = np.where( (LOS_d_photo < -175.0) | (LOS_d_photo > 175.0) ) 
     def_tail = (fcoll[0])[def_tail_dlos]
     n_def_tail = len(def_tail) 
-    print n_fcoll
-    print n_fc_tail 
-    print n_def_tail 
+    print 'Ngal fiber collided', n_fcoll
+    print 'Ngal fiber collided tail', n_fc_tail 
+    print 'Ngal fiber collided definitely in tail', n_def_tail 
     
     # not definitely tails
     not_def_tail = list(
             set(list(fcoll[0])) - set(list(def_tail))
             )
-    print len(not_def_tail)
+    print 'Ngal fiber collided not definitely in tail', len(not_def_tail)
     upw_def_tail = (data.upw_index)[def_tail]
     upw_def_not_tail = (data.upw_index)[not_def_tail]
     
     not_tail_fpeak = 1.0 - np.float(n_fc_tail - n_def_tail)/np.float(n_fcoll - n_def_tail)
-    print not_tail_fpeak 
+    print 'fpeak of not definitely in tail', not_tail_fpeak 
 
     appended_ra, appended_dec, appended_z, appended_weight = [], [], [], []
     upweight_again = []
@@ -2371,14 +2372,32 @@ def build_photoz_peakcorrected_fibcol(**cat_corr):
         
         # use new fpeak that excludes definitely tail galaxies
         # to deterimine whether galxay is in peak or not 
-        rand_num = np.random.random(1)
-        if rand_num < = not_tail_fpeak:     # in peak 
-            fibcoll_mock.weight[ (data.upw_index)[i_mock] ] -= 1.0 
+        rand_num = np.random.random(1)      # random number
+
+        if rand_num <= not_tail_fpeak:     # sampled in the peak 
+            data.weight[ (data.upw_index)[i_mock] ] -= 1.0 
+            comdis_imock = cosmos.distance.comoving_distance(
+                    data.z[i_mock], **cosmo)*cosmo['h']
         
-            appended_ra.append(fibcoll_mock.ra[i_mock])     # keep ra and dec
-            appended_dec.append(fibcoll_mock.dec[i_mock])
+            appended_ra.append(data.ra[i_mock])     # keep ra and dec
+            appended_dec.append(data.dec[i_mock])
             if catalog['name'].lower() in ('nseries'):  
-                appended_comp.append(fibcoll_mock.comp[i_mock]) 
+                appended_comp.append(data.comp[i_mock]) 
+            append_weight.append(1.0) 
+
+            if correction['fit'].lower() in ('guass'):
+                # compute the displacement within the peak using best-fit function 
+
+                rand1 = np.random.random(1) # random number
+                
+                # random dLOS +/- 3-sigma of the distribution 
+                rand2 = np.random.random(1)
+                rand2 = (-3.0 + 6.0 * rand2) * correction['sigma']
+                
+                peak_pofr = fit_func(rand2, correction['sigma']) # probability distribution
+            else: 
+                NotImplementedError('Not yet implemented') 
+
     """
     
     for i_mock in range(len(fibcoll_mock.weight)):  
