@@ -926,23 +926,20 @@ def get_galaxy_data_file(DorR, **cat_corr):
             except KeyError: 
                 cosmo_str = '_fidcosmo' 
 
-            if correction['name'].lower() in ('true'): 
-                # true mocks
+            if correction['name'].lower() in ('true'):  # true mocks
                 file_name = ''.join([data_dir, 
                     'CutskyN', str(catalog['n_mock']), '.dat']) 
-            elif correction['name'].lower() in ('original'): 
+            elif correction['name'].lower() in ('original'):    # original mock
                 file_name = ''.join([data_dir, 
                     'CutskyN', str(catalog['n_mock']), '.rdzwc']) 
-            elif correction['name'].lower() in ('wcompfile'):  
+            elif correction['name'].lower() in ('wcompfile'):   # wcomp file 
                 file_name = ''.join([data_dir, 
                     'CutskyN', str(catalog['n_mock']), '.mask_info']) 
             elif correction['name'].lower() in (
-                    'upweight', 'shotnoise', 'floriansn', 'hectorsn'): 
-                # upweighted mocks 
+                    'upweight', 'shotnoise', 'floriansn', 'hectorsn'): # upweighted mocks 
                 file_name = ''.join([data_dir, 
                     'CutskyN', str(catalog['n_mock']), '.fibcoll.dat']) 
-            elif correction['name'].lower() in ('peaknbar', 'peakshot'): 
-                # peak corrected mocks 
+            elif correction['name'].lower() in ('peaknbar', 'peakshot'): # peak corrected mocks 
                 if correction['name'].lower() == 'peaknbar': 
                     pass
 
@@ -964,15 +961,17 @@ def get_galaxy_data_file(DorR, **cat_corr):
 
                 file_name = ''.join([data_dir, 
                     'CutskyN', str(catalog['n_mock']), '.fibcoll', corr_str, cosmo_str, '.dat' ]) 
-            elif 'scratch' in correction['name'].lower():
+            elif 'scratch' in correction['name'].lower():   # scratch pad mocks 
                 
                 file_name = ''.join([data_dir, 
                     'CutskyN', str(catalog['n_mock']), '.fibcoll.', correction['name'].lower(), cosmo_str, '.dat' ]) 
-            elif correction['name'].lower() == 'photoz':
-                # photoz assigned fiber collided mock  
+            elif correction['name'].lower() == 'photoz':    # photoz assigned fiber collided mock  
                 file_name = ''.join([data_dir, 
                     'CutskyN', str(catalog['n_mock']), 
                     '.fibcoll.', correction['name'].lower(), '.dat' ]) 
+            elif correction['name'].lower() == 'photozpeakshot':    # peak shot correction utilizing photoz
+                file_name = ''.join([data_dir, 
+                    'CutskyN', str(catalog['n_mock']), '.fibcoll.photoz.peakshot.dat']) 
             else: 
                 raise NameError('not yet coded') 
 
@@ -2369,19 +2368,28 @@ def build_photoz_peakcorrected_fibcol(**cat_corr):
     
     for i_mock in not_def_tail: 
         # go through each fibercollided galaxy definitely not in the tail        
+        # smarter than the other correction in that it does not downweight all upweighted galaxies 
+        # only to re-upweight them later for tail fiber collided galaxies
         
         # use new fpeak that excludes definitely tail galaxies
         # to deterimine whether galxay is in peak or not 
         rand_num = np.random.random(1)      # random number
 
         if rand_num <= not_tail_fpeak:     # sampled in the peak 
-            data.weight[ (data.upw_index)[i_mock] ] -= 1.0 
-            comdis_imock = cosmos.distance.comoving_distance(
-                    data.z[i_mock], **cosmo)*cosmo['h']
+            # sample a dLOS from the best-fit Gaussian dLOS PDF then place 
+            # galaxy with wfc = 1 dLOS away from the upweighted galaxy 
+            # and then downweight the upweighted galaxy 
+
+            data.weight[ (data.upw_index)[i_mock] ] -= 1.0  # downweight UPW galaxy 
+
+            # comoving distance of upweighted galaxy
+            comdis_upw = cosmos.distance.comoving_distance(
+                    data.z[ (data.upw_index)[i_mock] ], **cosmo) * cosmo['h']
         
             appended_ra.append(data.ra[i_mock])     # keep ra and dec
             appended_dec.append(data.dec[i_mock])
             if catalog['name'].lower() in ('nseries'):  
+                # since comp is dependent on angle
                 appended_comp.append(data.comp[i_mock]) 
             append_weight.append(1.0) 
 
@@ -2397,162 +2405,35 @@ def build_photoz_peakcorrected_fibcol(**cat_corr):
                 peak_pofr = fit_func(rand2, correction['sigma']) # probability distribution
             else: 
                 NotImplementedError('Not yet implemented') 
-
-    """
-    
-    for i_mock in range(len(fibcoll_mock.weight)):  
-        # go through every galaxy in fibercollided mock catalog
-
-        while fibcoll_mock.weight[i_mock] > 1:      
-            # for galaxies with wcp > 1
-            fibcoll_mock.weight[i_mock] -= 1.0
-
-            # LOS comoving distance of the galaxy 
-            comdis_imock = cosmos.distance.comoving_distance(fibcoll_mock.z[i_mock], **cosmo)*cosmo['h']
                 
-            rand_num = np.random.random(1) 
-            if rand_num <= f_peak:          # if in the peak 
-                appended_ra.append(fibcoll_mock.ra[i_mock])     # keep ra and dec
-                appended_dec.append(fibcoll_mock.dec[i_mock])
+            # in case the displacement falls out of bound (may generate large scale issues)
+            # this will skew the dLOS displacement slightly at low and high redshift limits 
+            if (comdis_upw + rand2 > survey_comdis_max) or (comdis_upw + rand2 < survey_comdis_min): 
+                collided_z = comdis2z(comdis_upw-rand2, **cosmo)
+            else: 
+                collided_z = comdis2z(comdis_upw+rand2, **cosmo)
 
-                if catalog['name'].lower() in ('qpm', 'nseries'):  
-                    appended_comp.append(fibcoll_mock.comp[i_mock]) 
-                elif catalog['name'].lower() in ('cmass'): 
-                    appended_comp.append(fibcoll_mock.comp[i_mock]) 
-                    appended_wsys.append(fibcoll_mock.wsys[i_mock]) 
-                    appended_wnoz.append(1.0) 
-
-                # appended galaxy has fiber collision weight of 1.0 
-                appended_weight.append(1.0)
-
-                if correction['fit'].lower() in ('gauss', 'expon'):   
-                    # compute the displacement within peak using best-fit --------------
-                    rand1 = np.random.random(1) 
-                    rand2 = np.random.random(1) 
-
-                    rand2 = (-3.0+rand2*6.0)*correction['sigma']
-                    peakpofr = fit_func(rand2, correction['sigma']) 
-                    
-                    while peakpofr <= rand1: 
-                        rand1 = np.random.random(1) 
-                        rand2 = np.random.random(1) 
-
-                        rand2 = (-3.0+rand2*6.0)*correction['sigma']
-                        peakpofr = fit_func(rand2, correction['sigma']) 
-
-                    #--------------------------------------------------------------------- 
-                elif correction['fit'].lower() == 'true': 
-                    # compute the displacement within peak using actual distribution   
-                    dlos_comb_peak_file = ''.join([
-                        ((fibcoll_mock.file_name).rsplit('/', 1))[0], '/', 
-                        'DLOS_norm_peak_dist_', catalog['name'].lower(), '_', str(n_mocks), 'mocks_combined.dat'])
-                    dlos_mid, dlos_dist = np.loadtxt(dlos_comb_peak_file, unpack=True, usecols=[0,1])
-
-                    dlos_cdf = dlos_dist.cumsum()/dlos_dist.sum()
-
-                    rand1 = np.random.random(1) 
-                    
-                    cdf_closest_index = min(range(len(dlos_cdf)), key = lambda i: abs(dlos_cdf[i]-rand1[0])) 
-                    closest_dlos = dlos_mid[cdf_closest_index] 
-                   
-                    try: 
-                        closest_dloses
-                    except NameError:
-                        closest_dloses = [closest_dlos]
-                    else: 
-                        closest_dloses.append(closest_dlos)
-
-                    rand2 = np.array([closest_dlos])
-                    #--------------------------------------------------------------------- 
-                else: 
-                    raise NotImplementedError('asdfasdf')
-
-                # in case the displacement falls out of bound (may general large scale issues)
-                if (comdis_imock + rand2 > survey_comdis_max) or (comdis_imock + rand2 < survey_comdis_min): 
-                    collided_z = comdis2z(comdis_imock-rand2, **cosmo)
-                else: 
-                    collided_z = comdis2z(comdis_imock+rand2, **cosmo)
-
-                appended_z.append(collided_z[0]) 
-
-                if doublecheck: 
-                    dlos_values.append(rand2) 
-
-            else:                           # if not in the peak ----------------------------
-                if correction['name'] in ('peak', 'peaknbar'): 
-                    '''
-                    generate random z based on redshift distribution of galaxies 
-                    '''
-                    # RA, Dec remain the same 
-                    # weight = 1
-                    appended_ra.append(fibcoll_mock.ra[i_mock])
-                    appended_dec.append(fibcoll_mock.dec[i_mock])
-                    appended_weight.append(1.0) 
-                    
-                    wtarg = np.random.random(1)*true_weight_max
-                    zindx = np.floor(np.interp(wtarg, true_weight_cum, i_true)).astype(int)+1
-                    
-                    # fail safe
-                    qqq = np.where(wtarg < true_weight_cum[0])[0]
-                    zindx[qqq] = 0 
-
-                    # assign redshift 
-                    appended_z.append(true_z[zindx]) 
-
-                elif correction['name'] in ('peakshot', 'bigfc_peakshot'): 
-                    upweight_again.append(i_mock)
-
-                else: 
-                    raise NotImplementedError('asdfasdf') 
+            appended_z.append(collided_z[0]) 
     
-    if correction['name'] in ('peakshot', 'bigfc_peakshot'): 
-        # re-upweighting for peak+shotnoise correction 
-        for i_upweightagain in upweight_again: 
-            fibcoll_mock.weight[i_upweightagain] += 1.
-
     print len(appended_ra), ' galaxies were peak corrected'
-    fibcoll_mock.ra = np.concatenate([fibcoll_mock.ra, appended_ra])
-    fibcoll_mock.dec = np.concatenate([fibcoll_mock.dec, appended_dec])
-    fibcoll_mock.weight = np.concatenate([fibcoll_mock.weight, appended_weight])
-        
-    if catalog['name'].lower() in ('qpm', 'nseries'): 
-        fibcoll_mock.comp = np.concatenate([fibcoll_mock.comp, appended_comp])
-    elif catalog['name'].lower() in ('cmass'):
-        fibcoll_mock.comp = np.concatenate([fibcoll_mock.comp, appended_comp])
-        fibcoll_mock.wsys = np.concatenate([fibcoll_mock.wsys, appended_wsys])
-        fibcoll_mock.wnoz = np.concatenate([fibcoll_mock.wnoz, appended_wnoz])
+    data.ra = np.concatenate([data.ra, appended_ra])
+    data.dec = np.concatenate([data.dec, appended_dec])
+    data.weight = np.concatenate([data.weight, appended_weight])
+    data.z = np.concatenate([data.z, appended_z])
+    if catalog['name'].lower() in ('nseries'): 
+        data.comp = np.concatenate([data_mock.comp, appended_comp])
 
-    fibcoll_mock.z = np.concatenate([fibcoll_mock.z, appended_z])
-
-    peakcorr_file = get_galaxy_data_file('data', **cat_corr) 
+    corrected_file = get_galaxy_data_file('data', **cat_corr) 
     
-    if catalog['name'].lower() in ('qpm', 'nseries'): 
-        np.savetxt(peakcorr_file, 
+    if catalog['name'].lower() in ('nseries'): 
+        np.savetxt(corrected_file, 
                 np.c_[
                     fibcoll_mock.ra, fibcoll_mock.dec, fibcoll_mock.z, 
                     fibcoll_mock.weight, fibcoll_mock.comp], 
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
                 delimiter='\t') 
-
-    elif catalog['name'].lower() in ('cmass'):          # CAMSS
-        np.savetxt(peakcorr_file, 
-                np.c_[
-                    fibcoll_mock.ra, fibcoll_mock.dec, fibcoll_mock.z, 
-                    fibcoll_mock.wsys, fibcoll_mock.wnoz, fibcoll_mock.weight, 
-                    fibcoll_mock.comp], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
-                delimiter='\t') 
-
-    elif catalog['name'].lower() in ('tilingmock', 'lasdamasgeo', 'ldgdownnz'): 
-        np.savetxt(peakcorr_file, 
-                np.c_[fibcoll_mock.ra, fibcoll_mock.dec, fibcoll_mock.z, fibcoll_mock.weight], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
     else: 
         raise NotImplementedError('asdfasdf')
-
-    if doublecheck: 
-        np.savetxt(peakcorr_file+'.dlosvalues', np.c_[dlos_values], fmt=['%10.5f'], delimiter='\t') 
-    """
 
 def build_ldg_scratch(**cat_corr): 
     ''' Quick function to test fiber collision correction methods on LasDamasGeo mocks
