@@ -19,6 +19,7 @@ from matplotlib.collections import LineCollection
 # --- Local --- 
 import fibcol_data as fc_data
 import fibcol_nbar as fc_nbar
+import fibcol_dlos as fc_dlos
 import fibcol_spec as fc_spec
 import fibcol_utility as fc_util
 import fibercollisions as fc
@@ -782,54 +783,62 @@ def plot_avg_pk_fibcol(catalog_name, n_mock, corr_method, quad=False, **kwargs):
     fig.clear()
 
 # others 
-def plot_peakcorrection_check(catalog_name, n_mock, corr_methods):
+def plot_peakcorrection_dlos_check(cat_corrs):
+    ''' Compare peak sampled dLOS generated for the Peak Correction Methods (outputed during 
+    the correction) with dLOS distribution of the mock 
+    
+    Parameters
+    ----------
+    * cat_corrs : list of Catalog + Correction dictionaries
+
+    Notes
+    -----
+    * Function entirely edited Aug 18, 2015 
+
     '''
-    Check dLOS generated during peak correction 
-    '''
-    # set up figure
+    # pretty figure up
     prettyplot() 
     pretty_colors = prettycolors()  
+    
+    # set up figure 
     fig = plt.figure(1) 
     sub = fig.add_subplot(111) 
-
-    if catalog_name.lower() == 'lasdamasgeo': 
-        # For Las Damas Geo 
-        for i_correct, correction in enumerate(corr_methods): 
-            # Loop through correction methods
-            for i_mock in range(1,n_mock+1): 
-                # Through n_mock
-                for letter in ['a', 'b', 'c', 'd']: 
-                    # Through letters
-
-                    i_cat = {'name': catalog_name, 'n_mock': i_mock, 'letter': letter}
-                    i_corr = correction.copy() 
-                    i_cat_corr = {'catalog': i_cat, 'correction': i_corr}
-                    i_gal_data = fc_data.galaxy_data('data', readdata=False, **i_cat_corr)
-                    i_dlos_file = i_gal_data.file_name+'.sanitycheck'
-                    i_dlos = np.loadtxt(i_dlos_file) 
-
-                    try: 
-                        combined_dlos 
-                    except NameError: 
-                        combined_dlos = i_dlos
-                    else: 
-                        combined_dlos = np.concatenate([combined_dlos, i_dlos]) 
-
-            # calculate histogram
-            x_min = -1000.0
-            x_max = 1000.0
-            n_bins = int((x_max-x_min)/0.5) 
-            dlos_hist, mpc_binedges = np.histogram(combined_dlos, bins=n_bins, range=[x_min, x_max], normed=True) 
-            xlow = mpc_binedges[:-1]
-            xhigh = mpc_binedges[1:] 
-            xmid = np.array([0.5*(xlow[i]+xhigh[i]) for i in range(len(xlow))])
+    
+    cat_list = [] 
+    for i_cat_corr, cat_corr in enumerate(cat_corrs): # loop through cat_corr dictionaries
+        # catalog and correction 
+        catalog = cat_corr['catalog']
+        correction = cat_corr['correction'] 
+        if catalog['name'] not in cat_list: 
+            # keep track of all the catalogs used
+            cat_list.append(catalog['name'])
+    
+        # read in sampled peak dLOS values 
+        data_file = fc_data.get_galaxy_data_file('data', **cat_corr)
+        peakdlos_file = ''.join([data_file, '.dlosvalues']) 
+        peakdlos = np.loadtxt(peakdlos_file, unpack=True, usecols=[0]) 
+        print peakdlos
             
-            # plot LOS displacement 
-            sub.plot(xmid, dlos_hist, lw=4, color=pretty_colors[i_correct]) 
+        # calculate dLOS histogram 
+        x_min, x_max = -1000.0, 1000.0
+        n_bins = int((x_max-x_min)/0.5) 
+        peakdlos_hist, mpc_binedges = np.histogram(peakdlos, bins=n_bins, range=[x_min, x_max])#, normed=True) 
+        # x values for plotting 
+        xlow = mpc_binedges[:-1]
+        xhigh = mpc_binedges[1:] 
+        xmid = np.array([0.5*(xlow[i]+xhigh[i]) for i in range(len(xlow))])
+        
+        # plot sampled peak dLOS distribution  
+        sub.plot(xmid, peakdlos_hist, lw=4, color=pretty_colors[i_cat_corr]) 
 
-            del combined_dlos
+        # read in dLOS values for cat_corr 
+        los_disp_i = fc_dlos.dlos(**cat_corr)
+        # calculate dLOS histogram 
+        dlos_hist, mpc_binedges = np.histogram(los_disp_i.dlos, bins=n_bins, range=[x_min, x_max])#, normed=True) 
+        # plot dLOS distribution of mock 
+        sub.plot(xmid, dlos_hist, lw=2, ls='--', color='k') 
 
-    sub.set_xlim([-30, 30])
+    sub.set_xlim([-50., 50.])
     sub.set_xlabel(r"$d_{LOS}$ Mpc") 
     plt.show() 
 
@@ -1194,47 +1203,36 @@ def chi_squared():
             [{'name': 'true'}, {'name':'upweight'}, {'name':'floriansn'}, {'name':'hectorsn'}, {'name': 'peakshot', 'sigma':4.8, 'fpeak':0.62, 'fit':'gauss'}])
 
 if __name__=="__main__":
-    #catcorr_methods = [
-    #        {'catalog': {'name': 'cmass', 'cosmology': 'regular'}, 
-    #            'correction': {'name': 'upweight'}},
-    #        {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}
-    #        ]
-    #catcorr_methods = [
-    #        {'catalog': {'name': 'cmass', 'cosmology': 'fiducial'}, 
-    #            'correction': {'name': 'upweight'}},
-    #        {'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}},
-    #        {'catalog': {'name': 'patchy'}, 'correction': {'name': 'upweight'}},
-    #        {'catalog': {'name': 'qpm'}, 'correction': {'name': 'upweight'}} 
-    #        ]
-    #catcorr_methods = [
-    #        {'catalog': {'name': 'cmass', 'cosmology': 'fiducial'}, 
-    #            'correction': {'name': 'upweight'}},
-    #        {'catalog': {'name': 'bigmd3'}, 'correction': {'name': 'upweight'}}
-    #        ]
+    cat_corrs = [
+            {'catalog': {'name': 'nseries', 'n_mock': i_mock}, 
+                'correction': {'name': 'photozpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.7}} 
+            for i_mock in range(1,2)
+            ] 
+    plot_peakcorrection_dlos_check(cat_corrs)
     
-    catcorr_methods = [
-            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'true'}}, 
-            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}, 
-            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'peakshot', 
-                'sigma': '4.0', 'fpeak': '0.68', 'fit':'gauss'}}
-            ]
+    #catcorr_methods = [
+    #        {'catalog': {'name': 'nseries'}, 'correction': {'name': 'true'}}, 
+    #        {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}, 
+    #        {'catalog': {'name': 'nseries'}, 'correction': {'name': 'peakshot', 
+    #            'sigma': '4.0', 'fpeak': '0.68', 'fit':'gauss'}}
+    #        ]
 
-    n_mock_list = 20
-    plot_pk_fibcol_comp( catcorr_methods, n_mock_list, \
-            quad=False, Ngrid=960, type='regular', 
-            xrange=[0.01, 1.0], yrange=[10**2, 3*10**5])
-    plot_pk_fibcol_comp(catcorr_methods, n_mock_list, 
-            quad=False, Ngrid=960, type='ratio', 
-            xrange=[0.01, 1.0], yrange=[0.0, 2.0])
+    #n_mock_list = 20
+    #plot_pk_fibcol_comp( catcorr_methods, n_mock_list, \
+    #        quad=False, Ngrid=960, type='regular', 
+    #        xrange=[0.01, 1.0], yrange=[10**2, 3*10**5])
+    #plot_pk_fibcol_comp(catcorr_methods, n_mock_list, 
+    #        quad=False, Ngrid=960, type='ratio', 
+    #        xrange=[0.01, 1.0], yrange=[0.0, 2.0])
     #plot_pk_fibcol_comp(catcorr_methods, n_mock_list, 
     #        quad=True, Ngrid=960, type='kPk', 
     #        xrange=[0.01, 1.0], yrange=[10**0, 3*10**3])
     
-    catcorr_methods = [
-            {'catalog': {'name': 'cmass', 'cosmology': 'fiducial'}, 
-                'correction': {'name': 'peakshot', 'sigma':6.9, 'fpeak':0.7, 'fit':'gauss'}},
-            {'catalog': {'name': 'bigmd3'}, 'correction': {'name': 'true'}}
-            ]
+    #catcorr_methods = [
+    #        {'catalog': {'name': 'cmass', 'cosmology': 'fiducial'}, 
+    #            'correction': {'name': 'peakshot', 'sigma':6.9, 'fpeak':0.7, 'fit':'gauss'}},
+    #        {'catalog': {'name': 'bigmd3'}, 'correction': {'name': 'true'}}
+    #        ]
 
     #plot_pk_fibcol_comp(catcorr_methods, n_mock_list, 
     #        quad=False, Ngrid=960, type='kPk', 

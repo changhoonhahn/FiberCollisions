@@ -357,7 +357,7 @@ class galaxy_data:
                         photoz.build_fibcol_assign_photoz(qaplot=False, **cat_corr) 
                     elif correction['name'].lower() == 'photozpeakshot': 
                         # Peak Shot correction using photometric redshift information
-                        build_photoz_peakcorrected_fibcol(**cat_corr)
+                        build_photoz_peakcorrected_fibcol(doublecheck=True, **cat_corr)
                     else: 
                         raise NotImplementedError() 
 
@@ -2284,7 +2284,7 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
     if doublecheck: 
         np.savetxt(peakcorr_file+'.dlosvalues', np.c_[dlos_values], fmt=['%10.5f'], delimiter='\t') 
 
-def build_photoz_peakcorrected_fibcol(**cat_corr): 
+def build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr): 
     ''' Build peak corrected fibercollided mock catalogs using assigned photometric redshifts
     that emulated photometric redshift errors (using cosmolopy) 
 
@@ -2371,6 +2371,9 @@ def build_photoz_peakcorrected_fibcol(**cat_corr):
     not_tail_fpeak = 1.0 - np.float(n_fc_tail - n_def_tail)/np.float(n_fcoll - n_def_tail)
     print 'fpeak of not definitely in tail', not_tail_fpeak 
 
+    if doublecheck:     # check that the PDF of dLOS peak is properly generated
+        dlos_values = [] 
+
     n_peakcorrected = 0     # Ngal peak corrected
     for i_mock in not_def_tail: 
         # go through each fibercollided galaxy not definitely in the tail        
@@ -2403,6 +2406,16 @@ def build_photoz_peakcorrected_fibcol(**cat_corr):
                 rand2 = (-3.0 + 6.0 * rand2) * correction['sigma']
                 
                 peak_pofr = fit_func(rand2, correction['sigma']) # probability distribution
+                
+                while peak_pofr <= rand1: 
+                    rand1 = np.random.random(1) # random number
+                    
+                    # random dLOS +/- 3-sigma of the distribution 
+                    rand2 = np.random.random(1)
+                    rand2 = (-3.0 + 6.0 * rand2) * correction['sigma']
+                    
+                    peak_pofr = fit_func(rand2, correction['sigma']) # probability distribution
+                    
             else: 
                 NotImplementedError('Not yet implemented') 
                 
@@ -2412,6 +2425,10 @@ def build_photoz_peakcorrected_fibcol(**cat_corr):
                 collided_z = comdis2z(comdis_upw-rand2, **cosmo)
             else:
                 collided_z = comdis2z(comdis_upw+rand2, **cosmo)
+
+            if doublecheck: 
+                # append sample peak dLOS value to doublecheck 
+                dlos_values.append(rand2) 
 
             #print data.z[ (data.upw_index)[i_mock] ], data.z[i_mock], collided_z[0] 
             data.z[i_mock] = collided_z[0]
@@ -2431,6 +2448,9 @@ def build_photoz_peakcorrected_fibcol(**cat_corr):
                 delimiter='\t') 
     else: 
         raise NotImplementedError('asdfasdf')
+    
+    if doublecheck: 
+        np.savetxt(corrected_file+'.dlosvalues', np.c_[dlos_values], fmt=['%10.5f'], delimiter='\t') 
 
 def build_ldg_scratch(**cat_corr): 
     ''' Quick function to test fiber collision correction methods on LasDamasGeo mocks

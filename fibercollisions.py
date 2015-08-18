@@ -945,11 +945,13 @@ if __name__=='__main__':
         build_pk(bmd, 1, grid=360, quad=False) 
         build_pk(bmd, 1, grid=960, quad=False) 
     '''
-    cat_corr = { 
-            'catalog': {'name': 'nseries', 'n_mock': 1}, 
-            'correction': {'name': 'photozpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.7}
-            }
-    fc_data.build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr)
+    for i_mock in np.arange(1, 11): 
+        cat_corr = { 
+                'catalog': {'name': 'nseries', 'n_mock': i_mock}, 
+                'correction': {'name': 'photozpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.7}
+                }
+        fc_data.galaxy_data('data', clobber=True, **cat_corr) 
+    #fc_data.build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr)
     #build_pk('bigmd3', 1, grid=360, quad=False) 
     #build_pk('bigmd3', 1, grid=960, quad=False) 
     #build_pk('bigmd3', 1, grid=1920, quad=False) 
