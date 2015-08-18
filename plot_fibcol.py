@@ -809,37 +809,52 @@ def plot_peakcorrection_dlos_check(cat_corrs):
         # catalog and correction 
         catalog = cat_corr['catalog']
         correction = cat_corr['correction'] 
-        if catalog['name'] not in cat_list: 
+        if catalog not in cat_list: 
             # keep track of all the catalogs used
-            cat_list.append(catalog['name'])
-    
+            cat_list.append(catalog)
+        
+        corr_label = 'fpeak'+str(correction['fpeak'])+'.sigma'+str(correction['sigma'])    
+        print corr_label
+
         # read in sampled peak dLOS values 
         data_file = fc_data.get_galaxy_data_file('data', **cat_corr)
         peakdlos_file = ''.join([data_file, '.dlosvalues']) 
         peakdlos = np.loadtxt(peakdlos_file, unpack=True, usecols=[0]) 
-        print peakdlos
             
         # calculate dLOS histogram 
         x_min, x_max = -1000.0, 1000.0
         n_bins = int((x_max-x_min)/0.5) 
-        peakdlos_hist, mpc_binedges = np.histogram(peakdlos, bins=n_bins, range=[x_min, x_max])#, normed=True) 
+        peakdlos_hist, mpc_binedges = np.histogram(peakdlos, bins=n_bins, range=[x_min, x_max]) 
         # x values for plotting 
         xlow = mpc_binedges[:-1]
         xhigh = mpc_binedges[1:] 
         xmid = np.array([0.5*(xlow[i]+xhigh[i]) for i in range(len(xlow))])
         
         # plot sampled peak dLOS distribution  
-        sub.plot(xmid, peakdlos_hist, lw=4, color=pretty_colors[i_cat_corr]) 
+        sub.plot(xmid, peakdlos_hist, lw=4, color=pretty_colors[i_cat_corr], label=corr_label) 
 
         # read in dLOS values for cat_corr 
         los_disp_i = fc_dlos.dlos(**cat_corr)
         # calculate dLOS histogram 
-        dlos_hist, mpc_binedges = np.histogram(los_disp_i.dlos, bins=n_bins, range=[x_min, x_max])#, normed=True) 
+        dlos_hist, mpc_binedges = np.histogram(los_disp_i.dlos, bins=n_bins, range=[x_min, x_max])
         # plot dLOS distribution of mock 
-        sub.plot(xmid, dlos_hist, lw=2, ls='--', color='k') 
 
-    sub.set_xlim([-50., 50.])
+        inpeak = np.where((xmid > -10.0) & (xmid < 10.0)) 
+        print dlos_hist[inpeak] - peakdlos_hist[inpeak]
+        print np.sum(dlos_hist[inpeak] - peakdlos_hist[inpeak])
+
+    for cat in cat_list: 
+        cat_corr = {'catalog': cat, 'correction': None}
+        # read in dLOS values for cat_corr 
+        los_disp_i = fc_dlos.dlos(**cat_corr)
+        # calculate dLOS histogram 
+        dlos_hist, mpc_binedges = np.histogram(los_disp_i.dlos, bins=n_bins, range=[x_min, x_max])
+        # plot dLOS distribution of mock 
+        sub.plot(xmid, dlos_hist, lw=2, ls='--', color='k', label='dLOS of Mock Catalog') 
+
+    sub.set_xlim([-20., 20.])
     sub.set_xlabel(r"$d_{LOS}$ Mpc") 
+    sub.legend() 
     plt.show() 
 
 def plot_comdis2z_test(): 
@@ -1204,9 +1219,12 @@ def chi_squared():
 
 if __name__=="__main__":
     cat_corrs = [
-            {'catalog': {'name': 'nseries', 'n_mock': i_mock}, 
+            {'catalog': {'name': 'nseries', 'n_mock': 2}, 
+                'correction': {'name': 'photozpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.68}}, 
+            {'catalog': {'name': 'nseries', 'n_mock': 2}, 
+                'correction': {'name': 'photozpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.69}}, 
+            {'catalog': {'name': 'nseries', 'n_mock': 2}, 
                 'correction': {'name': 'photozpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.7}} 
-            for i_mock in range(1,2)
             ] 
     plot_peakcorrection_dlos_check(cat_corrs)
     

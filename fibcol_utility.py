@@ -190,7 +190,6 @@ def fortran_code(fft_power, **cat_corr):
         code_dir = 'Nseries/'
         
         if fft_power.lower() == 'fft':          # FFT
-
             if correction['name'].lower() == 'floriansn': 
                 f_code = code_dir+'FFT-nseries-fkp-w-nbar-florian-'+str(spec['grid'])+'grid.f'
             elif correction['name'].lower() == 'hectorsn': 
@@ -205,23 +204,22 @@ def fortran_code(fft_power, **cat_corr):
                     f_code = code_dir+'power-nseries-fkp-w-nbar-360grid-180bin.f'
                 elif spec['grid'] == 960: 
                     f_code = code_dir+'power-nseries-fkp-w-nbar-960grid-480bin.f'
-
             elif correction['name'].lower() in \
-                    ('peakshot', 'shotnoise', 'floriansn', 'noweight', 'hectorsn', 'peakshot_dnn'): 
+                    ('peakshot', 'photozpeakshot', 'shotnoise', 'floriansn', 
+                            'noweight', 'hectorsn', 'peakshot_dnn'): 
+                # FKP with Igal Irand shot noise correction 
                 if spec['grid'] == 360: 
-                    # Igal Irand shot noise correction 
                     f_code = code_dir+'power-nseries-fkp-w-nbar-Igal-Irand-360grid-180bin.f'
                 elif spec['grid'] == 960: 
-                    # Igal Irand shot noise correction 
                     f_code = code_dir+'power-nseries-fkp-w-nbar-Igal-Irand-960grid-480bin.f'
-
             elif 'scratch' in correction['name'].lower(): 
+                # FKP with Igal Irand shot noise correction (for scratch pad corrections) 
                 if spec['grid'] == 360: 
-                    # Igal Irand shot noise correction 
                     f_code = code_dir+'power-nseries-fkp-w-nbar-Igal-Irand-360grid-180bin.f'
                 elif spec['grid'] == 960: 
-                    # Igal Irand shot noise correction 
                     f_code = code_dir+'power-nseries-fkp-w-nbar-Igal-Irand-960grid-480bin.f'
+            else: 
+                raise NameError('asldkfjasdf') 
 
         # quadrupole codes --------------------------------------------
         # regardess of catalog or correction TEMPORARILY HARDCODED HERE FOR TEST RUN 

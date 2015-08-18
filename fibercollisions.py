@@ -265,6 +265,9 @@ def build_fibcol_pk(cat, i_mock, corr, quad=False, clobber=False, **kwargs):
     corr : Fiber collision correction method with specificiation 
     quad : monopole or quadrupole 
 
+    Notes
+    -----
+
     '''
     mock_list = [] 
     if cat['name'].lower() in ('lasdamasgeo', 'ldgdownnz'):     # lasdamasgeo mocks 
@@ -840,8 +843,7 @@ def pk_fibcol_comp(catalog_name, n_mock, corr_methods):
     print corr_methods[min_index+1]
 
 def build_pk(catalog, n_mocks, quad=False, clobber=True, **kwargs): 
-    ''' 
-    Wrapper to build powerspectrum (monopole or quadrupole) for mock catalogs (QPM, Nseries, LasDamasGeo, TilingMock) 
+    ''' Wrapper to build powerspectrum (monopole or quadrupole) for mock catalogs (QPM, Nseries, LasDamasGeo, TilingMock) 
 
     Parameters
     ----------
@@ -854,9 +856,10 @@ def build_pk(catalog, n_mocks, quad=False, clobber=True, **kwargs):
     * LasDamasGeo peakshot bestfit parameters: {'name': 'peakshot', 'sigma': 6.5, 'fpeak': 0.76, 'fit': 'gauss'}
     * Nseries peakshot bestfit parameters: {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}
     * TilingMock peakshot bestfit parameters: {'name': 'peakshot', 'sigma': 4.8, 'fpeak': 0.62, 'fit': 'gauss'}
+    * If peakshot or other methods are selected then best-fit values are automatically loaded 
 
     '''
-    try: 
+    try:        # grid size
         Ngrid = kwargs['grid']
     except KeyError: 
         Ngrid = 360
@@ -866,29 +869,48 @@ def build_pk(catalog, n_mocks, quad=False, clobber=True, **kwargs):
     except KeyError: 
         cosmology = 'fiducial'
 
-    cat = {'name': catalog, 'cosmology': cosmology} 
-    if catalog == 'tilingmock':
-        corrections = [{'name': 'true'}, 
-                {'name': 'upweight'}, 
-                {'name': 'peakshot', 'sigma': 4.8, 'fpeak': 0.62, 'fit': 'gauss'}
-                ]
-    elif catalog == 'nseries': 
-        corrections = [{'name': 'true'}, 
-                {'name': 'upweight'}, 
-                {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.68, 'fit': 'gauss'}
-                ]
-    elif catalog == 'cmass': 
-        corrections = [{'name': 'upweight'}] 
-        #        {'name': 'peakshot', 'sigma': 6.9, 'fpeak': 0.7, 'fit': 'gauss'}]
-    elif 'bigmd' in catalog: 
-        corrections = [{'name': 'true'}, {'name': 'upweight'}] 
+    try: 
+        corrs = kwargs['corrections'] 
+    except KeyError: 
+        # preset hardcoded correction list 
+        if catalog == 'tilingmock':
+            corrs = [{'name': 'true'}, {'name': 'upweight'}, {'name': 'peakshot'}]
+        elif catalog == 'nseries': 
+            corrs = [{'name': 'true'}, {'name': 'upweight'}, {'name': 'peakshot'} ]
+        elif catalog == 'cmass': 
+            corrs = [{'name': 'upweight'}, {'name': 'peakshot'}]
+        elif 'bigmd' in catalog: 
+            corrs = [{'name': 'true'}, {'name': 'upweight'}] 
+    if isinstance(corrs, dict): 
+        # if only one correction is specified 
+        corrs = [corrs] 
 
+    cat = {'name': catalog, 'cosmology': cosmology} 
     spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':Ngrid, 'quad':quad}
 
     for i_mock in range(1, n_mocks+1): 
-        for corr in corrections: 
-            print cat
-            print corr
+        for corr in corrs: 
+            if 'peak' in corr['name'].lower(): 
+                # unless specified set fit, sigma, and fpeak to 
+                # best-fit function parameters 
+                try: 
+                    corr['sigma'] 
+                except KeyError: 
+                    if catalog == 'tilingmock':
+                        corr['fit'] = 'gauss'
+                        corr['sigma'] = 4.8
+                        corr['fpeak'] = 0.62
+                    elif catalog == 'nseries': 
+                        corr['fit'] = 'gauss'
+                        corr['sigma'] = 4.0
+                        corr['fpeak'] = 0.69
+                    elif catalog == 'cmass': 
+                        corr['fit'] = 'gauss'
+                        corr['sigma'] = 6.9
+                        corr['fpeak'] = 0.7
+                    else: 
+                        NotImplementedError('Catalog not yet included') 
+
             build_fibcol_pk(cat, i_mock, corr, spec=spec, clobber=clobber) 
 
 # Compare fiber collisions of data 
@@ -944,15 +966,17 @@ if __name__=='__main__':
     for bmd in ['bigmd1', 'bigmd2', 'bigmd3']:
         build_pk(bmd, 1, grid=360, quad=False) 
         build_pk(bmd, 1, grid=960, quad=False) 
-    '''
-    for i_mock in np.arange(1, 11): 
+    for i_mock in np.arange(2, 11): 
         cat_corr = { 
                 'catalog': {'name': 'nseries', 'n_mock': i_mock}, 
-                'correction': {'name': 'photozpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.7}
+                'correction': {'name': 'photozpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.69}
                 }
         fc_data.galaxy_data('data', clobber=True, **cat_corr) 
+    '''
     #fc_data.build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr)
-    #build_pk('bigmd3', 1, grid=360, quad=False) 
+    build_pk('nseries', 1, corrections=[{'name': 'true'}], grid=960, quad=False) 
+    build_pk('nseries', 1, corrections=[{'name': 'peakshot'}], grid=960, quad=False) 
+    build_pk('nseries', 1, corrections=[{'name': 'photozpeakshot'}], grid=960, quad=False) 
     #build_pk('bigmd3', 1, grid=960, quad=False) 
     #build_pk('bigmd3', 1, grid=1920, quad=False) 
     #build_pk('ldgdownnz', 10, clobber=True, quad=False) 

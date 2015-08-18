@@ -70,7 +70,7 @@ def build_fibcol_fft(DorR, **cat_corr):
     data_file = fc_data.get_galaxy_data_file(DorR, **cat_corr) 
     print data_file
 
-    try:                # if "quad" is not specified, then it's not used.
+    try:        # if "quad" is not specified, then it's not used.
         spec['quad'] 
     except KeyError: 
         spec['quad'] = False

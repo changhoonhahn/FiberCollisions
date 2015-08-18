@@ -971,8 +971,18 @@ def get_galaxy_data_file(DorR, **cat_corr):
                     'CutskyN', str(catalog['n_mock']), 
                     '.fibcoll.', correction['name'].lower(), '.dat' ]) 
             elif correction['name'].lower() == 'photozpeakshot':    # peak shot correction utilizing photoz
+                
+                # specify best fit (expon or gauss) function to peak 
+                if correction['fit'].lower() in ('gauss'): 
+                    # correction specifier string 
+                    corr_str = ''.join(['.photoz.', correction['fit'].lower(), 
+                        '.peakshot.sigma', str(correction['sigma']), 
+                        '.fpeak', str(correction['fpeak'])]) 
+                else: 
+                    raise NotImplementedError('peak fit has to be specified: gauss or expon') 
+
                 file_name = ''.join([data_dir, 
-                    'CutskyN', str(catalog['n_mock']), '.fibcoll.photoz.peakshot.dat']) 
+                    'CutskyN', str(catalog['n_mock']), '.fibcoll', corr_str, cosmo_str, '.dat' ]) 
             else: 
                 raise NameError('not yet coded') 
 
