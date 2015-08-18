@@ -1226,22 +1226,22 @@ if __name__=="__main__":
             {'catalog': {'name': 'nseries', 'n_mock': 2}, 
                 'correction': {'name': 'photozpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.7}} 
             ] 
-    plot_peakcorrection_dlos_check(cat_corrs)
+    #plot_peakcorrection_dlos_check(cat_corrs)
     
-    #catcorr_methods = [
-    #        {'catalog': {'name': 'nseries'}, 'correction': {'name': 'true'}}, 
-    #        {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}, 
-    #        {'catalog': {'name': 'nseries'}, 'correction': {'name': 'peakshot', 
-    #            'sigma': '4.0', 'fpeak': '0.68', 'fit':'gauss'}}
-    #        ]
+    catcorr_methods = [
+            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'true'}}, 
+            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}, 
+            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'peakshot', 
+                'sigma': '4.0', 'fpeak': '0.68', 'fit':'gauss'}}, 
+            ]
 
-    #n_mock_list = 20
-    #plot_pk_fibcol_comp( catcorr_methods, n_mock_list, \
-    #        quad=False, Ngrid=960, type='regular', 
-    #        xrange=[0.01, 1.0], yrange=[10**2, 3*10**5])
-    #plot_pk_fibcol_comp(catcorr_methods, n_mock_list, 
-    #        quad=False, Ngrid=960, type='ratio', 
-    #        xrange=[0.01, 1.0], yrange=[0.0, 2.0])
+    n_mock_list = 1
+    plot_pk_fibcol_comp( catcorr_methods, n_mock_list, \
+            quad=False, Ngrid=960, type='regular', 
+            xrange=[0.01, 1.0], yrange=[10**2, 3*10**5])
+    plot_pk_fibcol_comp(catcorr_methods, n_mock_list, 
+            quad=False, Ngrid=960, type='ratio', 
+            xrange=[0.01, 1.0], yrange=[0.0, 2.0])
     #plot_pk_fibcol_comp(catcorr_methods, n_mock_list, 
     #        quad=True, Ngrid=960, type='kPk', 
     #        xrange=[0.01, 1.0], yrange=[10**0, 3*10**3])

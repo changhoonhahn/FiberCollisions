@@ -974,9 +974,9 @@ if __name__=='__main__':
         fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     '''
     #fc_data.build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr)
-    build_pk('nseries', 1, corrections=[{'name': 'true'}], grid=960, quad=False) 
-    build_pk('nseries', 1, corrections=[{'name': 'peakshot'}], grid=960, quad=False) 
-    build_pk('nseries', 1, corrections=[{'name': 'photozpeakshot'}], grid=960, quad=False) 
+    build_pk('nseries', 20, corrections=[{'name': 'true'}], grid=960, quad=False) 
+    build_pk('nseries', 20, corrections=[{'name': 'peakshot'}], grid=960, quad=False) 
+    build_pk('nseries', 20, corrections=[{'name': 'photozpeakshot'}], grid=960, quad=False) 
     #build_pk('bigmd3', 1, grid=960, quad=False) 
     #build_pk('bigmd3', 1, grid=1920, quad=False) 
     #build_pk('ldgdownnz', 10, clobber=True, quad=False) 
