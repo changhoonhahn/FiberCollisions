@@ -326,7 +326,7 @@ def delta_photoz_specz_cmass():
 if __name__=='__main__': 
     #match_photoz_specz_cmass()
     #delta_photoz_specz_cmass()
-    for i in range(1, 11): 
+    for i in range(1, 2): 
         cat_corr = { 
                 'catalog': {'name': 'nseries', 'n_mock': i}, 
                 'correction': {'name': 'upweight'}

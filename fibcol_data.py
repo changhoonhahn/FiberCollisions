@@ -352,16 +352,17 @@ class galaxy_data:
                     elif 'scratch' in correction['name'].lower():           
                         # scratch pad for different methods 
                         build_nseries_scratch(**cat_corr) 
-
                     elif correction['name'].lower() == 'photoz': 
                         # photoz assigned fiber collided mock 
                         photoz.build_fibcol_assign_photoz(qaplot=False, **cat_corr) 
-
+                    elif correction['name'].lower() == 'photozpeakshot': 
+                        # Peak Shot correction using photometric redshift information
+                        build_photoz_peakcorrected_fibcol(**cat_corr)
                     else: 
                         raise NotImplementedError() 
 
-                # corrections to column assignment
-                if correction['name'].lower() == 'photoz': 
+                if 'photoz' in correction['name'].lower(): 
+                    # corrections to column assignment for methods involve photometry
                     catalog_columns = ['ra', 'dec', 'z', 'wfc', 'comp', 
                             'zupw', 'upw_index', 'z_photo'] 
                     self.columns = catalog_columns
@@ -2294,11 +2295,19 @@ def build_photoz_peakcorrected_fibcol(**cat_corr):
 
     Notes
     -----
-    * Currently supported peak correction methods: peakshot 
+    * Addresses a number of inefficiences in the previous peakshot code. 
+        * No longer appends new peak corrected galaxies; instead the original galaxy's redshift is replaced with 
+        peak corrected redshift. 
+        * No longer downweights all upweighted galaxies only to re-upweight them later for collided galaxies that reside in 
+        the tail fiber collided galaxies
+    * Choise of +/- 3 sigma for peak sampled dLOS may need to be reviewed. 
 
     '''
     catalog = cat_corr['catalog']
     correction = cat_corr['correction']
+
+    if correction['name'].lower() != 'photozpeakshot': 
+        raise NameError("Only accepts photozpeakshot correction")
 
     # fit functions (using lambda) ------------------------------------------------------------
     fit_func = lambda x, sig: np.exp(-0.5 *x**2/sig**2)
@@ -2342,7 +2351,8 @@ def build_photoz_peakcorrected_fibcol(**cat_corr):
     # photometric redshit dLOS 
     LOS_d_photo = Dc_zphoto - Dc_upw
     
-    # first, determine the definite tails  
+    # first, determine the collided galaxies that are definitely in the tail based on 
+    # photometric redshift 
     def_tail_dlos = np.where( (LOS_d_photo < -175.0) | (LOS_d_photo > 175.0) ) 
     def_tail = (fcoll[0])[def_tail_dlos]
     n_def_tail = len(def_tail) 
@@ -2350,7 +2360,7 @@ def build_photoz_peakcorrected_fibcol(**cat_corr):
     print 'Ngal fiber collided tail', n_fc_tail 
     print 'Ngal fiber collided definitely in tail', n_def_tail 
     
-    # not definitely tails
+    # Then the rest of the collided galaxies are not definitely in the tail 
     not_def_tail = list(
             set(list(fcoll[0])) - set(list(def_tail))
             )
@@ -2361,15 +2371,9 @@ def build_photoz_peakcorrected_fibcol(**cat_corr):
     not_tail_fpeak = 1.0 - np.float(n_fc_tail - n_def_tail)/np.float(n_fcoll - n_def_tail)
     print 'fpeak of not definitely in tail', not_tail_fpeak 
 
-    appended_ra, appended_dec, appended_z, appended_weight = [], [], [], []
-    upweight_again = []
-    if catalog['name'].lower() in ('nseries'): 
-        appended_comp = []   # save comp
-    
+    n_peakcorrected = 0     # Ngal peak corrected
     for i_mock in not_def_tail: 
-        # go through each fibercollided galaxy definitely not in the tail        
-        # smarter than the other correction in that it does not downweight all upweighted galaxies 
-        # only to re-upweight them later for tail fiber collided galaxies
+        # go through each fibercollided galaxy not definitely in the tail        
         
         # use new fpeak that excludes definitely tail galaxies
         # to deterimine whether galxay is in peak or not 
@@ -2377,24 +2381,20 @@ def build_photoz_peakcorrected_fibcol(**cat_corr):
 
         if rand_num <= not_tail_fpeak:     # sampled in the peak 
             # sample a dLOS from the best-fit Gaussian dLOS PDF then place 
-            # galaxy with wfc = 1 dLOS away from the upweighted galaxy 
+            # the collided galaxy with wfc = 1 dLOS away from the upweighted galaxy 
             # and then downweight the upweighted galaxy 
 
             data.weight[ (data.upw_index)[i_mock] ] -= 1.0  # downweight UPW galaxy 
+            data.weight[i_mock] += 1.0  # upweight collided galaxy 
+            if data.weight[i_mock] > 1.0:
+                raise NameError('something went wrong') 
 
             # comoving distance of upweighted galaxy
             comdis_upw = cosmos.distance.comoving_distance(
                     data.z[ (data.upw_index)[i_mock] ], **cosmo) * cosmo['h']
         
-            appended_ra.append(data.ra[i_mock])     # keep ra and dec
-            appended_dec.append(data.dec[i_mock])
-            if catalog['name'].lower() in ('nseries'):  
-                # since comp is dependent on angle
-                appended_comp.append(data.comp[i_mock]) 
-            append_weight.append(1.0) 
-
-            if correction['fit'].lower() in ('guass'):
-                # compute the displacement within the peak using best-fit function 
+            # compute the displacement within the peak using best-fit function 
+            if correction['fit'].lower() in ('gauss'):  # Gaussian 
 
                 rand1 = np.random.random(1) # random number
                 
@@ -2406,31 +2406,28 @@ def build_photoz_peakcorrected_fibcol(**cat_corr):
             else: 
                 NotImplementedError('Not yet implemented') 
                 
-            # in case the displacement falls out of bound (may generate large scale issues)
+            # in case the displaced coliided galaxy falls out of bound (may generate large scale issues)
             # this will skew the dLOS displacement slightly at low and high redshift limits 
             if (comdis_upw + rand2 > survey_comdis_max) or (comdis_upw + rand2 < survey_comdis_min): 
                 collided_z = comdis2z(comdis_upw-rand2, **cosmo)
-            else: 
+            else:
                 collided_z = comdis2z(comdis_upw+rand2, **cosmo)
 
-            appended_z.append(collided_z[0]) 
-    
-    print len(appended_ra), ' galaxies were peak corrected'
-    data.ra = np.concatenate([data.ra, appended_ra])
-    data.dec = np.concatenate([data.dec, appended_dec])
-    data.weight = np.concatenate([data.weight, appended_weight])
-    data.z = np.concatenate([data.z, appended_z])
-    if catalog['name'].lower() in ('nseries'): 
-        data.comp = np.concatenate([data_mock.comp, appended_comp])
+            #print data.z[ (data.upw_index)[i_mock] ], data.z[i_mock], collided_z[0] 
+            data.z[i_mock] = collided_z[0]
 
+            n_peakcorrected += 1
+    
+    print n_peakcorrected, ' galaxies were peak corrected'
+
+    # write to file based on mock catalog  
     corrected_file = get_galaxy_data_file('data', **cat_corr) 
     
     if catalog['name'].lower() in ('nseries'): 
         np.savetxt(corrected_file, 
-                np.c_[
-                    fibcoll_mock.ra, fibcoll_mock.dec, fibcoll_mock.z, 
-                    fibcoll_mock.weight, fibcoll_mock.comp], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
+                np.c_[data.ra, data.dec, data.z, data.weight, data.comp, 
+                        data.zupw, data.upw_index, data.z_photo], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%i', '%10.5f'], 
                 delimiter='\t') 
     else: 
         raise NotImplementedError('asdfasdf')

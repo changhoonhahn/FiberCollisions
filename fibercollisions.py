@@ -947,7 +947,7 @@ if __name__=='__main__':
     '''
     cat_corr = { 
             'catalog': {'name': 'nseries', 'n_mock': 1}, 
-            'correction': {'name': 'photoz', 'fpeak': 0.7}
+            'correction': {'name': 'photozpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.7}
             }
     fc_data.build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr)
     #build_pk('bigmd3', 1, grid=360, quad=False) 
