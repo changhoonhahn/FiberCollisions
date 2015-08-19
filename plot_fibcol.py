@@ -1232,10 +1232,12 @@ if __name__=="__main__":
             {'catalog': {'name': 'nseries'}, 'correction': {'name': 'true'}}, 
             {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}, 
             {'catalog': {'name': 'nseries'}, 'correction': {'name': 'peakshot', 
-                'sigma': '4.0', 'fpeak': '0.68', 'fit':'gauss'}}, 
+                'sigma': '4.0', 'fpeak': '0.69', 'fit':'gauss'}}, 
+            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'photozpeakshot', 
+                'sigma': '4.0', 'fpeak': '0.69', 'fit':'gauss'}} 
             ]
 
-    n_mock_list = 1
+    n_mock_list = 20
     plot_pk_fibcol_comp( catcorr_methods, n_mock_list, \
             quad=False, Ngrid=960, type='regular', 
             xrange=[0.01, 1.0], yrange=[10**2, 3*10**5])

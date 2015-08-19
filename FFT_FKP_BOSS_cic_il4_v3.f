@@ -304,7 +304,7 @@ c         fname='/mount/chichipio2/hahn/data/'//lssfile
                wred=wnoz+wfc-1.
                nbb=nbar(az)
                nbg(i)=nbb*comp
-            elseif (idata.eq.3 .or. idata.eq.4 .or. idata.eq.10) then ! QPM and Nseries
+            elseif (idata.eq.3 .or. idata.eq.4) then ! QPM
  33            read(4,*,end=13)ra,dec,az,dum,wred,comp
                !read(5,*,end=13)dum,comp,dum,az2,dum,dum,dum
                !if (abs(az2/az-1.).gt.1.e-5) then
@@ -323,6 +323,11 @@ c         fname='/mount/chichipio2/hahn/data/'//lssfile
                !endif
                nbb=nbar(az)
                wsys=1
+               nbg(i)=nbb*comp
+            elseif (idata.eq.10) then   ! Nseries
+               read(4,*,end=13)ra,dec,az,wred,comp
+               wsys=1.
+               nbb=nbar(az)
                nbg(i)=nbb*comp
             elseif (idata.eq.5) then
                read(4,*,end=13)ra,dec,az,wsys,wnoz,wcp,nbb,comp
@@ -621,7 +626,7 @@ c               read(4,*,end=15)ra,dec,az,nbb
                comp=wcomp
                nbb=nbar(az)
                nbr(i)=nbb*comp ! number density as given in randoms (comp weighted)
-            elseif (idata.eq.3 .or. idata.eq.4 .or. idata.eq.10) then !QPM and Nseries
+            elseif (idata.eq.3 .or. idata.eq.4) then !QPM and Nseries
  17            read(4,*,end=15)ra,dec,az,dum,comp
                !17            read(4,*,end=15)ra,dec,az,comp,iveto
                !if (ifc.eq.1) then ! fiber colls + veto mask
@@ -632,6 +637,12 @@ c               read(4,*,end=15)ra,dec,az,nbb
                nbb=nbar(az)
                wsys=1.
                wred=1.
+               nbr(i)=nbb*comp ! number density as given in randoms (comp weighted)
+            elseif (idata.eq.10) then 
+               read(4,*,end=15)ra,dec,az,comp   ! Nseries
+               wsys=1.
+               wred=1.
+               nbb=nbar(az)
                nbr(i)=nbb*comp ! number density as given in randoms (comp weighted)
             elseif (idata.eq.5) then
                read(4,*,end=15)ra,dec,az,nbb,comp

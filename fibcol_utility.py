@@ -187,37 +187,37 @@ def fortran_code(fft_power, **cat_corr):
             raise NameError("not Yet coded") 
     
     elif catalog['name'].lower() == 'nseries':              # N series ------------------
-        code_dir = 'Nseries/'
+        code_dir = 'Nseries/'   # directory
         
-        if fft_power.lower() == 'fft':          # FFT
+        if fft_power.lower() == 'fft':          # FFT code
             if correction['name'].lower() == 'floriansn': 
-                f_code = code_dir+'FFT-nseries-fkp-w-nbar-florian-'+str(spec['grid'])+'grid.f'
+                code_file = 'FFT-nseries-fkp-w-nbar-florian-'+str(spec['grid'])+'grid.f'
             elif correction['name'].lower() == 'hectorsn': 
-                f_code = code_dir+'FFT-nseries-fkp-w-nbar-hector-'+str(spec['grid'])+'grid.f'
+                code_file = 'FFT-nseries-fkp-w-nbar-hector-'+str(spec['grid'])+'grid.f'
             else: 
-                f_code = code_dir+'FFT-nseries-fkp-w-nbar-'+str(spec['grid'])+'grid.f'
+                code_file = 'FFT-nseries-fkp-w-nbar-'+str(spec['grid'])+'grid.f'
     
-        elif fft_power.lower() == 'power': 
+        elif fft_power.lower() == 'power':      # power code
             if correction['name'].lower() in ('true', 'upweight', 'peaknbar'):
                 # normal FKP shot noise correction
                 if spec['grid'] == 360: 
-                    f_code = code_dir+'power-nseries-fkp-w-nbar-360grid-180bin.f'
+                    code_file = 'power-nseries-fkp-w-nbar-360grid-180bin.f'
                 elif spec['grid'] == 960: 
-                    f_code = code_dir+'power-nseries-fkp-w-nbar-960grid-480bin.f'
+                    code_file = 'power-nseries-fkp-w-nbar-960grid-480bin.f'
             elif correction['name'].lower() in \
                     ('peakshot', 'photozpeakshot', 'shotnoise', 'floriansn', 
                             'noweight', 'hectorsn', 'peakshot_dnn'): 
                 # FKP with Igal Irand shot noise correction 
                 if spec['grid'] == 360: 
-                    f_code = code_dir+'power-nseries-fkp-w-nbar-Igal-Irand-360grid-180bin.f'
+                    code_file = 'power-nseries-fkp-w-nbar-Igal-Irand-360grid-180bin.f'
                 elif spec['grid'] == 960: 
-                    f_code = code_dir+'power-nseries-fkp-w-nbar-Igal-Irand-960grid-480bin.f'
+                    code_file = 'power-nseries-fkp-w-nbar-Igal-Irand-960grid-480bin.f'
             elif 'scratch' in correction['name'].lower(): 
                 # FKP with Igal Irand shot noise correction (for scratch pad corrections) 
                 if spec['grid'] == 360: 
-                    f_code = code_dir+'power-nseries-fkp-w-nbar-Igal-Irand-360grid-180bin.f'
+                    code_file = 'power-nseries-fkp-w-nbar-Igal-Irand-360grid-180bin.f'
                 elif spec['grid'] == 960: 
-                    f_code = code_dir+'power-nseries-fkp-w-nbar-Igal-Irand-960grid-480bin.f'
+                    code_file = 'power-nseries-fkp-w-nbar-Igal-Irand-960grid-480bin.f'
             else: 
                 raise NameError('asldkfjasdf') 
 
@@ -225,12 +225,14 @@ def fortran_code(fft_power, **cat_corr):
         # regardess of catalog or correction TEMPORARILY HARDCODED HERE FOR TEST RUN 
         elif fft_power.lower() == 'quadfft': 
             code_dir = '/home/users/hahn/powercode/FiberCollisions/' 
-            f_code = code_dir+'FFT_FKP_BOSS_cic_il4_v3.f' 
+            code_file = 'FFT_FKP_BOSS_cic_il4_v3.f' 
         elif fft_power.lower() == 'quadpower': 
             code_dir = '/home/users/hahn/powercode/FiberCollisions/' 
-            f_code = code_dir+'power_FKP_SDSS_BOSS_v3.f'
+            code_file = 'power_FKP_SDSS_BOSS_v3.f'
         else: 
             raise NameError("not Yet coded") 
+        
+        f_code = ''.join([code_dir, code_file]) 
 
     elif catalog['name'].lower() == 'patchy':               # PATCHY --------------------
         code_dir = '/home/users/hahn/powercode/FiberCollisions/PATCHY/dr12/v6c/'

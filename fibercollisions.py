@@ -914,8 +914,7 @@ def build_pk(params):
                 corr['fpeak'] = 0.7
             else: 
                 NotImplementedError('Catalog not yet included') 
-    print cat, i_mock, corr, spec
-    #build_fibcol_pk(cat, i_mock, corr, spec=spec, clobber=clobber) 
+    build_fibcol_pk(cat, i_mock, corr, spec=spec, clobber=clobber) 
     return 
 
 def build_pk_multiprocessing(catalog, n_mocks, Nthreads=5, **kwargs): 
@@ -1029,8 +1028,9 @@ if __name__=='__main__':
         fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     '''
     #fc_data.build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr)
-    build_pk_multiprocessing('nseries', 2, 
-            corrections=[{'name': 'true'}, {'name': 'peakshot'}, {'name': 'photozpeakshot'}], grid=960, quad=False)
+    build_pk_multiprocessing('nseries', 20, 
+            corrections=[{'name': 'true'}, {'name': 'upweight'}, {'name': 'peakshot'}, {'name': 'photozpeakshot'}], 
+            grid=360, quad=True)
     #build_pk('bigmd3', 1, grid=960, quad=False) 
     #build_pk('ldgdownnz', 10, clobber=True, quad=False) 
     #build_pk('lasdamasgeo', 10, clobber=False, grid=360, quad=False) 
