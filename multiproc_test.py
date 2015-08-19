@@ -3,20 +3,25 @@ import numpy as np
 import fibcol_data as fc_data
 
 
-def f(x): 
-    print x**3
-    return x**3
+def f(DorR, cat_corr): 
+    print DorR
+    print cat_corr
+    #fc_data.galaxy_data('data', **cat_corr) 
+    return 
 
 if __name__=="__main__": 
-
     pool = mp.Pool(processes=5) 
     mapfn = pool.map
 
-    arglist = np.arange(1,101)
-    arglists = [arglist]
-    #arglists = np.split(arglist, 5) 
+    arglist = [
+            ('data', 
+                {'catalog': {'name': 'nseries', 'n_mock': i_mock}, 
+                    'correction': {'name': 'photozpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.69}
+                    }
+                ) 
+            for i_mock in np.arange(1,101)]
 
-    result = mapfn(f, [ags for ags in arglists])
+    result = mapfn(f, [ags for ags in arglist])
 
     pool.close()
     pool.terminate()

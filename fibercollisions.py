@@ -3,6 +3,8 @@ import os.path
 import time 
 import subprocess
 import cosmolopy as cosmos
+import multiprocessing as mp 
+
 import fibcol_nbar as fc_nbar
 import fibcol_data as fc_data
 import fibcol_spec as fc_spec
@@ -842,13 +844,16 @@ def pk_fibcol_comp(catalog_name, n_mock, corr_methods):
 
     print corr_methods[min_index+1]
 
-def build_pk(catalog, n_mocks, quad=False, clobber=True, **kwargs): 
-    ''' Wrapper to build powerspectrum (monopole or quadrupole) for mock catalogs (QPM, Nseries, LasDamasGeo, TilingMock) 
+def build_pk(params): 
+    ''' Wrapper to build powerspectrum (monopole or quadrupole) for mock catalogs
 
     Parameters
     ----------
-    catalog : name of catalog  
-    n_mocks : # of mocks 
+    params : [ catalog, i_mock, kwargs ] 
+        * catalog : catalog name
+        * correction : correction name (true, upweight, peakshot, etc) 
+        * i_mock : mock #
+        * kwargs : all other arguments
 
     Notes
     -----
@@ -857,8 +862,24 @@ def build_pk(catalog, n_mocks, quad=False, clobber=True, **kwargs):
     * Nseries peakshot bestfit parameters: {'name': 'peakshot', 'sigma': 4.0, 'fpeak': 0.7, 'fit': 'gauss'}
     * TilingMock peakshot bestfit parameters: {'name': 'peakshot', 'sigma': 4.8, 'fpeak': 0.62, 'fit': 'gauss'}
     * If peakshot or other methods are selected then best-fit values are automatically loaded 
-
+    * Used for multiprocessing
+    
     '''
+    catalog = params[0] 
+    correction = params[1]
+    i_mock = params[2] 
+    kwargs = params[3] 
+    
+    try:        # monopole or quadrupole 
+        quad = kwargs['quad'] 
+    except KeyError: 
+        quad = False
+
+    try:        # when in doubt clobber!
+        clobber = kwargs['clobber'] 
+    except KeyError: 
+        clobber = True
+
     try:        # grid size
         Ngrid = kwargs['grid']
     except KeyError: 
@@ -869,8 +890,53 @@ def build_pk(catalog, n_mocks, quad=False, clobber=True, **kwargs):
     except KeyError: 
         cosmology = 'fiducial'
 
-    try: 
+    cat = {'name': catalog, 'cosmology': cosmology} 
+    spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':Ngrid, 'quad':quad}
+    corr = {'name': correction.lower()} 
+    
+    if 'peak' in correction.lower(): 
+        # unless specified set fit, sigma, and fpeak to 
+        # best-fit function parameters 
+        try: 
+            corr['sigma'] 
+        except KeyError: 
+            if catalog == 'tilingmock':
+                corr['fit'] = 'gauss'
+                corr['sigma'] = 4.8
+                corr['fpeak'] = 0.62
+            elif catalog == 'nseries': 
+                corr['fit'] = 'gauss'
+                corr['sigma'] = 4.0
+                corr['fpeak'] = 0.69
+            elif catalog == 'cmass': 
+                corr['fit'] = 'gauss'
+                corr['sigma'] = 6.9
+                corr['fpeak'] = 0.7
+            else: 
+                NotImplementedError('Catalog not yet included') 
+    print cat, i_mock, corr, spec
+    #build_fibcol_pk(cat, i_mock, corr, spec=spec, clobber=clobber) 
+    return 
+
+def build_pk_multiprocessing(catalog, n_mocks, Nthreads=5, **kwargs): 
+    ''' Multiprocessing wrapper for build_pk function  
+
+    Parameters
+    ----------
+    catalog : Name of mock catalog 
+    n_mocks : Number of mock catalogs 
+    Nthreads : Number of threads to use for multiprocessing (default is 5)  
+    kwargs : other parameters
+
+    Notes
+    -----
+    * 
+
+    '''
+    
+    try:            # correction method 
         corrs = kwargs['corrections'] 
+        kwargs.pop('corrections', None)
     except KeyError: 
         # preset hardcoded correction list 
         if catalog == 'tilingmock':
@@ -884,34 +950,23 @@ def build_pk(catalog, n_mocks, quad=False, clobber=True, **kwargs):
     if isinstance(corrs, dict): 
         # if only one correction is specified 
         corrs = [corrs] 
+    
+    try: 
+        n_mock_list = kwargs['n_mocks']
+    except KeyError:
+        n_mock_list = np.arange(1, n_mocks+1)
 
-    cat = {'name': catalog, 'cosmology': cosmology} 
-    spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':Ngrid, 'quad':quad}
+    pool = mp.Pool(processes=Nthreads) 
+    mapfn = pool.map 
+    
+    # argument list to pass to build_pk() 
+    arglist = [ [catalog, corr['name'],i_mock,  kwargs] for corr in corrs for i_mock in n_mock_list] 
 
-    for i_mock in range(1, n_mocks+1): 
-        for corr in corrs: 
-            if 'peak' in corr['name'].lower(): 
-                # unless specified set fit, sigma, and fpeak to 
-                # best-fit function parameters 
-                try: 
-                    corr['sigma'] 
-                except KeyError: 
-                    if catalog == 'tilingmock':
-                        corr['fit'] = 'gauss'
-                        corr['sigma'] = 4.8
-                        corr['fpeak'] = 0.62
-                    elif catalog == 'nseries': 
-                        corr['fit'] = 'gauss'
-                        corr['sigma'] = 4.0
-                        corr['fpeak'] = 0.69
-                    elif catalog == 'cmass': 
-                        corr['fit'] = 'gauss'
-                        corr['sigma'] = 6.9
-                        corr['fpeak'] = 0.7
-                    else: 
-                        NotImplementedError('Catalog not yet included') 
-
-            build_fibcol_pk(cat, i_mock, corr, spec=spec, clobber=clobber) 
+    mapfn( build_pk, [arg for arg in arglist]) 
+    pool.close()
+    pool.terminate()
+    pool.join() 
+    return 
 
 # Compare fiber collisions of data 
 def fibcol_now_fraction(**cat_corr): 
@@ -974,11 +1029,9 @@ if __name__=='__main__':
         fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     '''
     #fc_data.build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr)
-    build_pk('nseries', 20, corrections=[{'name': 'true'}], grid=960, quad=False) 
-    build_pk('nseries', 20, corrections=[{'name': 'peakshot'}], grid=960, quad=False) 
-    build_pk('nseries', 20, corrections=[{'name': 'photozpeakshot'}], grid=960, quad=False) 
+    build_pk_multiprocessing('nseries', 2, 
+            corrections=[{'name': 'true'}, {'name': 'peakshot'}, {'name': 'photozpeakshot'}], grid=960, quad=False)
     #build_pk('bigmd3', 1, grid=960, quad=False) 
-    #build_pk('bigmd3', 1, grid=1920, quad=False) 
     #build_pk('ldgdownnz', 10, clobber=True, quad=False) 
     #build_pk('lasdamasgeo', 10, clobber=False, grid=360, quad=False) 
     #build_pk('patchy', 10, clobber=False, grid=960, quad=False) 
