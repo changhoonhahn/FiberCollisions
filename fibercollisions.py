@@ -1029,8 +1029,9 @@ if __name__=='__main__':
     '''
     #fc_data.build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr)
     build_pk_multiprocessing('nseries', 20, 
-            corrections=[{'name': 'true'}, {'name': 'upweight'}, {'name': 'peakshot'}, {'name': 'photozpeakshot'}], 
+            corrections=[{'name': 'scratch_peakknown'}], 
             grid=360, quad=True)
+            #corrections=[{'name': 'true'}, {'name': 'upweight'}, {'name': 'peakshot'}, {'name': 'photozpeakshot'}], 
     #build_pk('bigmd3', 1, grid=960, quad=False) 
     #build_pk('ldgdownnz', 10, clobber=True, quad=False) 
     #build_pk('lasdamasgeo', 10, clobber=False, grid=360, quad=False) 

@@ -2949,7 +2949,6 @@ def build_nseries_scratch(**cat_corr):
             orig_wfc[i_now_peak] = 1.0
             orig_wfc[upw_index[i_now_peak]] -= 1.0
 
-
         scratch_file = get_galaxy_data_file('data', **cat_corr) 
         np.savetxt(scratch_file, 
                 np.c_[orig_ra, orig_dec, orig_z, orig_wfc, orig_wcomp], 

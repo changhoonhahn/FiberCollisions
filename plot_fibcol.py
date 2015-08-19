@@ -145,7 +145,7 @@ def plot_pk_fibcol_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
                 i_cat_corr = {'catalog': i_catalog, 'correction': correction, 'spec':spec}
                     
                 power_i = fc_spec.Spec('power', **i_cat_corr)
-                print power_i.file_name
+                #print power_i.file_name
                 power_i.readfile()
 
                 if quad: 
@@ -297,19 +297,28 @@ def plot_pk_fibcol_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
                     print avg_Pk[-5:-1]
                     print avg_Pk_true[-5:-1]
                     print resid_label 
-                    print residual(avg_Pk, avg_Pk_true)[(avg_k > 0.15) & (avg_k < 0.2)]
-                    print avg_k[(avg_k > 0.15) & (avg_k < 0.2)]
                     '''
                 else:
-                    resid_label = ''.join([catalog['name'], ' ', correction['name']])
+
+                    if '_' in correction['name']: 
+                        resid_label = ''.join([catalog['name'], ' ', ' '.join(correction['name'].split('_'))])
+                    else: 
+                        resid_label = ''.join([catalog['name'], ' ', correction['name']])
 
                     sub.scatter(avg_k, residual(avg_Pk, avg_Pk_denom), \
                             color=pretty_colors[i_corr+1], label=resid_label)
                     '''
-                    print resid_label 
                     print residual(avg_P2k, avg_P2k_true)[(avg_k > 0.15) & (avg_k < 0.2)]
                     print avg_k[(avg_k > 0.15) & (avg_k < 0.2)]
                     '''
+                print resid_label 
+                if Ngrid > 360: 
+                    print residual(avg_Pk, avg_Pk_denom)[-100:-1]
+                    print avg_k[-100:-1]
+                else: 
+                    print residual(avg_Pk, avg_Pk_denom)[avg_k > 0.15]
+                    print avg_k[avg_k > 0.15]
+
         
         elif type == 'residual':        # |P_corr(k) - P_true(k)|/Delta P(k) 
 
@@ -1233,6 +1242,7 @@ if __name__=="__main__":
             {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}, 
             {'catalog': {'name': 'nseries'}, 'correction': {'name': 'peakshot', 
                 'sigma': '4.0', 'fpeak': '0.69', 'fit':'gauss'}}, 
+            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'scratch_peakknown'}}, 
             {'catalog': {'name': 'nseries'}, 'correction': {'name': 'photozpeakshot', 
                 'sigma': '4.0', 'fpeak': '0.69', 'fit':'gauss'}} 
             ]
