@@ -828,9 +828,12 @@ def dlos_env(n=3, **cat_corr):
     fig = plt.figure(1, figsize=(14,5))
     sub = fig.add_subplot(1,1,1)
     
-    print 'dNN, Minimum ', min(combined_dNN), ' Maximum ', max(combined_dNN)
+    print 'd'+str(n)+'NN, Minimum ', min(combined_dNN), ' Maximum ', max(combined_dNN)
     # loop through different dNN measurements 
-    dNN_bins = [ (0, 5), (5, 10), (10, 25), (25) ]
+    istart = np.int(np.floor(min(combined_dNN)))
+    iend = np.int(np.floor(max(combined_dNN)))
+    dNN_bins = [ (i, (i+1)) for i in np.arange(istart, iend) ] 
+    #[ (0, 5), (5, 10), (10, 25), (25) ]
     #[ (5*i, 5*(i+1)) for i in np.arange(0, 11) ] 
     for i_bin, dNN_bin in enumerate(dNN_bins): 
         # dNN bin 
@@ -842,21 +845,23 @@ def dlos_env(n=3, **cat_corr):
             bin_label = ''.join([r'$', str(dNN_bin), ' < d_{', str(n), 'NN}']) 
 
         bin_dlos = combined_dlos[bin_index] 
+        if len(bin_dlos) < 50: 
+            continue
         
         # fraction of total dLOS values 
         bin_perc = np.float( len(bin_dlos) )/np.float( len(combined_dlos) ) * 100.0
 
         dlos_hist, mpc_mid, peak_param  = \
                 dlos_hist_peak_fit(bin_dlos, fit='gauss', peak_range=[-15.0, 15.0])
-        
+
         sub.plot(mpc_mid, dlos_hist, 
-                lw=4, color=pretty_colors[i_bin+1], 
+                lw=4, color=pretty_colors[((i_bin+1) % 20)], 
                 label = bin_label+',\;( '+('%.1f' % bin_perc)+'\%) $') 
     
         fit_label = r'$\sigma ='+('%.2f' % peak_param['sigma'])+\
                 ', f_{peak} = '+('%.2f' % peak_param['fpeak'])+'$'
         sub.plot(mpc_mid, peak_gauss(mpc_mid, [peak_param['amp'], peak_param['sigma']]), 
-                lw=4, ls='--', color=pretty_colors[i_bin+1], label=fit_label)
+                lw=4, ls='--', color=pretty_colors[((i_bin+1) % 20)], label=fit_label)
 
         try:        # save avg_dNN and fpeak values 
             dNN_avg.append( 0.5 * np.float(dNN_bin[0] + dNN_bin[1]) ) 
@@ -870,8 +875,9 @@ def dlos_env(n=3, **cat_corr):
 
     sub.set_xlabel(r"$d_{LOS}$ (Mpc/h)", fontsize=20) 
     sub.set_xlim([-50.0, 50.0])
-    sub.legend(loc='upper left') 
-    
+    if len(dNN_bins) < 5: 
+        sub.legend(loc='upper left') 
+    sub.set_ylim([0.0, 0.1]) 
     fig_file = ''.join(['figure/', 
         'dlos_env_dependence_d', str(n), 'NN_', catalog['name'], '.png']) 
 
@@ -2278,10 +2284,11 @@ def combined_catalog_dlos_fits(catalog, n_mock):
         raise NameError('asdfasdfasdf')  
 
 if __name__=="__main__": 
+
+    cat_corr = {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}} 
     pool = mp.Pool(processes=5)
     mapfn = pool.map
     
-    cat_corr = {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}} 
     arglist = [ [i, cat_corr] for i in [1,2,3,4,5,10] ]
     
     mapfn( dlos_env_multiprocess, [arg for arg in arglist])
