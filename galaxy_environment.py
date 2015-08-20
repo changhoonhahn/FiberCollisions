@@ -53,26 +53,41 @@ def n_nearest(n=3, **cat_corr):
 
 def d_NN(ra, dec, redshift, n=3, **cat_corr): 
     ''' Get nth nearest neighbor distances for input ra, dec, z (n = 3 by default) 
+
+    Parameters
+    ----------
+    ra : Target RA array 
+    dec : Target Dec array 
+    redshift : Target Redshift array 
+    n : n th nearest neighbor (default 3) 
+    cat_corr : catalog correction dictionary 
+
+    Notes 
+    -----
+
     '''
 
     # make sure that correction is upweight 
-    if (cat_corr['correction'])['name'].lower() != 'upweight': 
-        cat_corr['correction'] = {'name': 'upweight'} 
+    cat_corr['correction'] = {'name': 'upweight'} 
 
-    gal_data = fc_data.galaxy_data('data', readdata=True, **cat_corr)       # read data 
+    gal_data = fc_data.galaxy_data('data', **cat_corr)      # read data 
     
-    if 'weight' in gal_data.__dict__.keys():        # accounts for poorly planned column names 
+    if 'weight' in gal_data.__dict__.keys():    
+        # accounts for poorly planned column names 
         fc_weights = gal_data.weight
     else: 
         fc_weights = gal_data.wfc
     
-    in_catalog = fc_weights > 0 
+    in_catalog = np.where(fc_weights > 0)     # only galaxy with fibers
     
-    x, y, z = fc_util.radecz_to_xyz(gal_data.ra, gal_data.dec, gal_data.z, **gal_data.cosmo) 
+    # convert RA, Dec, z to x,y,z
+    x, y, z = fc_util.radecz_to_xyz(
+            (gal_data.ra)[in_catalog], (gal_data.dec)[in_catalog], (gal_data.z)[in_catalog], 
+            **gal_data.cosmo)    # mock catalog
 
-    targ_x, targ_y, targ_z = fc_util.radecz_to_xyz(ra, dec, redshift, **gal_data.cosmo) 
+    targ_x, targ_y, targ_z = fc_util.radecz_to_xyz(ra, dec, redshift, **gal_data.cosmo)     # target
 
-    tree = scipy.spatial.KDTree( zip( x[in_catalog], y[in_catalog], z[in_catalog] ) )   # set up KD Tree
+    tree = scipy.spatial.KDTree( zip(x, y, z) )   # set up KD Tree
     
     # query KD Tree for n+1 neighbors because it counts itself
     distance, index = tree.query( zip( targ_x, targ_y, targ_z ), k = n+1 ) 
@@ -94,13 +109,17 @@ def build_dlos_d_NN(n=3, **cat_corr):
     dLOS = fc_dlos.dlos(**cat_corr) 
 
     if 'targ_ra' not in dLOS.__dict__.keys():   # make sure target info is stored
-        raise NameError('Asdfadkfasdf') 
-
+        raise NameError('Target information not included in dLOS') 
+    
+    # obtain dNN values for dLOS target galaxies
     NN_dist = d_NN( dLOS.targ_ra, dLOS.targ_dec, dLOS.targ_z, n=n, **cat_corr) 
-
+    
+    # write dNN values to file
     NN_dist_file = dlos_d_NN_file(n=n, **cat_corr) 
     print 'Writing ', NN_dist_file
-    np.savetxt(NN_dist_file, np.c_[NN_dist], fmt=['%10.5f']) 
+    np.savetxt(NN_dist_file, 
+            np.c_[NN_dist], 
+            fmt=['%10.5f']) 
 
 def dlos_d_NN(n=3, clobber=False, **cat_corr): 
     ''' Get nth nearest neighbor distance for dLOS file 
@@ -108,11 +127,10 @@ def dlos_d_NN(n=3, clobber=False, **cat_corr):
 
     NN_dist_file = dlos_d_NN_file(n=n, **cat_corr)      # dNN file  
     
-    if (os.path.isfile(NN_dist_file) == False) or (clobber == True): 
+    if not os.path.isfile(NN_dist_file) or clobber: 
         build_dlos_d_NN(n=n, **cat_corr)  
     else: 
         pass
 
     dNN = np.loadtxt(NN_dist_file, unpack=True, usecols=[0])
-
     return dNN 

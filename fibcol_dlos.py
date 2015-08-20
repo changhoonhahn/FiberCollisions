@@ -14,6 +14,7 @@ import sys
 import os.path
 import subprocess
 import cosmolopy as cosmos
+import multiprocessing as mp
 
 # -- Local -- 
 import fibcol_data as fc_data
@@ -781,40 +782,47 @@ def average_dlos_fpeak(**cat_corr):
 
 # dLOS environment dependence  ---------------------------------
 def dlos_env(n=3, **cat_corr):
-    ''' Using kth nearest neighbor distance compare dlos distrubtion for 
-    different galaxy environment 
+    ''' Compare dLOS distribution for different nth nearest neighbor distance bins (galaxy environment)
+
+    Parameters
+    ----------
+    n : n in nth nearest neighbor distance 
+    cat_corr : catalog and correction dictionary 
+    
+    Notes
+    -----
+
     '''
     catalog = cat_corr['catalog']
     correction = {'name': 'upweight'} 
    
-    # Read in dLOS data ----------------------------------------------------------------------
-    if catalog['name'].lower() == 'qpm':    # QPM --------------------------------------------
+    # Read in dLOS data 
+    if catalog['name'].lower() in ('qpm', 'nseries'):    # QPM or Nseries
 
-        for i_mock in range(1, 11):         # loop through mocks 
-            
-            # read dLOS for each file 
+        for i_mock in range(1, 10):         # combine dLOS values of n mocks 
+
+            # read dLOS for each mock  
             i_catalog = catalog.copy() 
             i_catalog['n_mock'] = i_mock 
             i_cat_corr = {'catalog':i_catalog, 'correction': correction} 
-            print i_cat_corr
 
-            los_disp_i = dlos(**i_cat_corr)         # import DLOS values from each mock 
+            los_disp_i = dlos(**i_cat_corr)         # import DLOS values 
+
             # compute nth nearest neighbor distance for upweighted galaxy  
             NN_dist = genv.dlos_d_NN(n=n, **i_cat_corr ) 
             
-            # combine dLOS and dNN from files 
+            # combine dLOS and dNN values  
             try: 
-                combined_dlos
+                combined_dlos = np.concatenate([combined_dlos, los_disp_i.dlos])
+                combined_dNN = np.concatenate([combined_dNN, NN_dist]) 
             except NameError: 
                 combined_dlos = los_disp_i.dlos
                 combined_dNN = NN_dist
-            else: 
-                combined_dlos = np.concatenate([combined_dlos, los_disp_i.dlos])
-                combined_dNN = np.concatenate([combined_dNN, NN_dist]) 
 
     else: 
         raise NotImplementedError('asdfasdfasdf') 
-
+    
+    # set up figure 
     prettyplot() 
     pretty_colors = prettycolors() 
     fig = plt.figure(1, figsize=(14,5))
@@ -822,17 +830,20 @@ def dlos_env(n=3, **cat_corr):
     
     print 'dNN, Minimum ', min(combined_dNN), ' Maximum ', max(combined_dNN)
     # loop through different dNN measurements 
-    dNN_bins = [
-            (0, 5), (5, 10), (10, 25), (25, 50)
-            ]
-
+    dNN_bins = [ (0, 5), (5, 10), (10, 25), (25) ]
     #[ (5*i, 5*(i+1)) for i in np.arange(0, 11) ] 
-
     for i_bin, dNN_bin in enumerate(dNN_bins): 
-
-        bin_index = ( combined_dNN >= dNN_bin[0] ) & ( combined_dNN < dNN_bin[1] ) 
+        # dNN bin 
+        try: 
+            bin_index = np.where(( combined_dNN >= dNN_bin[0] ) & ( combined_dNN < dNN_bin[1] )) 
+            bin_label = ''.join([r'$', str(dNN_bin[0]), ' < d_{', str(n), 'NN} < ', str(dNN_bin[1])]) 
+        except TypeError: 
+            bin_index = np.where((combined_dNN >= dNN_bin)) 
+            bin_label = ''.join([r'$', str(dNN_bin), ' < d_{', str(n), 'NN}']) 
 
         bin_dlos = combined_dlos[bin_index] 
+        
+        # fraction of total dLOS values 
         bin_perc = np.float( len(bin_dlos) )/np.float( len(combined_dlos) ) * 100.0
 
         dlos_hist, mpc_mid, peak_param  = \
@@ -840,8 +851,7 @@ def dlos_env(n=3, **cat_corr):
         
         sub.plot(mpc_mid, dlos_hist, 
                 lw=4, color=pretty_colors[i_bin+1], 
-                label=r'$'+str(dNN_bin[0])+' < d_'+str(n)+'NN < '+str(dNN_bin[1])+\
-                        ',\;( '+('%.1f' % bin_perc)+'\%) $') 
+                label = bin_label+',\;( '+('%.1f' % bin_perc)+'\%) $') 
     
         fit_label = r'$\sigma ='+('%.2f' % peak_param['sigma'])+\
                 ', f_{peak} = '+('%.2f' % peak_param['fpeak'])+'$'
@@ -854,13 +864,18 @@ def dlos_env(n=3, **cat_corr):
         except NameError: 
             dNN_avg = [0.5 * np.float(dNN_bin[0] + dNN_bin[1])]
             fpeaks = [peak_param['fpeak']]
+        except TypeError: 
+            dNN_avg.append( np.float(dNN_bin) ) 
+            fpeaks.append( peak_param['fpeak'] ) 
 
     sub.set_xlabel(r"$d_{LOS}$ (Mpc/h)", fontsize=20) 
     sub.set_xlim([-50.0, 50.0])
     sub.legend(loc='upper left') 
+    
+    fig_file = ''.join(['figure/', 
+        'dlos_env_dependence_d', str(n), 'NN_', catalog['name'], '.png']) 
 
-    fig.savefig(fc_util.get_fig_dir()+\
-            'dlos_env_dependence_d'+str(n)+'NN.png', bbox_inches="tight")
+    fig.savefig(fig_file, bbox_inches="tight")
     fig.clear()
     
     # plot fpeak over avg d_NN and best fit 
@@ -877,14 +892,24 @@ def dlos_env(n=3, **cat_corr):
     fit_yint = fit_param.params[1]
 
     sub.plot( np.array(dNN_avg), fit_linear(np.array(dNN_avg), fit_param.params), lw=4, ls='--', c='k')       # plot best line fit 
-
     sub.set_xlabel('$\mathtt{d_{'+str(n)+'NN}}$', fontsize=20) 
     sub.set_ylabel('$\mathtt{f_{peak}}$', fontsize=20) 
     sub.set_xlim([0.0, 50.0]) 
     sub.set_ylim([0.0, 1.0])
-    fig.savefig(fc_util.get_fig_dir()+\
-            'dlos_fpeak_d'+str(n)+'NN.png', bbox_inches="tight")
+
+    fig_file = ''.join(['figure/', 
+        'dlos_fpeak_d', str(n), 'NN_', catalog['name'], '.png'])
+    fig.savefig(fig_file, bbox_inches="tight")
     fig.clear()
+
+def dlos_env_multiprocess(params): 
+    ''' Wrapper for dlos_env function 
+    '''
+    n = params[0]
+    cat_corr = params[1]
+
+    dlos_env(n=n, **cat_corr)
+    return 
 
 def build_fpeak_env(n=3, **cat_corr): 
     ''' Build best fit for fpeak(d_NN) and save parameters
@@ -2253,10 +2278,18 @@ def combined_catalog_dlos_fits(catalog, n_mock):
         raise NameError('asdfasdfasdf')  
 
 if __name__=="__main__": 
-    cat_corr = {
-            'catalog': {'name': 'nseries', 'n_mock': 1}, 
-            'correction': {'name': 'photoz'}} 
-    photoz_dlos_nseries(10, **cat_corr)
+    pool = mp.Pool(processes=5)
+    mapfn = pool.map
+    
+    cat_corr = {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}} 
+    arglist = [ [i, cat_corr] for i in [1,2,3,4,5,10] ]
+    
+    mapfn( dlos_env_multiprocess, [arg for arg in arglist])
+    pool.close()
+    pool.terminate()
+    pool.join() 
+
+    #photoz_dlos_nseries(10, **cat_corr)
     #fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     #build_dlos(**cat_corr)
 
