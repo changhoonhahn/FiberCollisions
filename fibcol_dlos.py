@@ -499,6 +499,11 @@ def build_dlos(**cat_corr):
             delimiter='\t') 
     '''
 
+def build_dlos_wrapper(params): 
+    ''' Wrapper for build_dlos
+    '''
+    build_dlos(**params)
+    return
 # ------------------------------------------------------------------------------------
 # Tests
 # ------------------------------------------------------------------------------------
@@ -2289,16 +2294,20 @@ if __name__=="__main__":
     pool = mp.Pool(processes=5)
     mapfn = pool.map
     
-    arglist = [ [i, cat_corr] for i in [1,2,3,4,5,10] ]
-    
-    mapfn( dlos_env_multiprocess, [arg for arg in arglist])
-    pool.close()
-    pool.terminate()
-    pool.join() 
+    #arglist = [ [i, cat_corr] for i in [1,2,3,4,5,10] ]
+    #
+    #mapfn( dlos_env_multiprocess, [arg for arg in arglist])
 
     #photoz_dlos_nseries(10, **cat_corr)
     #fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     #build_dlos(**cat_corr)
+
+    arglist = [ {'catalog': {'name': 'nseries', 'n_mock': i_mock}, 'correction': {'name': 'upweight'}} for i_mock in range(9,85)]
+    mapfn(build_dlos_wrapper, [arg for arg in arglist])
+
+    pool.close()
+    pool.terminate()
+    pool.join() 
 
     #combined_dlos_dist(1, **cat_corr)
     #combined_catalog_dlos_fits('lasdamasgeo', 10)
