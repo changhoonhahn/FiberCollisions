@@ -1189,7 +1189,7 @@ def combined_dlos_fit(n_mocks, fit='gauss', sanitycheck=False, clobber=False, **
             else: 
                 combined_dlos = np.concatenate([combined_dlos, los_disp_i.dlos]) 
     
-    elif catalog['name'].lower() == 'cmass':        # CMASS ---------------------------------
+    elif 'cmass' in catalog['name'].lower():        # CMASS ---------------------------------
         # import DLOS values for mock 
         los_disp = dlos(**cat_corr)
 
@@ -2292,8 +2292,6 @@ if __name__=="__main__":
     mapfn( dlos_env_multiprocess, [arg for arg in arglist])
 
     #photoz_dlos_nseries(10, **cat_corr)
-    #fc_data.galaxy_data('data', clobber=True, **cat_corr) 
-    #build_dlos(**cat_corr)
 
     #arglist = [ {'catalog': {'name': 'nseries', 'n_mock': i_mock}, 'correction': {'name': 'upweight'}} for i_mock in range(9,85)]
     #mapfn(build_dlos_wrapper, [arg for arg in arglist])
@@ -2313,7 +2311,8 @@ if __name__=="__main__":
             {'catalog': {'name': 'cmasslowz_low'}, 'correction': {'name': 'upweight'}}
             ]
     for cat_corr in cat_corrs: 
-        dlos(clobber=True, **cat_corr)
+        combined_catalog_dlos_fits((cat_corr['catalog'])['name'], 1)
+
     #{'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}},
     #{'catalog': {'name': 'bigmd1'}, 'correction': {'name': 'upweight'}}, 
     #{'catalog': {'name': 'bigmd2'}, 'correction': {'name': 'upweight'}}, 

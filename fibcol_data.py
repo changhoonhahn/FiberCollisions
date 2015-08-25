@@ -2180,10 +2180,20 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
         elif catalog['name'].lower() == 'nseries': 
             n_mocks = 1 
     
-    elif catalog['name'].lower() in ('cmass', 'bigmd'):             # CMASS, BigMD
+    elif catalog['name'].lower() in ('bigmd'):             # CMASS, BigMD
         survey_zmin, survey_zmax = 0.43, 0.7    # survey redshift limits
         n_mocks = 1 
-
+    
+    elif 'cmass' in catalog['name'].lower():             # CMASS like catalogs
+        if catalog['name'].lower() == 'cmass': 
+            survey_zmin, survey_zmax = 0.43, 0.7    # survey redshift limits
+        elif catalog['name'].lower() == 'cmasslowz_high': 
+            survey_zmin, survey_zmax = 0.5, 0.75    
+        elif catalog['name'].lower() == 'cmasslowz_low': 
+            survey_zmin, survey_zmax = 0.2, 0.5
+        else: 
+            raise NotImplementedError('CMASS or CMASSLOWZ combined sample')
+        n_mocks = 1 
     else: 
         raise NotImplementedError('Mock Catalog not included')
 
@@ -2231,7 +2241,7 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
 
     if catalog['name'].lower() in ('qpm', 'nseries'): 
         appended_comp = []   # save comp
-    elif catalog['name'].lower() in ('cmass'): 
+    elif 'cmass' in catalog['name'].lower(): 
         appended_comp = [] 
         appended_wsys = [] 
         appended_wnoz = [] 
@@ -2240,6 +2250,7 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
         dlos_values = [] 
     
     for i_mock in range(len(fibcoll_mock.weight)):  # go through every galaxy in fibercollided mock catalog
+        # there is a smarter way to do this; however it's not implemented
 
         while fibcoll_mock.weight[i_mock] > 1:      # for galaxies with wcp > 1
 
@@ -2359,7 +2370,7 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
         
     if catalog['name'].lower() in ('qpm', 'nseries'): 
         fibcoll_mock.comp = np.concatenate([fibcoll_mock.comp, appended_comp])
-    elif catalog['name'].lower() in ('cmass'):
+    elif 'cmass' in catalog['name'].lower():
         fibcoll_mock.comp = np.concatenate([fibcoll_mock.comp, appended_comp])
         fibcoll_mock.wsys = np.concatenate([fibcoll_mock.wsys, appended_wsys])
         fibcoll_mock.wnoz = np.concatenate([fibcoll_mock.wnoz, appended_wnoz])
@@ -2376,10 +2387,10 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
                 delimiter='\t') 
 
-    elif catalog['name'].lower() in ('cmass'):          # CAMSS
+    elif 'cmass' in catalog['name'].lower():          # CAMSS
         np.savetxt(peakcorr_file, 
                 np.c_[
-                    fibcoll_mock.ra, fibcoll_mock.dec, fibcoll_mock.z, 
+                    fibcoll_mock.ra, fibcoll_mock.dec, fibcoll_mock.z, fibcoll_mock.nbar
                     fibcoll_mock.wsys, fibcoll_mock.wnoz, fibcoll_mock.weight, 
                     fibcoll_mock.comp], 
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
