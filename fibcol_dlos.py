@@ -804,7 +804,7 @@ def dlos_env(n=3, **cat_corr):
     # Read in dLOS data 
     if catalog['name'].lower() in ('qpm', 'nseries'):    # QPM or Nseries
 
-        for i_mock in range(1, 10):         # combine dLOS values of n mocks 
+        for i_mock in range(1, 85):         # combine dLOS values of n mocks 
 
             # read dLOS for each mock  
             i_catalog = catalog.copy() 
@@ -2294,16 +2294,16 @@ if __name__=="__main__":
     pool = mp.Pool(processes=5)
     mapfn = pool.map
     
-    #arglist = [ [i, cat_corr] for i in [1,2,3,4,5,10] ]
-    #
-    #mapfn( dlos_env_multiprocess, [arg for arg in arglist])
+    arglist = [ [i, cat_corr] for i in [1,2,3,4,5,10] ]
+    
+    mapfn( dlos_env_multiprocess, [arg for arg in arglist])
 
     #photoz_dlos_nseries(10, **cat_corr)
     #fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     #build_dlos(**cat_corr)
 
-    arglist = [ {'catalog': {'name': 'nseries', 'n_mock': i_mock}, 'correction': {'name': 'upweight'}} for i_mock in range(9,85)]
-    mapfn(build_dlos_wrapper, [arg for arg in arglist])
+    #arglist = [ {'catalog': {'name': 'nseries', 'n_mock': i_mock}, 'correction': {'name': 'upweight'}} for i_mock in range(9,85)]
+    #mapfn(build_dlos_wrapper, [arg for arg in arglist])
 
     pool.close()
     pool.terminate()

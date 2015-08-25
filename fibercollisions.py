@@ -944,6 +944,8 @@ def build_pk_multiprocessing(catalog, n_mocks, Nthreads=5, **kwargs):
             corrs = [{'name': 'true'}, {'name': 'upweight'}, {'name': 'peakshot'} ]
         elif catalog == 'cmass': 
             corrs = [{'name': 'upweight'}, {'name': 'peakshot'}]
+        elif catalog == 'patchy': 
+            corrs = [{'name': 'upweight'}, {'name': 'true'}]
         elif 'bigmd' in catalog: 
             corrs = [{'name': 'true'}, {'name': 'upweight'}] 
     if isinstance(corrs, dict): 
@@ -1028,10 +1030,11 @@ if __name__=='__main__':
         fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     '''
     #fc_data.build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr)
-    build_pk_multiprocessing('nseries', 20, 
-            corrections=[{'name': 'scratch_peakknown'}], 
-            grid=360, quad=True)
+    build_pk_multiprocessing('patchy', 100, Nthreads=8,
+            corrections=[{'name': 'true'}, {'name': 'upweight'}], 
+            grid=960, quad=False)
             #corrections=[{'name': 'true'}, {'name': 'upweight'}, {'name': 'peakshot'}, {'name': 'photozpeakshot'}], 
+
     #build_pk('bigmd3', 1, grid=960, quad=False) 
     #build_pk('ldgdownnz', 10, clobber=True, quad=False) 
     #build_pk('lasdamasgeo', 10, clobber=False, grid=360, quad=False) 
