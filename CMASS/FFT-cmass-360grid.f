@@ -1,7 +1,7 @@
       implicit none  !as FFT_FKP_SDSS_LRG_new but removes some hard-cored choices
       integer Nsel,Nran,i,iwr,Ngal,Nmax,n,kx,ky,kz,Lm,Ngrid,ix,iy,iz,j,k
       integer Ng,Nr,iflag,ic,Nbin,l,ipoly,wb,wcp,wred,flag
-      real n_bar,wstar,wnoz,wfc,wcomp
+      real wstar,wnoz,wfc,wcomp,nbb
       integer*8 planf
       real pi,cspeed,Om0,OL0,redtru,m1,m2,zlo,zhi,garb1,garb2,garb3,veto
       parameter(Nsel=201,Nmax=2*10**8,Ngrid=360,Nbin=151,pi=3.141592654)
@@ -74,21 +74,21 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          Ngsyscomp=0.d0
          Ngsystot=0.d0
          do i=1,Nmax
-            read(4,*,end=13)ra,dec,az,wstar,wnoz,wfc,wcomp
+            read(4,*,end=13)ra,dec,az,nbb,wstar,wnoz,wfc,wcomp
             ra=ra*(pi/180.)
             dec=dec*(pi/180.)
             rad=chi(az)
             rg(1,i)=rad*cos(dec)*cos(ra)
             rg(2,i)=rad*cos(dec)*sin(ra)
             rg(3,i)=rad*sin(dec)
-            n_bar=nbar(az)
-            nbg(i)=n_bar*wcomp    ! observed nbar(z)
+            nbb=nbar(az)
+            nbg(i)=nbb*wcomp    ! observed nbar(z)
             cmp(i)=wcomp    ! comp weight 
             wg(i)=(wstar*(wnoz+wfc-1.))/wcomp ! remove comp variations
             Ngal=Ngal+1
             Ngsys=Ngsys+dble(wstar*(wnoz+wfc-1.))
             Ngsyscomp=Ngsyscomp+dble(wg(i))           ! contains comp upweighting
-            Ngsystot=Ngsystot+dble(wg(i)/(1.+n_bar*P0))
+            Ngsystot=Ngsystot+dble(wg(i)/(1.+nbb*P0))
          enddo
  13      continue
          close(4)
@@ -145,21 +145,21 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          Nrsyscomp=0.d0
          Nrsystot=0.d0
          do i=1,Nmax
-            read(4,*,end=15)ra,dec,az,wcomp
+            read(4,*,end=15)ra,dec,az,nbb,wcomp
             ra=ra*(pi/180.)
             dec=dec*(pi/180.)
             rad=chi(az)
             rr(1,i)=rad*cos(dec)*cos(ra)
             rr(2,i)=rad*cos(dec)*sin(ra)
             rr(3,i)=rad*sin(dec)
-            n_bar=nbar(az)
-            nbr(i)=n_bar*wcomp      ! observed nbar(z)  
+            nbb=nbar(az)
+            nbr(i)=nbb*wcomp      ! observed nbar(z)  
             cmp(i)=wcomp            ! save comp weights
             wr(i)=1.0
             Nran=Nran+1
             Nrsys=Nrsys+dble(wr(i)*wcomp)
             Nrsyscomp=Nrsyscomp+dble(wr(i))
-            Nrsystot=Nrsystot+dble(wr(i)/(1.+n_bar*P0))
+            Nrsystot=Nrsystot+dble(wr(i)/(1.+nbb*P0))
          enddo
  15      continue
          close(4)

@@ -498,7 +498,9 @@ class galaxy_data:
                 for i_col, catalog_column in enumerate(catalog_columns): 
                     setattr(self, catalog_column, file_data[i_col])
 
-        elif catalog['name'].lower() == 'cmass':                    # CMASS -----------------
+        elif 'cmass' in catalog['name'].lower():                    # CMASS -----------------
+            # and all CMASS like catalogs including 
+            # 'cmasslowz_high' and 'cmasslowz_low' from CMASS LOWZ combined sample 
             try: 
                 if catalog['cosmology'] == 'fiducial': 
                     # Firm shift in cosmology use to OmegaM = 0.31 in WG 
@@ -511,11 +513,11 @@ class galaxy_data:
                 omega_m = 0.31      # (fiducial cosmology) 
 
             if DorR == 'data':              # data --------------------
-                catalog_columns = ['ra', 'dec', 'z', 'wsys', 'wnoz', 'wfc', 'comp']
+                catalog_columns = ['ra', 'dec', 'z', 'nbar', 'wsys', 'wnoz', 'wfc', 'comp']
                 self.columns = catalog_columns
                 
                 if not os.path.isfile(file_name) or clobber:
-                    # File does not exist or Clobber = True!
+                    # Construct file 
                     print 'Constructing ', file_name 
                     
                     if correction['name'].lower() in ('upweight'): 
@@ -528,14 +530,14 @@ class galaxy_data:
                         raise NotImplementedError('Only upweight works for now') 
 
                 #ra,dec,z,wsys,wnoz,wfc,nbar,comp
-                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4,5,6])   
+                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4,5,6,7])   
 
                 # assign to data columns class
                 for i_col, catalog_column in enumerate(catalog_columns): 
                     setattr(self, catalog_column, file_data[i_col]) 
 
             elif DorR == 'random': 
-                catalog_columns = ['ra', 'dec', 'z', 'comp']
+                catalog_columns = ['ra', 'dec', 'z', 'nbar', 'comp']
                 self.columns = catalog_columns
                 
                 if not os.path.isfile(file_name) or clobber: 
@@ -543,12 +545,12 @@ class galaxy_data:
                     build_random(**cat_corr) 
 
                 #ra,dec,z,nbar,comp
-                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3])  
+                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4])  
 
                 # assign to data columns class
                 for i_col, catalog_column in enumerate(catalog_columns): 
                     setattr(self, catalog_column, file_data[i_col]) 
-
+    
         else: 
             raise NameError('not yet coded') 
         # survey cosmology metadata 
@@ -1063,29 +1065,70 @@ def get_galaxy_data_file(DorR, **cat_corr):
             else: 
                 raise NotImplementedError('asdlfkj')
     
-    elif catalog['name'].lower() == 'cmass':                # CMASS ---------------------
+    elif 'cmass' in catalog['name'].lower():                # CMASS ---------------------
         data_dir = '/mount/riachuelo1/hahn/data/CMASS/'
         
         if DorR == 'data':  # mock catalogs 
-            if correction['name'].lower() in ('upweight'): # upweighted
-                file_name = ''.join([data_dir, 
-                    'cmass-dr12v4-N-Reid.dat']) # hardcoded
-            elif correction['name'].lower() in ('peakshot'): 
-                
-                # correction string in file name 
-                corr_str = ''.join([
-                    '.', correction['fit'].lower(), '.', correction['name'].lower(), 
-                    '.sigma', str(correction['sigma']), '.fpeak', str(correction['fpeak'])])
+            if catalog['name'].lower() == 'cmass': 
+                if correction['name'].lower() in ('upweight'):      
+                    # upweighted
+                    file_name = ''.join([data_dir, 
+                        'cmass-dr12v4-N-Reid.dat']) # hardcoded
+                elif correction['name'].lower() in ('peakshot'):    
+                    # peakshot
+                    # correction string in file name 
+                    corr_str = ''.join([
+                        '.', correction['fit'].lower(), '.', correction['name'].lower(), 
+                        '.sigma', str(correction['sigma']), '.fpeak', str(correction['fpeak'])])
 
-                file_name = ''.join([data_dir, 
-                    'cmass-dr12v4-N-Reid.dat', corr_str]) 
+                    file_name = ''.join([data_dir, 
+                        'cmass-dr12v4-N-Reid.dat', corr_str]) 
+                else: 
+                    raise NotImplementedError('Only upweight and peakshot implemented so far') 
+            elif catalog['name'].lower() == 'cmasslowz_high': 
+                # CMASS LOWZ combined sample high redshift bin 
+                if correction['name'].lower() in ('upweight'):      
+                    # upweighted
+                    file_name = ''.join([data_dir, 
+                        'cmasslowz-dr12v4-N-Reid-high.dat']) # hardcoded
+                elif correction['name'].lower() in ('peakshot'):    
+                    # peakshot
+                    # correction string in file name 
+                    corr_str = ''.join([
+                        '.', correction['fit'].lower(), '.', correction['name'].lower(), 
+                        '.sigma', str(correction['sigma']), '.fpeak', str(correction['fpeak'])])
 
-            else: 
-                raise NotImplementedError('not yet coded') 
+                    file_name = ''.join([data_dir, 
+                        'cmasslowz-dr12v4-N-Reid-high.dat', corr_str]) 
+            elif catalog['name'].lower() == 'cmasslowz_low':
+                # CMASS LOWZ combined sample low redshift bin 
+                if correction['name'].lower() in ('upweight'):      
+                    # upweighted
+                    file_name = ''.join([data_dir, 
+                        'cmasslowz-dr12v4-N-Reid-low.dat']) # hardcoded
+                elif correction['name'].lower() in ('peakshot'):    
+                    # peakshot
+                    # correction string in file name 
+                    corr_str = ''.join([
+                        '.', correction['fit'].lower(), '.', correction['name'].lower(), 
+                        '.sigma', str(correction['sigma']), '.fpeak', str(correction['fpeak'])])
+
+                    file_name = ''.join([data_dir, 
+                        'cmasslowz-dr12v4-N-Reid-low.dat', corr_str]) 
     
         elif DorR == 'random':                  # random catalog 
-            file_name = ''.join([data_dir, 
-                'cmass-dr12v4-N-Reid.ran.dat'])
+            if catalog['name'].lower() == 'cmass': 
+                file_name = ''.join([data_dir, 
+                    'cmass-dr12v4-N-Reid.ran.dat'])
+            elif catalog['name'].lower() == 'cmasslowz_high': 
+                file_name = ''.join([data_dir, 
+                    'cmasslowz-dr12v4-N-Reid-high.ran.dat'])
+            elif catalog['name'].lower() == 'cmasslowz_low': 
+                file_name = ''.join([data_dir, 
+                    'cmasslowz-dr12v4-N-Reid-low.ran.dat'])
+            else: 
+                raise NotImplementedError('lskdfjaklsdfj')
+
     return file_name 
 
 # ------------------------------------------------------------------------
@@ -1269,26 +1312,60 @@ def build_random(**cat_corr):
     cat_corr : Catalog and Correction dictionary
     '''
     catalog = cat_corr['catalog']
-    if catalog['name'].lower() == 'cmass':          # CMASS -------------------------------- 
+    if 'cmass' in catalog['name'].lower():          # CMASS -------------------------------- 
         data_dir = '/mount/riachuelo1/hahn/data/CMASS/'
-        # random data fits file
-        data_file = ''.join([data_dir, 'cmass-dr12v4-N-Reid.ran.fits']) 
-        cmass = mrdfits(data_file) 
-    
-        # mask file 
-        mask_file = ''.join([data_dir, 'mask-cmass-dr12v4-N-Reid.fits']) 
-        mask = mrdfits(mask_file) 
 
-        zlimit = np.where((cmass.z >= 0.43) & (cmass.z <= 0.7))
-        ipoly = cmass.ipoly[zlimit] # polygon index
-        comp = mask.weight[ipoly]
+        if catalog['name'].lower() == 'cmass': 
+            # random data fits file
+            data_file = ''.join([data_dir, 'cmass-dr12v4-N-Reid.ran.fits']) 
+            cmass = mrdfits(data_file) 
+        
+            # mask file 
+            mask_file = ''.join([data_dir, 'mask-cmass-dr12v4-N-Reid.fits']) 
+            mask = mrdfits(mask_file) 
+            ipoly = cmass.ipoly # polygon index
+            comp = mask.weight[ipoly]
+        
+            # redshift limit 
+            zlimit = np.where((cmass.z >= 0.43) & (cmass.z <= 0.7))
+
+        elif catalog['name'].lower() == 'cmasslowz_high': 
+            # random data fits file
+            data_file = ''.join([data_dir, 'cmasslowz-dr12v4-N-Reid.ran.fits']) 
+            cmass = mrdfits(data_file) 
+        
+            # mask file 
+            mask_file = ''.join([data_dir, 'mask-cmasslowz-dr12v4-N-Reid.fits']) 
+            mask = mrdfits(mask_file) 
+            ipoly = cmass.ipoly # polygon index
+            comp = mask.weight[ipoly]
+        
+            # redshift limit 
+            zlimit = np.where((cmass.z >= 0.5) & (cmass.z < 0.75))
+
+        elif catalog['name'].lower() == 'cmasslowz_low': 
+            # random data fits file
+            data_file = ''.join([data_dir, 'cmasslowz-dr12v4-N-Reid.ran.fits']) 
+            cmass = mrdfits(data_file) 
+        
+            # mask file 
+            mask_file = ''.join([data_dir, 'mask-cmasslowz-dr12v4-N-Reid.fits']) 
+            mask = mrdfits(mask_file) 
+            ipoly = cmass.ipoly # polygon index
+            comp = mask.weight[ipoly]
+        
+            # redshift limit 
+            zlimit = np.where((cmass.z >= 0.2) & (cmass.z < 0.5))
+        else: 
+            raise NotImplementedError("Only CMASS and CMASS+LOWZ combined sample implemented") 
 
         #ra, dec, z, nz, comp 
         random_file = get_galaxy_data_file('random', **cat_corr) 
         np.savetxt(random_file, 
                 np.c_[
-                    (cmass.ra)[zlimit], (cmass.dec)[zlimit], (cmass.z)[zlimit], comp], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
+                    (cmass.ra)[zlimit], (cmass.dec)[zlimit], (cmass.z)[zlimit], 
+                    (cmass.nz)[zlimit], comp[zlimit]], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e', '%10.5f'], delimiter='\t') 
 
     elif catalog['name'].lower() == 'qpm':            # QPM ------------------------------
         # read original random catalog  
@@ -1470,24 +1547,48 @@ def build_fibercollided(**cat_corr):
     '''
     catalog = cat_corr['catalog']
 
-    if catalog['name'].lower() == 'cmass':                  # CMASS ---------------------
+    if 'cmass' in catalog['name'].lower():                  # CMASS ---------------------
         data_dir = '/mount/riachuelo1/hahn/data/CMASS/'
-        data_file = ''.join([data_dir, 'cmass-dr12v4-N-Reid.dat.fits']) # fits file 
-        data = mrdfits(data_file)
 
-        zlimit = np.where((data.z >= 0.43) & (data.z <= 0.7))
-        
+        if catalog['name'].lower() == 'cmass': 
+            data_file = ''.join([data_dir, 'cmass-dr12v4-N-Reid.dat.fits']) # fits file 
+            data = mrdfits(data_file)
+
+            zlimit = np.where((data.z >= 0.43) & (data.z <= 0.7))
+
+        elif catalog['name'].lower() == 'cmasslowz_high': 
+            # high redshift bin of the CMASS LOWZ combined sample
+            # 0.5 < z < 0.75
+
+            # original combined data sample
+            data_file = ''.join([data_dir, 
+                'cmasslowz-dr12v4-N-Reid.dat.fits']) 
+            data = mrdfits(data_file) 
+
+            zlimit = np.where((data.z >= 0.5) & (data.z < 0.7))  # redshift limit
+
+        elif catalog['name'].lower() == 'cmasslowz_low': 
+            # high redshift bin of the CMASS LOWZ combined sample
+            # 0.2 < z < 0.5
+
+            # original combined data sample
+            data_file = ''.join([data_dir, 
+                'cmasslowz-dr12v4-N-Reid.dat.fits']) 
+            data = mrdfits(data_file) 
+
+            zlimit = np.where((data.z >= 0.2) & (data.z < 0.5)) # redshift limit 
+    
+        # save to file 
         fc_file = get_galaxy_data_file('data', **cat_corr)
         np.savetxt(fc_file, 
                 np.c_[
-                    (data.ra)[zlimit], (data.dec)[zlimit], (data.z)[zlimit], 
+                    (data.ra)[zlimit], (data.dec)[zlimit], (data.z)[zlimit], (data.nz)[zlimit],
                     (data.weight_systot)[zlimit], (data.weight_noz)[zlimit], 
                     (data.weight_cp)[zlimit], (data.comp)[zlimit]
                     ], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e', 
                     '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
                 delimiter='\t') 
-
         fibcollided_cmd = ''
 
     elif catalog['name'].lower() == 'lasdamasgeo':        # Las Damas Geo 
