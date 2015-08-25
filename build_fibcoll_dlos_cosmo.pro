@@ -151,10 +151,12 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
         ; run sppherematch 
         spherematch, ra_nocp, dec_nocp, ra_upcp, dec_upcp, fib_angscale, m_nocp, m_upcp, d12, maxmatch=0
 
-    endif else if (strlowcase(catalog) EQ 'cmass') then begin 
+    endif else if (strmatch(catalog, '*cmass*', /fold_case) EQ 1) then begin 
+        ; CMASS, CMASS+LOWZ Combined Sample 
         ; omega_m = 0.274
         omega_m = 0.31
-        readcol, mock_file, mock_ra, mock_dec, mock_redshift, mock_wsys, mock_wnoz, mock_wfc, mock_nbar, mock_comp
+        ; ra, dec, z, nbar, wsys, wnoz, wfc, wcomp
+        readcol, mock_file, mock_ra, mock_dec, mock_redshift, mock_nz, mock_wsys, mock_wnoz, mock_wfc, mock_comp
 
         upcp_indx = where(mock_wfc GT 1.) 
         ra_upcp  = mock_ra[upcp_indx]
@@ -171,6 +173,7 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
         overlap_indx = where(d12 GT 0.0, overlapcount)
         m_nocp = match1[overlap_indx]
         m_upcp = match2[overlap_indx]
+
     endif 
 
     gal_upcp = m_upcp[uniq(m_upcp, sort(m_upcp))]

@@ -181,8 +181,6 @@ def photoz_dlos_nseries(n_mock, **cat_corr):
         'photoz_dlos_peak_ratio_comparison_nseries.png'])
     fig.savefig(fig_file, bbox_inches="tight")
     fig.clear() 
-
-
 # ------------------------------------------------------------------------------------
 # Set up LOS displacement class
 # ------------------------------------------------------------------------------------
@@ -195,7 +193,6 @@ class dlos:
         correction = cat_corr['correction']
 
         if catalog['name'].lower() == 'lasdamasgeo':        # LasDamas Geo ------------------
-
             file_dir = '/mount/riachuelo1/hahn/data/LasDamas/Geo/'
             #File name 
             if correction['name'].lower() == 'bigfc': 
@@ -218,9 +215,7 @@ class dlos:
                 self.dlos = readin_data[0]
                 self.targ_z = readin_data[1]
                 self.neigh_z = readin_data[2]
-
         elif catalog['name'].lower() == 'ldgdownnz':        # LDG downsampled --------------- 
-            
             file_dir = '/mount/riachuelo1/hahn/data/LasDamas/Geo/'
             if correction['name'].lower() == 'bigfc': 
                 file_name = ''.join([file_dir, 
@@ -243,10 +238,7 @@ class dlos:
                 self.dlos = readin_data[0]
                 self.targ_z = readin_data[1]
                 self.neigh_z = readin_data[2]
-
-        
         elif catalog['name'].lower() == 'tilingmock':       # Tiling Mock -------------------
-
             file_dir = '/mount/riachuelo1/hahn/data/tiling_mocks/'        # directory
             # File name 
             file_name = file_dir+'DLOS_cmass-boss5003sector-icoll012.dat'
@@ -262,9 +254,7 @@ class dlos:
                 self.dlos = readin_data[0]
                 self.targ_z = readin_data[1]
                 self.neigh_z = readin_data[2]
-        
         elif catalog['name'].lower() == 'qpm':              # QPM ---------------------------
-
             file_dir = '/mount/riachuelo1/hahn/data/QPM/dr12d/'        # directory
             # File name 
             file_name = ''.join([file_dir, 'DLOS_a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.vetoed.fibcoll.dat']) 
@@ -284,9 +274,7 @@ class dlos:
                 self.neigh_ra = readin_data[4] 
                 self.neigh_dec = readin_data[5] 
                 self.neigh_z = readin_data[6]
-
         elif catalog['name'].lower() == 'nseries':          # Nseries -----------------------
-
             file_dir = '/mount/riachuelo1/hahn/data/Nseries/' # directory
             file_name = ''.join([file_dir, 'DLOS_CutskyN', str(catalog['n_mock']), '.dat']) 
             
@@ -307,9 +295,7 @@ class dlos:
                 self.neigh_ra = readin_data[4] 
                 self.neigh_dec = readin_data[5] 
                 self.neigh_z = readin_data[6]
-
         elif catalog['name'].lower() =='patchy':            # PATCHY mocks ------------------
-
             file_dir = '/mount/riachuelo1/hahn/data/PATCHY/dr12/v6c/'
             file_name = ''.join([file_dir, 
                 'DLOS_Patchy-Mocks-DR12CMASS-N-V6C-Portsmouth-mass_', 
@@ -329,7 +315,6 @@ class dlos:
                 self.neigh_ra = readin_data[4] 
                 self.neigh_dec = readin_data[5] 
                 self.neigh_z = readin_data[6]
-        
         elif 'bigmd' in catalog['name'].lower():            # Big MD mock -------------------
             file_dir = '/mount/riachuelo1/hahn/data/BigMD/' # directory
             if catalog['name'].lower() == 'bigmd': 
@@ -363,15 +348,22 @@ class dlos:
                 self.neigh_ra = readin_data[4] 
                 self.neigh_dec = readin_data[5] 
                 self.neigh_z = readin_data[6]
-
-        elif catalog['name'].lower() == 'cmass':            # CMASS -------------------------
+        elif 'cmass' in catalog['name'].lower():            # CMASS -------------------------
             file_dir = '/mount/riachuelo1/hahn/data/CMASS/'        # directory
             # File name 
-            file_name = ''.join([file_dir, 'DLOS_cmass-dr12v4-N-Reid-weights-zlim.dat']) 
+            if catalog['name'].lower() == 'cmass': 
+                file_name = ''.join([file_dir, 
+                    'DLOS_cmass-dr12v4-N-Reid-weights-zlim.dat']) 
+            elif catalog['name'].lower() == 'cmasslowz_high':
+                file_name = ''.join([file_dir, 
+                    'DLOS_cmasslowz-dr12v4-N-Reid-high.dat'])
+            elif catalog['name'].lower() == 'cmasslowz_low':
+                file_name = ''.join([file_dir, 
+                    'DLOS_cmasslowz-dr12v4-N-Reid-low.dat'])
             self.file_name = file_name 
             
-            if readdata == True: 
-                if os.path.isfile(file_name) == False: 
+            if readdata: 
+                if not os.path.isfile(file_name): 
                     print 'Constructing ', file_name 
                     # if file does not exist then
                     build_dlos(**cat_corr) 
@@ -441,7 +433,8 @@ def build_dlos(**cat_corr):
         "'", catalog['name'], "', '", mock_file, "', '", dlos_file, "'", '"'
         ]) 
     os.system(idl_command) 
-    
+    print idl_command
+    return idl_command 
     '''
     catalog = cat_corr['catalog']
     correction = cat_corr['correction']
@@ -2289,7 +2282,7 @@ def combined_catalog_dlos_fits(catalog, n_mock):
         raise NameError('asdfasdfasdf')  
 
 if __name__=="__main__": 
-
+    '''
     cat_corr = {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}} 
     pool = mp.Pool(processes=5)
     mapfn = pool.map
@@ -2308,6 +2301,7 @@ if __name__=="__main__":
     pool.close()
     pool.terminate()
     pool.join() 
+    '''
 
     #combined_dlos_dist(1, **cat_corr)
     #combined_catalog_dlos_fits('lasdamasgeo', 10)
@@ -2315,11 +2309,11 @@ if __name__=="__main__":
     #combined_catalog_dlos_fits('cmass', 1)
     #combined_catalog_dlos_fits('bigmd3', 1)
     cat_corrs = [
-            {'catalog': {'name': 'cmass'}, 'correction': {'name': 'upweight'}}, 
-            {'catalog': {'name': 'Nseries'}, 'correction': {'name': 'upweight'}}, 
-            {'catalog': {'name': 'bigmd3'}, 'correction': {'name': 'upweight'}}, 
-            {'catalog': {'name': 'patchy'}, 'correction': {'name': 'upweight'}}
+            {'catalog': {'name': 'cmasslowz_high'}, 'correction': {'name': 'upweight'}}, 
+            {'catalog': {'name': 'cmasslowz_low'}, 'correction': {'name': 'upweight'}}
             ]
+    for cat_corr in cat_corrs: 
+        dlos(clobber=True, **cat_corr)
     #{'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}},
     #{'catalog': {'name': 'bigmd1'}, 'correction': {'name': 'upweight'}}, 
     #{'catalog': {'name': 'bigmd2'}, 'correction': {'name': 'upweight'}}, 
