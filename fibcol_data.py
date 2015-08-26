@@ -2402,12 +2402,13 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
                 delimiter='\t') 
 
     elif 'cmass' in catalog['name'].lower():          # CAMSS
+        head_str = "# columns : ra, dec, z, nbar, w_systot, w_noz, w_fc, comp"
         np.savetxt(peakcorr_file, 
                 np.c_[
                     fibcoll_mock.ra, fibcoll_mock.dec, fibcoll_mock.z, fibcoll_mock.nbar,
                     fibcoll_mock.wsys, fibcoll_mock.wnoz, fibcoll_mock.weight, fibcoll_mock.comp], 
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
-                delimiter='\t') 
+                delimiter='\t', header=head_str) 
 
     elif catalog['name'].lower() in ('tilingmock', 'lasdamasgeo', 'ldgdownnz'): 
         np.savetxt(peakcorr_file, 

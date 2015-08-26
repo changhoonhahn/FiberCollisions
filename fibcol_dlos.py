@@ -184,6 +184,77 @@ def photoz_dlos_nseries(n_mock, **cat_corr):
 # ------------------------------------------------------------------------------------
 # Set up LOS displacement class
 # ------------------------------------------------------------------------------------
+class Dlos: 
+    def __init__(self, cat_corr, **kwargs):
+        ''' Given catalog correction dictionary, get line-of-sight displacement 
+        '''
+        self.cat_corr = cat_corr    # catalog correction dictionary 
+        self.dlos = None
+        self.targ_z = None
+        self.neigh_z = None 
+
+        self.file_name = self.File(**kwargs)    # File Name
+
+        if 'env' in kwargs.keys(): 
+            self.env = None 
+
+    def File(self, **kwargs): 
+        ''' Get file name for line-of-sight displacement file 
+        '''
+        cat = self.cat_corr['catalog']
+        corr = self.cat_corr['correction']
+
+        data_dir = '/mount/riachuelo1/hahn/data/'
+
+        if cat['name'].lower() == 'nseries': 
+            # Nseries 
+            data_dir += 'Nseries/'
+
+            # file_name
+            if 'combined' in kwargs.keys():
+                # combined dLOS
+                file = ''.join(['DLOS_CutskyN_', str(kwargs['combined']), 'mocks']) 
+            else: 
+                file = ''.join(['DLOS_CutskyN', str(cat['n_mock'])])
+            
+            # extra specifiers organized this way for easy implementation in the future 
+            extra_str = ''  
+            if 'env' in kwargs.keys(): 
+                if isinstance(kwargs['env'], str): 
+                    extra_str += ''.join(['_env', kwargs['env']])
+                else: 
+                    raise TypeError("env argument has to be a string") 
+            
+            file_name = ''.join([data_dir, file, extra_str, '.dat'])
+        else: 
+            raise NotImplementedError("Only Nseries implemented at the moment")
+
+        return file_name 
+
+    def Columns(self, **kwargs):
+        ''' Provide file column order for reading file 
+        '''
+        cat = self.cat_corr['catalog'] 
+
+        if cat['name'].lower() in ('nseries'): 
+            # Nseries
+            columns = ['dlos', 'targ_ra', 'targ_dec', 'targ_z', 
+                    'neigh_ra', 'neigh_dec', 'neigh_z']
+            col_index = [0,1,2,3,4,5,6]
+        else:
+            raise NotImplementedError("Only Nseries implemented") 
+
+        if 'env' in kwargs.keys():
+            columns.append('env') 
+            col_index.append(col_index[-1]+1)
+
+        return [columns, indices]
+
+    def Write(self, **kwargs): 
+        ''' Write out values of Dlos object to file 
+        '''
+        pass
+
 class dlos:
     def __init__(self, readdata=True, clobber=False, **cat_corr): 
         '''
@@ -777,231 +848,6 @@ def average_dlos_fpeak(**cat_corr):
     else: 
         raise NameError('Not yet coded') 
     return f_1sigma/np.float(n_mock) 
-
-# dLOS environment dependence  ---------------------------------
-def dlos_env(n=3, **cat_corr):
-    ''' Compare dLOS distribution for different nth nearest neighbor distance bins (galaxy environment)
-
-    Parameters
-    ----------
-    n : n in nth nearest neighbor distance 
-    cat_corr : catalog and correction dictionary 
-    
-    Notes
-    -----
-
-    '''
-    catalog = cat_corr['catalog']
-    correction = {'name': 'upweight'} 
-   
-    # Read in dLOS data 
-    if catalog['name'].lower() in ('qpm', 'nseries'):    # QPM or Nseries
-
-        for i_mock in range(1, 85):         # combine dLOS values of n mocks 
-
-            # read dLOS for each mock  
-            i_catalog = catalog.copy() 
-            i_catalog['n_mock'] = i_mock 
-            i_cat_corr = {'catalog':i_catalog, 'correction': correction} 
-
-            los_disp_i = dlos(**i_cat_corr)         # import DLOS values 
-
-            # compute nth nearest neighbor distance for upweighted galaxy  
-            NN_dist = genv.dlos_d_NN(n=n, **i_cat_corr ) 
-            
-            # combine dLOS and dNN values  
-            try: 
-                combined_dlos = np.concatenate([combined_dlos, los_disp_i.dlos])
-                combined_dNN = np.concatenate([combined_dNN, NN_dist]) 
-            except NameError: 
-                combined_dlos = los_disp_i.dlos
-                combined_dNN = NN_dist
-
-    else: 
-        raise NotImplementedError('asdfasdfasdf') 
-    
-    # set up figure 
-    prettyplot() 
-    pretty_colors = prettycolors() 
-    fig = plt.figure(1, figsize=(14,5))
-    sub = fig.add_subplot(1,1,1)
-    
-    print 'd'+str(n)+'NN, Minimum ', min(combined_dNN), ' Maximum ', max(combined_dNN)
-    # loop through different dNN measurements 
-    istart = np.int(np.floor(min(combined_dNN)))
-    iend = np.int(np.floor(max(combined_dNN)))
-    dNN_bins = [ (i, (i+1)) for i in np.arange(istart, iend) ] 
-    #[ (0, 5), (5, 10), (10, 25), (25) ]
-    #[ (5*i, 5*(i+1)) for i in np.arange(0, 11) ] 
-    for i_bin, dNN_bin in enumerate(dNN_bins): 
-        # dNN bin 
-        try: 
-            bin_index = np.where(( combined_dNN >= dNN_bin[0] ) & ( combined_dNN < dNN_bin[1] )) 
-            bin_label = ''.join([r'$', str(dNN_bin[0]), ' < d_{', str(n), 'NN} < ', str(dNN_bin[1])]) 
-        except TypeError: 
-            bin_index = np.where((combined_dNN >= dNN_bin)) 
-            bin_label = ''.join([r'$', str(dNN_bin), ' < d_{', str(n), 'NN}']) 
-
-        bin_dlos = combined_dlos[bin_index] 
-        if len(bin_dlos) < 50: 
-            continue
-        
-        # fraction of total dLOS values 
-        bin_perc = np.float( len(bin_dlos) )/np.float( len(combined_dlos) ) * 100.0
-
-        dlos_hist, mpc_mid, peak_param  = \
-                dlos_hist_peak_fit(bin_dlos, fit='gauss', peak_range=[-15.0, 15.0])
-
-        sub.plot(mpc_mid, dlos_hist, 
-                lw=4, color=pretty_colors[((i_bin+1) % 20)], 
-                label = bin_label+',\;( '+('%.1f' % bin_perc)+'\%) $') 
-    
-        fit_label = r'$\sigma ='+('%.2f' % peak_param['sigma'])+\
-                ', f_{peak} = '+('%.2f' % peak_param['fpeak'])+'$'
-        sub.plot(mpc_mid, peak_gauss(mpc_mid, [peak_param['amp'], peak_param['sigma']]), 
-                lw=4, ls='--', color=pretty_colors[((i_bin+1) % 20)], label=fit_label)
-
-        try:        # save avg_dNN and fpeak values 
-            dNN_avg.append( 0.5 * np.float(dNN_bin[0] + dNN_bin[1]) ) 
-            fpeaks.append( peak_param['fpeak'] ) 
-        except NameError: 
-            dNN_avg = [0.5 * np.float(dNN_bin[0] + dNN_bin[1])]
-            fpeaks = [peak_param['fpeak']]
-        except TypeError: 
-            dNN_avg.append( np.float(dNN_bin) ) 
-            fpeaks.append( peak_param['fpeak'] ) 
-
-    sub.set_xlabel(r"$d_{LOS}$ (Mpc/h)", fontsize=20) 
-    sub.set_xlim([-50.0, 50.0])
-    if len(dNN_bins) < 5: 
-        sub.legend(loc='upper left') 
-    sub.set_ylim([0.0, 0.1]) 
-    fig_file = ''.join(['figure/', 
-        'dlos_env_dependence_d', str(n), 'NN_', catalog['name'], '.png']) 
-
-    fig.savefig(fig_file, bbox_inches="tight")
-    fig.clear()
-    
-    # plot fpeak over avg d_NN and best fit 
-    fig = plt.figure(1, figsize=(8,8))
-    sub = fig.add_subplot(1,1,1)
-    sub.scatter( dNN_avg, fpeaks, s=6 )       # fpeaks vs dNN-avg
-
-    # MPfit ----
-    p0 = [-0.01, 0.8]            # initial guesses for p0[0] * x + p0[1]
-    fa = {'x': np.array(dNN_avg), 'y': np.array(fpeaks)}
-    fit_param = mpfit.mpfit(mpfit_linear, p0, functkw=fa, nprint=0)
-    
-    fit_slope = fit_param.params[0]
-    fit_yint = fit_param.params[1]
-
-    sub.plot( np.array(dNN_avg), fit_linear(np.array(dNN_avg), fit_param.params), lw=4, ls='--', c='k')       # plot best line fit 
-    sub.set_xlabel('$\mathtt{d_{'+str(n)+'NN}}$', fontsize=20) 
-    sub.set_ylabel('$\mathtt{f_{peak}}$', fontsize=20) 
-    sub.set_xlim([0.0, 50.0]) 
-    sub.set_ylim([0.0, 1.0])
-
-    fig_file = ''.join(['figure/', 
-        'dlos_fpeak_d', str(n), 'NN_', catalog['name'], '.png'])
-    fig.savefig(fig_file, bbox_inches="tight")
-    fig.clear()
-
-def dlos_env_multiprocess(params): 
-    ''' Wrapper for dlos_env function 
-    '''
-    n = params[0]
-    cat_corr = params[1]
-
-    dlos_env(n=n, **cat_corr)
-    return 
-
-def build_fpeak_env(n=3, **cat_corr): 
-    ''' Build best fit for fpeak(d_NN) and save parameters
-
-    n_mock ranges hardcoded so far 
-    '''
-    catalog = cat_corr['catalog']
-    correction = {'name': 'upweight'} 
-   
-    # Read in dLOS data ----------------------------------------------------------------------
-    if catalog['name'].lower() == 'qpm':    # QPM --------------------------------------------
-
-        for i_mock in range(1, 11):         # loop through mocks 
-            
-            # read dLOS for each file 
-            i_catalog = catalog.copy() 
-            i_catalog['n_mock'] = i_mock 
-            i_cat_corr = {'catalog':i_catalog, 'correction': correction} 
-            print i_cat_corr
-
-            los_disp_i = dlos(**i_cat_corr)         # import DLOS values from each mock 
-            # compute nth nearest neighbor distance for upweighted galaxy  
-            NN_dist = genv.dlos_d_NN(n=n, **i_cat_corr ) 
-            
-            # combine dLOS and dNN from files 
-            try: 
-                combined_dlos
-            except NameError: 
-                combined_dlos = los_disp_i.dlos
-                combined_dNN = NN_dist
-            else: 
-                combined_dlos = np.concatenate([combined_dlos, los_disp_i.dlos])
-                combined_dNN = np.concatenate([combined_dNN, NN_dist]) 
-
-    else: 
-        raise NotImplementedError('asdfasdfasdf') 
-
-    # loop through different dNN measurements 
-    dNN_bins = [
-            (0, 5), (5, 10), (10, 25), (25, 50)
-            ]       # hardcoded right now 
-    
-    for i_bin, dNN_bin in enumerate(dNN_bins): 
-
-        bin_index = ( combined_dNN >= dNN_bin[0] ) & ( combined_dNN < dNN_bin[1] ) 
-
-        bin_dlos = combined_dlos[bin_index] 
-        bin_perc = np.float( len(bin_dlos) )/np.float( len(combined_dlos) ) * 100.0
-
-        dlos_hist, mpc_mid, peak_param  = \
-                dlos_hist_peak_fit(bin_dlos, fit='gauss', peak_range=[-15.0, 15.0])
-        
-        try:        # save avg_dNN and fpeak values 
-            dNN_avg.append( 0.5 * np.float(dNN_bin[0] + dNN_bin[1]) ) 
-            fpeaks.append( peak_param['fpeak'] ) 
-        except NameError: 
-            dNN_avg = [0.5 * np.float(dNN_bin[0] + dNN_bin[1])]
-            fpeaks = [peak_param['fpeak']]
-
-    # MPfit dNN_avg vs fpeak ---------
-    p0 = [-0.01, 0.8]            # initial guesses for p0[0] * x + p0[1]
-    fa = {'x': np.array(dNN_avg), 'y': np.array(fpeaks)}
-    fit_param = mpfit.mpfit(mpfit_linear, p0, functkw=fa, nprint=0)
-    
-    fit_slope = fit_param.params[0]
-    fit_yint = fit_param.params[1]
-    
-    # save fpeak(dNN) for catalogs 
-    fpeak_dnn_fit_file = ''.join([
-        '/mount/riachuelo1/hahn/data/FiberCollisions/', 
-        'fit_param_fpeak_d', str(n), 'NN_', catalog['name'].lower(), '.dat']) 
-    f = open(fpeak_dnn_fit_file, 'w')
-    f.write(str(fit_slope)+'\t'+str(fit_yint))
-    f.close() 
-
-def fpeak_dNN(dNN, n=3, **cat_corr): 
-    ''' Calculate fpeak given dNN and catalog information 
-    '''
-    catalog = cat_corr['catalog']
-    
-    # read fpeak(dNN) best fit file
-    fpeak_dnn_fit_file = ''.join([
-        '/mount/riachuelo1/hahn/data/FiberCollisions/', 
-        'fit_param_fpeak_d', str(n), 'NN_', catalog['name'].lower(), '.dat']) 
-
-    a, b = np.loadtxt(fpeak_dnn_fit_file) 
-
-    return a * dNN + b
 
 #---- Fitting -----
 def fit_linear(x, p): 
@@ -2282,12 +2128,11 @@ def combined_catalog_dlos_fits(catalog, n_mock):
         raise NameError('asdfasdfasdf')  
 
 if __name__=="__main__": 
-    '''
     cat_corr = {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}} 
     pool = mp.Pool(processes=5)
     mapfn = pool.map
     
-    arglist = [ [i, cat_corr] for i in [1,2,3,4,5,10] ]
+    arglist = [ [i, cat_corr] for i in [1,2,3,4,5,10]]
     
     mapfn( dlos_env_multiprocess, [arg for arg in arglist])
 
@@ -2299,19 +2144,18 @@ if __name__=="__main__":
     pool.close()
     pool.terminate()
     pool.join() 
-    '''
 
     #combined_dlos_dist(1, **cat_corr)
     #combined_catalog_dlos_fits('lasdamasgeo', 10)
     #combined_catalog_dlos_fits('ldgdownnz', 10)
     #combined_catalog_dlos_fits('cmass', 1)
     #combined_catalog_dlos_fits('bigmd3', 1)
-    cat_corrs = [
-            {'catalog': {'name': 'cmasslowz_high'}, 'correction': {'name': 'upweight'}}, 
-            {'catalog': {'name': 'cmasslowz_low'}, 'correction': {'name': 'upweight'}}
-            ]
-    for cat_corr in cat_corrs: 
-        combined_catalog_dlos_fits((cat_corr['catalog'])['name'], 1)
+    #cat_corrs = [
+    #        {'catalog': {'name': 'cmasslowz_high'}, 'correction': {'name': 'upweight'}}, 
+    #        {'catalog': {'name': 'cmasslowz_low'}, 'correction': {'name': 'upweight'}}
+    #        ]
+    #for cat_corr in cat_corrs: 
+    #    combined_catalog_dlos_fits((cat_corr['catalog'])['name'], 1)
 
     #{'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}},
     #{'catalog': {'name': 'bigmd1'}, 'correction': {'name': 'upweight'}}, 

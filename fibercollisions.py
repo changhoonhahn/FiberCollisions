@@ -1029,17 +1029,17 @@ if __name__=='__main__':
                 }
         fc_data.galaxy_data('data', clobber=True, **cat_corr) 
     '''
-    cat_corr = {'catalog': {'name': 'cmasslowz_high'}, 'correction': {'name': 'upweight'}}
-            #'correction': {'name': 'peakshot', 'fit': 'gauss', 'sigma': 6.6, 'fpeak': 0.72}
-            #}
+    #cat_corr = {'catalog': {'name': 'cmasslowz_high'}, 'correction': {'name': 'upweight'}}
+    #fc_data.galaxy_data('data', clobber=True, **cat_corr) 
+    #fc_data.galaxy_data('random', clobber=True, **cat_corr) 
+    cat_corr = {'catalog': {'name': 'cmasslowz_high'}, 'correction': {'name': 'peakshot', 'fit': 'gauss', 'sigma': 6.6, 'fpeak': 0.72}}
     fc_data.galaxy_data('data', clobber=True, **cat_corr) 
-    fc_data.galaxy_data('random', clobber=True, **cat_corr) 
+    #cat_corr = {'catalog': {'name': 'cmasslowz_low'}, 'correction': {'name': 'upweight'}}
+    #fc_data.galaxy_data('data', clobber=True, **cat_corr) 
+    #fc_data.galaxy_data('random', clobber=True, **cat_corr) 
+    cat_corr = {'catalog': {'name': 'cmasslowz_low'}, 'correction': {'name': 'peakshot', 'fit': 'gauss', 'sigma': 6.9, 'fpeak': 0.72}}
+    fc_data.galaxy_data('data', clobber=True, **cat_corr) 
 
-    cat_corr = {'catalog': {'name': 'cmasslowz_low'}, 'correction': {'name': 'upweight'}}
-            #'correction': {'name': 'peakshot', 'fit': 'gauss', 'sigma': 6.9, 'fpeak': 0.72}
-            #}
-    fc_data.galaxy_data('data', clobber=True, **cat_corr) 
-    fc_data.galaxy_data('random', clobber=True, **cat_corr) 
     #fc_data.build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr)
     #build_pk_multiprocessing('patchy', 100, Nthreads=8,
     #        corrections=[{'name': 'true'}, {'name': 'upweight'}], 
