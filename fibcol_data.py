@@ -1735,7 +1735,7 @@ def build_fibercollided(**cat_corr):
         raise NameError('not yet coded') 
 
     return fibcollided_cmd 
-
+"""
 def build_peakcorrected_fibcol_old(sanitycheck=False, **cat_corr): 
     ''' Build peak corrected fibercollided mock catalogs (using cosmolopy) 
 
@@ -2142,7 +2142,7 @@ def build_peakcorrected_fibcol_old(sanitycheck=False, **cat_corr):
 
     if sanitycheck == True: 
         np.savetxt(peakcorr_file+'.sanitycheck', np.c_[pr_test], fmt=['%10.5f'], delimiter='\t') 
-
+"""
 def build_peakcorrected_fibcol(doublecheck=False, **cat_corr): 
     ''' Build peak corrected fibercollided mock catalogs (using cosmolopy) 
 
@@ -2154,6 +2154,7 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
     Notes
     -----
     * Currently supported peak correction methods: peakshot 
+    * nbar(z) interpolation implemented for CMASS like samples  
 
     '''
     catalog = cat_corr['catalog']
@@ -2168,22 +2169,20 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
         pass 
     else: 
         raise NameError('correction fit has to be specified as gauss or expon') 
-
+    
+    # survey specific parameters 
     if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz'):     # LasDamasGeo 
         n_mocks = 160   # total number of mocks
         survey_zmin, survey_zmax = 0.16, 0.44
-
     elif catalog['name'].lower() in ('tilingmock', 'qpm', 'patchy', 'nseries'): 
         survey_zmin, survey_zmax = 0.43, 0.7    # survey redshift limits
         if catalog['name'].lower() == 'qpm':
             n_mocks = 100
         elif catalog['name'].lower() == 'nseries': 
             n_mocks = 1 
-    
     elif catalog['name'].lower() in ('bigmd'):             # CMASS, BigMD
         survey_zmin, survey_zmax = 0.43, 0.7    # survey redshift limits
         n_mocks = 1 
-    
     elif 'cmass' in catalog['name'].lower():             # CMASS like catalogs
         if catalog['name'].lower() == 'cmass': 
             survey_zmin, survey_zmax = 0.43, 0.7    # survey redshift limits
@@ -2202,15 +2201,15 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
         fibcoll_cat_corr = {'catalog':catalog, 'correction': {'name': 'bigfc'}}
     else: 
         fibcoll_cat_corr = {'catalog':catalog, 'correction': {'name': 'upweight'}}
-
     fibcoll_mock = galaxy_data('data', **fibcoll_cat_corr) 
     cosmo = fibcoll_mock.cosmo      # survey comoslogy 
-
+    
+    # comoving distnace of z_min and z_max 
     survey_comdis_min = cosmos.distance.comoving_distance( survey_zmin, **cosmo ) * cosmo['h']
     survey_comdis_max = cosmos.distance.comoving_distance( survey_zmax, **cosmo ) * cosmo['h']
     
+    # fiber collision weights
     if catalog['name'].lower() not in ('tilingmock', 'lasdamasgeo', 'ldgdownnz'):
-        # only use fiber collision weights
         fibcoll_mock.weight = fibcoll_mock.wfc            
                         
     if correction['name'] == 'peaknbar': 
@@ -2230,11 +2229,23 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
         true_weight_max = true_weight_cum.max()
         i_true = np.arange(0,len(true_weight_cum))
 
-    # set peak fraction         
-    if correction['name'].lower() in ('allpeak', 'allpeakshot'): 
-        f_peak = 1.0
-    else: 
-        f_peak = correction['fpeak'] 
+    # import nbar(z) file for CMASS-like catalogs 
+    if 'cmass' in catalog['name'].lower(): 
+        # hardcoded nbar(z) files 
+        if catalog['name'].lower() == 'cmass': 
+            nbar_file = '/mount/riachuelo1/hahn/data/CMASS/nbar-cmass-dr12v4-N-Reid-om0p31_Pfkp10000.dat'
+        elif 'cmasslowz' in catalog['name'].lower(): 
+            nbar_file = '/mount/riachuelo1/hahn/data/CMASS/nbar-cmasslowz-dr12v4-N-Reid-om0p31_Pfkp10000.dat'
+        # read in nbar(z) file 
+        nbar_z, nbar_nbar = np.loadtxt(nbar_file, skiprows=2, unpack=True, usecols=[0, 3]) 
+        # nbar(z) interpolation function
+        nbarofz = lambda zz: sp.interpolate.interp1d(nbar_z, nbar_nbar, kind='cubic')       
+
+    # peak fraction         
+    try: 
+        f_peak = correction['fpeak']
+    except KeyError: # all peak and all peak shot corrections
+        f_peak = 1.0 
 
     appended_ra, appended_dec, appended_z, appended_weight = [], [], [], []
     upweight_again = []
@@ -2242,9 +2253,7 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
     if catalog['name'].lower() in ('qpm', 'nseries'): 
         appended_comp = []   # save comp
     elif 'cmass' in catalog['name'].lower(): 
-        appended_comp = [] 
-        appended_wsys = [] 
-        appended_wnoz = [] 
+        appended_comp, appended_wsys, appended_wnoz, appended_nbar = [], [], [], [] 
             
     if doublecheck:     # check that the peak p(r) is generated properly
         dlos_values = [] 
@@ -2263,10 +2272,11 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
             if rand_num <= f_peak:          # if in the peak 
                 appended_ra.append(fibcoll_mock.ra[i_mock])     # keep ra and dec
                 appended_dec.append(fibcoll_mock.dec[i_mock])
-
+                
+                # keep extra columns
                 if catalog['name'].lower() in ('qpm', 'nseries'):  
                     appended_comp.append(fibcoll_mock.comp[i_mock]) 
-                elif catalog['name'].lower() in ('cmass'): 
+                elif 'cmass' in catalog['name'].lower(): 
                     appended_comp.append(fibcoll_mock.comp[i_mock]) 
                     appended_wsys.append(fibcoll_mock.wsys[i_mock]) 
                     appended_wnoz.append(1.0) 
@@ -2278,8 +2288,8 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
                     # appended galaxy has weight of 1.0 
                     appended_weight.append(1.0)
 
+                # compute the displacement within peak using best-fit
                 if correction['fit'].lower() in ('gauss', 'expon'):   
-                    # compute the displacement within peak using best-fit --------------
                     rand1 = np.random.random(1) 
                     rand2 = np.random.random(1) 
 
@@ -2293,7 +2303,6 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
                         rand2 = (-3.0+rand2*6.0)*correction['sigma']
                         peakpofr = fit_func(rand2, correction['sigma']) 
 
-                    #--------------------------------------------------------------------- 
                 elif correction['fit'].lower() == 'true': 
                     # compute the displacement within peak using actual distribution   
                     dlos_comb_peak_file = ''.join([
@@ -2316,7 +2325,6 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
                         closest_dloses.append(closest_dlos)
 
                     rand2 = np.array([closest_dlos])
-                    #--------------------------------------------------------------------- 
                 else: 
                     raise NotImplementedError('asdfasdf')
 
@@ -2327,6 +2335,9 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
                     collided_z = comdis2z(comdis_imock+rand2, **cosmo)
 
                 appended_z.append(collided_z[0]) 
+                print fibcoll_mock.z[i_mock], collided_z[0] 
+                print fibcoll_mock.nbar[i_mock], nbarofz(collided_z[0])
+                appended_nbar.append(nbarofz(collided_z[0]))
 
                 if doublecheck: 
                     dlos_values.append(rand2) 
@@ -2364,9 +2375,11 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
             fibcoll_mock.weight[i_upweightagain] += 1.
 
     print len(appended_ra), ' galaxies were peak corrected'
+    # append artificial galaxies to catalog 
     fibcoll_mock.ra = np.concatenate([fibcoll_mock.ra, appended_ra])
     fibcoll_mock.dec = np.concatenate([fibcoll_mock.dec, appended_dec])
     fibcoll_mock.weight = np.concatenate([fibcoll_mock.weight, appended_weight])
+    fibcoll_mock.z = np.concatenate([fibcoll_mock.z, appended_z])
         
     if catalog['name'].lower() in ('qpm', 'nseries'): 
         fibcoll_mock.comp = np.concatenate([fibcoll_mock.comp, appended_comp])
@@ -2374,8 +2387,7 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
         fibcoll_mock.comp = np.concatenate([fibcoll_mock.comp, appended_comp])
         fibcoll_mock.wsys = np.concatenate([fibcoll_mock.wsys, appended_wsys])
         fibcoll_mock.wnoz = np.concatenate([fibcoll_mock.wnoz, appended_wnoz])
-
-    fibcoll_mock.z = np.concatenate([fibcoll_mock.z, appended_z])
+        fibcoll_mock.nbar = np.concatenate([fibcoll_mock.nbar, appended_nbar])
 
     peakcorr_file = get_galaxy_data_file('data', **cat_corr) 
     
