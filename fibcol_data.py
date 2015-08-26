@@ -530,7 +530,7 @@ class galaxy_data:
                         raise NotImplementedError('Only upweight works for now') 
 
                 #ra,dec,z,wsys,wnoz,wfc,nbar,comp
-                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4,5,6,7])   
+                file_data = np.loadtxt(file_name, skiprows=1, unpack=True, usecols=[0,1,2,3,4,5,6,7])   
 
                 # assign to data columns class
                 for i_col, catalog_column in enumerate(catalog_columns): 
@@ -545,7 +545,7 @@ class galaxy_data:
                     build_random(**cat_corr) 
 
                 #ra,dec,z,nbar,comp
-                file_data = np.loadtxt(file_name, unpack=True, usecols=[0,1,2,3,4])  
+                file_data = np.loadtxt(file_name, skiprows=1, unpack=True, usecols=[0,1,2,3,4])  
 
                 # assign to data columns class
                 for i_col, catalog_column in enumerate(catalog_columns): 
@@ -1358,14 +1358,15 @@ def build_random(**cat_corr):
             zlimit = np.where((cmass.z >= 0.2) & (cmass.z < 0.5))
         else: 
             raise NotImplementedError("Only CMASS and CMASS+LOWZ combined sample implemented") 
-
+    
+        head_str = 'columns : ra, dec, z, nbar, comp'
         #ra, dec, z, nz, comp 
         random_file = get_galaxy_data_file('random', **cat_corr) 
         np.savetxt(random_file, 
                 np.c_[
                     (cmass.ra)[zlimit], (cmass.dec)[zlimit], (cmass.z)[zlimit], 
                     (cmass.nz)[zlimit], comp[zlimit]], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e', '%10.5f'], delimiter='\t') 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e', '%10.5f'], delimiter='\t', header=head_str) 
 
     elif catalog['name'].lower() == 'qpm':            # QPM ------------------------------
         # read original random catalog  
@@ -1578,6 +1579,7 @@ def build_fibercollided(**cat_corr):
 
             zlimit = np.where((data.z >= 0.2) & (data.z < 0.5)) # redshift limit 
     
+        head_str = 'columns : ra, dec, z, nbar, w_systot, w_noz, w_cp, comp'
         # save to file 
         fc_file = get_galaxy_data_file('data', **cat_corr)
         np.savetxt(fc_file, 
@@ -1588,7 +1590,8 @@ def build_fibercollided(**cat_corr):
                     ], 
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e', 
                     '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
-                delimiter='\t') 
+                delimiter='\t', 
+                header=head_str) 
         fibcollided_cmd = ''
 
     elif catalog['name'].lower() == 'lasdamasgeo':        # Las Damas Geo 
@@ -1735,6 +1738,7 @@ def build_fibercollided(**cat_corr):
         raise NameError('not yet coded') 
 
     return fibcollided_cmd 
+
 """
 def build_peakcorrected_fibcol_old(sanitycheck=False, **cat_corr): 
     ''' Build peak corrected fibercollided mock catalogs (using cosmolopy) 
@@ -2239,7 +2243,7 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
         # read in nbar(z) file 
         nbar_z, nbar_nbar = np.loadtxt(nbar_file, skiprows=2, unpack=True, usecols=[0, 3]) 
         # nbar(z) interpolation function
-        nbarofz = lambda zz: sp.interpolate.interp1d(nbar_z, nbar_nbar, kind='cubic')       
+        nbarofz = sp.interpolate.interp1d(nbar_z, nbar_nbar, kind='cubic')       
 
     # peak fraction         
     try: 
@@ -2335,8 +2339,6 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
                     collided_z = comdis2z(comdis_imock+rand2, **cosmo)
 
                 appended_z.append(collided_z[0]) 
-                print fibcoll_mock.z[i_mock], collided_z[0] 
-                print fibcoll_mock.nbar[i_mock], nbarofz(collided_z[0])
                 appended_nbar.append(nbarofz(collided_z[0]))
 
                 if doublecheck: 
@@ -2402,10 +2404,9 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
     elif 'cmass' in catalog['name'].lower():          # CAMSS
         np.savetxt(peakcorr_file, 
                 np.c_[
-                    fibcoll_mock.ra, fibcoll_mock.dec, fibcoll_mock.z, fibcoll_mock.nbar
-                    fibcoll_mock.wsys, fibcoll_mock.wnoz, fibcoll_mock.weight, 
-                    fibcoll_mock.comp], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
+                    fibcoll_mock.ra, fibcoll_mock.dec, fibcoll_mock.z, fibcoll_mock.nbar,
+                    fibcoll_mock.wsys, fibcoll_mock.wnoz, fibcoll_mock.weight, fibcoll_mock.comp], 
+                fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
                 delimiter='\t') 
 
     elif catalog['name'].lower() in ('tilingmock', 'lasdamasgeo', 'ldgdownnz'): 
