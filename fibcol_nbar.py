@@ -19,9 +19,9 @@ import fibcol_data as fc_data
 import fibcol_utility as fc_util
 
 # Classes ------------------------------------------------------------
-class nbar: 
+class Nbar: 
     def __init__(self, clobber=False, **cat_corr):
-        ''' read/construct nbar(z) file corresponding to catalog_correction dictionary 
+        '''Object class to handle nbar(z) data 
 
         Parameters
         ----------
