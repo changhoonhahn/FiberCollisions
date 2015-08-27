@@ -170,7 +170,7 @@ def plot_dLOS_fpeak_env(cat_corr, n_NN=3, **kwargs):
         fit_slope = fit_param.params[0]
         fit_yint = fit_param.params[1]
 
-        dNN_label += ': '+str(fit_slope)+', '+str(fit_yint)
+        dNN_label += ': '+str(round(fit_slope,2))+', '+str(round(fit_yint, 2))
         # plot best line fit 
         sub.plot( np.array(dNN_avg), fc_dlos.fit_linear(np.array(dNN_avg), fit_param.params), 
                 lw=4, ls='--', c=pretty_colors[i_nNN], label=dNN_label)       
@@ -190,6 +190,110 @@ def plot_dLOS_fpeak_env(cat_corr, n_NN=3, **kwargs):
 
     return None 
 
+def plot_dLOS_envdist(cat_corr, n_NN=3, **kwargs): 
+    ''' Plot environment distribution of dLOS 
+    '''
+    if not isinstance(n_NN, list): 
+        n_NN_list = [ n_NN ] 
+    else:
+        n_NN_list = n_NN
+    
+    # set up figure 
+    prettyplot() 
+    pretty_colors = prettycolors() 
+    fig = plt.figure(1, figsize=(8,8))
+    sub = fig.add_subplot(1,1,1)
+
+    catalog = cat_corr['catalog']
+    for i_nNN, nNN in enumerate(n_NN_list):   # for different n_NN values 
+        # combined dLOS for catalog and correction 
+        comb_dlos = dlos_env.DlosEnv(cat_corr, n_NN=nNN, **kwargs) 
+        comb_dlos.Read()
+
+        combined_dlos = comb_dlos.dlos
+        combined_dNN = comb_dlos.env
+
+        dNN_label = ''.join(['d', str(nNN), 'NN'])
+
+        dNN_min, dNN_max = min(combined_dNN), max(combined_dNN)
+        if 'stepsize' in kwargs.keys():
+            stepsize = kwargs['stepsize']
+        else: 
+            stepsize = 2.0
+        n_bins = int((dNN_max - dNN_min)/stepsize)
+
+        dNN_dist, dNN_binedges = np.histogram(combined_dNN, bins=n_bins, range=[dNN_min, dNN_max]) 
+
+        dNN_low = dNN_binedges[:-1]
+        dNN_high = dNN_binedges[1:]
+        dNN_mid = np.array([0.5 * (dNN_low[i] + dNN_high[i]) for i in range(len(dNN_low))]) 
+    
+        sub.step(dNN_low, dNN_dist, lw=4, color=pretty_colors[i_nNN], label = dNN_label)
+
+    sub.set_xlabel('$\mathtt{d_{NN}}$', fontsize=20) 
+    sub.set_ylabel(r'$\mathtt{N_{gal}}$', fontsize=20) 
+    sub.set_xlim([0.0, 50.0]) 
+    sub.legend(loc='upper right')
+
+    fig_file = ''.join(['../figure/', 
+        'dlos_envdist', ''.join(['_d'+str(ni)+'NN' for ni in n_NN_list]), '_', catalog['name'], '.png'])
+    fig.savefig(fig_file, bbox_inches="tight")
+    fig.clear()
+
+    return None 
+
+def plot_dLOS_env_fpeakdist(cat_corr, n_NN=3, **kwargs): 
+    ''' Plot fpeak distribution of dLOS + Env
+    '''
+    if not isinstance(n_NN, list): 
+        n_NN_list = [ n_NN ] 
+    else:
+        n_NN_list = n_NN
+    
+    # set up figure 
+    prettyplot() 
+    pretty_colors = prettycolors() 
+    fig = plt.figure(1, figsize=(8,8))
+    sub = fig.add_subplot(1,1,1)
+
+    catalog = cat_corr['catalog']
+    for i_nNN, nNN in enumerate(n_NN_list):   # for different n_NN values 
+        # combined dLOS for catalog and correction 
+        comb_dlos = dlos_env.DlosEnv(cat_corr, n_NN=nNN, **kwargs) 
+        comb_dlos.Read()
+
+        combined_dlos = comb_dlos.dlos
+        combined_dNN = comb_dlos.env
+
+        dNN_label = ''.join(['d', str(nNN), 'NN'])
+
+        dNN_min, dNN_max = min(combined_dNN), max(combined_dNN)
+        if 'stepsize' in kwargs.keys():
+            stepsize = kwargs['stepsize']
+        else: 
+            stepsize = 2.0
+        n_bins = int((dNN_max - dNN_min)/stepsize)
+
+        dNN_dist, dNN_binedges = np.histogram(combined_dNN, bins=n_bins, range=[dNN_min, dNN_max]) 
+
+        dNN_low = dNN_binedges[:-1]
+        dNN_high = dNN_binedges[1:]
+        dNN_mid = np.array([0.5 * (dNN_low[i] + dNN_high[i]) for i in range(len(dNN_low))]) 
+    
+        sub.step(dNN_low, dNN_dist, lw=4, color=pretty_colors[i_nNN], label = dNN_label)
+
+    sub.set_xlabel('$\mathtt{d_{NN}}$', fontsize=20) 
+    sub.set_ylabel(r'$\mathtt{N_{gal}}$', fontsize=20) 
+    sub.set_xlim([0.0, 50.0]) 
+    sub.legend(loc='upper right')
+
+    fig_file = ''.join(['../figure/', 
+        'dlos_envdist', ''.join(['_d'+str(ni)+'NN' for ni in n_NN_list]), '_', catalog['name'], '.png'])
+    fig.savefig(fig_file, bbox_inches="tight")
+    fig.clear()
+
+    return None 
+
 if __name__=='__main__':
     cat_corr = {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}
-    plot_dLOS_fpeak_env(cat_corr, n_NN=[1,2,3,4,5,10])
+    plot_dLOS_envdist(cat_corr, n_NN=[1,2,3,4,5,10])
