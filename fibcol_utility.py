@@ -271,7 +271,7 @@ def fortran_code(fft_power, **cat_corr):
         '''
     
     elif 'bigmd' in catalog['name'].lower():                # Big MD ------------------------
-        code_dir = 'BigMD/'
+        code_dir = '/home/users/hahn/powercode/FiberCollisions/BigMD/'
         
         if fft_power.lower() == 'fft':  # FFT
             if correction['name'].lower() == 'floriansn': 
@@ -306,7 +306,7 @@ def fortran_code(fft_power, **cat_corr):
             raise NameError("not Yet coded") 
     
     elif catalog['name'].lower() == 'cmass':                # CMASS -------------------------
-        code_dir = 'CMASS/'
+        code_dir = '/home/users/hahn/powercode/FiberCollisions/CMASS/'
         
         if fft_power.lower() == 'fft':  # FFT
             if correction['name'].lower() == 'floriansn': 
@@ -330,7 +330,8 @@ def fortran_code(fft_power, **cat_corr):
 
                 elif spec['grid'] == 960: 
                     f_code = ''.join([code_dir, 
-                        'power-cmass-960grid-480bin.f'])
+                        'power-cmass-Igal-960grid-480bin.f'])
+                    #    'power-cmass-960grid-480bin.f'])
                 
                 elif spec['grid'] == 1920: 
                     f_code = ''.join([code_dir, 

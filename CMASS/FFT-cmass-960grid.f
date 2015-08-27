@@ -1,7 +1,7 @@
       implicit none  !as FFT_FKP_SDSS_LRG_new but removes some hard-cored choices
       integer Nsel,Nran,i,iwr,Ngal,Nmax,n,kx,ky,kz,Lm,Ngrid,ix,iy,iz,j,k
       integer Ng,Nr,iflag,ic,Nbin,l,ipoly,wb,wcp,wred,flag
-      real wstar,wnoz,wfc,wcomp,nbb
+      real wstar,wnoz,wfc,wcomp,nbb,dummy
       integer*8 planf
       real pi,cspeed,Om0,OL0,redtru,m1,m2,zlo,zhi,garb1,garb2,garb3,veto
       parameter(Nsel=201,Nmax=2*10**8,Ngrid=960,Nbin=151,pi=3.141592654)
@@ -73,6 +73,7 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
          Ngsys=0.d0
          Ngsyscomp=0.d0
          Ngsystot=0.d0
+         read(4,'(a)')dummy     ! skip comment line 
          do i=1,Nmax
             read(4,*,end=13)ra,dec,az,nbb,wstar,wnoz,wfc,wcomp
             ra=ra*(pi/180.)

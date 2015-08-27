@@ -11,12 +11,15 @@ Author(s): ChangHoon Hahn
 
 import numpy as np 
 import scipy as sp
+import matplotlib.pyplot as plt
 import os.path
 import subprocess
 import cosmolopy as cosmos
 from matplotlib.collections import LineCollection
 
 # --- Local --- 
+from utility.plotting import prettyplot
+from utility.plotting import prettycolors 
 import fibcol_data as fc_data
 import fibcol_nbar as fc_nbar
 import fibcol_dlos as fc_dlos
@@ -256,6 +259,7 @@ def plot_pk_fibcol_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
         elif type == 'ratio':                       # P_corr(k)/P_true comparison 
             if i_corr == 0 :        
                 avg_Pk_denom = avg_Pk        # P_true(k) 
+                denom_cat = catalog['name']
 
             else: 
                 if correction['name'].lower() in ('peak', 'peaknbar', 'peaktest', 
@@ -457,9 +461,9 @@ def plot_pk_fibcol_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
             yytext = 0.55
 
         if quad == True: 
-            ylabel = r"$\mathtt{\overline{P_2(k)}/\overline{P_2(k)_{\rm{True}}}}$"
+            ylabel = r"$\mathtt{\overline{P_2(k)}/\overline{P_2(k)_{\rm{"+denom_cat+"}}}}$"
         else: 
-            ylabel = r"$\mathtt{\overline{P_0(k)}/\overline{P_0(k)_{\rm{True}}}}$"
+            ylabel = r"$\mathtt{\overline{P_0(k)}/\overline{P_0(k)_{\rm{"+denom_cat+"}}}}$"
         
         if 'xscale' in kwargs.keys(): 
             sub.set_xscale(kwargs['xscale']) 
