@@ -22,61 +22,125 @@ import fibcol_utility as fc_util
 import galaxy_environment as genv
 import pyspherematch as pysph 
 
-def dlos_env(cat_corr, n=3, **kwargs):
-    ''' Construct combined dLOS distribution with corresponding nth nearest neighbor distances (galaxy environment)
+class DlosEnv: 
+    def __init__(self, cat_corr, n_NN=3, **kwargs):
+        ''' dLOS with corresponding nth nearest neighbor distances (a tracer of galaxy environment)
+        '''
+        self.cat_corr = cat_corr
+        self.n_NN = n_NN
 
-    Parameters
-    ----------
-    cat_corr : catalog and correction dictionary 
-    n : n in nth nearest neighbor distance 
+        self.file_name = self.File(n_NN=3, **kwargs) 
+
+    def File(self, **kwargs): 
+        ''' Get file name for the combined dLOS + Env values 
+        '''
+        cat = self.cat_corr['catalog'] 
+        if 'n_mock' not in cat.keys():
+            cat['n_mock'] = 1 
+        corr = self.cat_corr['correction']
+        if corr['name'].lower() != 'upweight':
+            corr = {'name': 'upweight'} 
+                
+        f_dlos = fc_dlos.dlos(**{'catalog': cat, 'correction': corr})         
+        dlos_dir = '/'.join((f_dlos.file_name).split('/')[:-1])+'/'
     
-    Notes
-    -----
-    * Currently only implemented for nseries
-
-    '''
-    catalog = cat_corr['catalog']
-    correction = {'name': 'upweight'}   # correction has to be upweight
-   
-    # Read and combine dLOS data 
-    if catalog['name'].lower() in ('qpm', 'nseries'):    # QPM or Nseries
-        
         try: 
-            n_mocks = kwargs['n_mocks'] 
+            nmock_str = '_' + str(kwargs['n_mocks'])+'mocks'
         except KeyError: 
-            if catalog['name'].lower() == 'nseries': 
-                n_mocks = 84
-            else:
-                raise NotImplementedError("Not implemented error")
+            if cat['name'].lower() == 'nseries': 
+                nmock_str = '_84mocks'
+            else: 
+                raise NotImplementedError("Only Nseries Implemented For Now") 
+        
+        file_name = ''.join([dlos_dir, 
+            'DLOSENV_d', str(self.n_NN), 'NN_', cat['name'], nmock_str, '.dat']) 
 
-        for i_mock in range(1, n_mocks+1):         # combine dLOS values of n mocks 
-            # read dLOS for each mock  
-            i_catalog = catalog.copy() 
-            i_catalog['n_mock'] = i_mock 
-            i_cat_corr = {'catalog':i_catalog, 'correction': correction} 
+        return file_name 
 
-            # import DLOS values 
-            los_disp_i = fc_dlos.dlos(**i_cat_corr)         
+    def Read(self, **kwargs): 
+        ''' Read file 
+        '''
+        if not os.path.isfile(self.file_name):
+            # if file does not exist then make it 
+            self.calculate(**kwargs)
+            self.Write(**kwargs)
+        try: 
+            if kwargs['clobber']: 
+                self.calculate(**kwargs)
+                self.Write(**kwargs)
+        except KeyError: 
+            pass 
 
-            # compute nth nearest neighbor distance for upweighted galaxy  
-            NN_dist = genv.dlos_d_NN(n=n, **i_cat_corr ) 
+        self.dlos, self.env = np.loadtxt(self.file_name, skiprows=1, unpack=True, usecols=[0,1])
+
+        return None 
+
+    def calculate(self, **kwargs): 
+        ''' Construct combined dLOS distribution with corresponding nth nearest neighbor distances (galaxy environment)
+
+        Parameters
+        ----------
+        cat_corr : catalog and correction dictionary 
+        n : n in nth nearest neighbor distance 
+        
+        Notes
+        -----
+        * Currently only implemented for nseries
+
+        '''
+        catalog = self.cat_corr['catalog']
+        correction = {'name': 'upweight'}   # correction has to be upweight
+   
+        # Read and combine dLOS data 
+        if catalog['name'].lower() in ('qpm', 'nseries'):    # QPM or Nseries
             
-            # combine dLOS and dNN values  
             try: 
-                combined_dlos = np.concatenate([combined_dlos, los_disp_i.dlos])
-                combined_dNN = np.concatenate([combined_dNN, NN_dist]) 
-            except NameError: 
-                combined_dlos = los_disp_i.dlos
-                combined_dNN = NN_dist
-    else: 
-        raise NotImplementedError('asdfasdfasdf') 
-    
-    comb_dlos = fc_dlos.Dlos({'catalog': catalog, 'correction': correction}, env=str(n)+'NN', combined=84)
-    comb_dlos.dlos = combined_dlos
-    comb_dlos.env = combined_dNN
+                n_mocks = kwargs['n_mocks'] 
+            except KeyError: 
+                if catalog['name'].lower() == 'nseries': 
+                    n_mocks = 84
+                else:
+                    raise NotImplementedError("Not implemented error")
 
-    return comb_dlos 
+            for i_mock in range(1, n_mocks+1):         # combine dLOS values of n mocks 
+                # read dLOS for each mock  
+                i_catalog = catalog.copy() 
+                i_catalog['n_mock'] = i_mock 
+                i_cat_corr = {'catalog':i_catalog, 'correction': correction} 
 
+                # import DLOS values 
+                los_disp_i = fc_dlos.dlos(**i_cat_corr)         
+
+                # compute nth nearest neighbor distance for upweighted galaxy  
+                NN_dist = genv.dlos_d_NN(n=self.n_NN, **i_cat_corr ) 
+                
+                # combine dLOS and dNN values  
+                try: 
+                    combined_dlos = np.concatenate([combined_dlos, los_disp_i.dlos])
+                    combined_dNN = np.concatenate([combined_dNN, NN_dist]) 
+                except NameError: 
+                    combined_dlos = los_disp_i.dlos
+                    combined_dNN = NN_dist
+        else: 
+            raise NotImplementedError('asdfasdfasdf') 
+        
+        self.dlos = combined_dlos
+        self.env = combined_dNN
+
+        return None  
+
+    def Write(self, **kwargs): 
+        ''' Write dLOS + Env values to file
+        '''
+        head_str = '# dlos, dNN'
+        print '#####################################'
+        print 'Writing ', self.file_name 
+        print '#####################################'
+        np.savetxt(self.file_name, 
+                np.c_[self.dlos, self.env], 
+                delimiter='\t', header=head_str)
+
+        return None 
 
 def dlos_env_multiprocess(params): 
     ''' Wrapper for dlos_env function 

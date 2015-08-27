@@ -21,7 +21,7 @@ import galaxy_environment as genv
 import dlos_env
 import mpfit as mpfit
 
-def plot_dLOS_env(cat_corr, n=3, **kwargs):
+def plot_dLOS_env(cat_corr, n_NN=3, **kwargs):
     ''' Plot combined dLOS distribution of in bins of galaxy environment 
     
     Notes
@@ -94,7 +94,7 @@ def plot_dLOS_env(cat_corr, n=3, **kwargs):
     
     return None 
 
-def plot_dLOS_fpeak_env(cat_corr, n=3, **kwargs):
+def plot_dLOS_fpeak_env(cat_corr, n_NN=3, **kwargs):
     ''' Plot best-fit fpeak of combined dLOS distribution of in bins of galaxy environment 
     
     Notes
@@ -102,76 +102,89 @@ def plot_dLOS_fpeak_env(cat_corr, n=3, **kwargs):
     * Only implemented for Nth Nearest Neighbor galaxy environment tracer 
 
     '''
-    catalog = cat_corr['catalog']
-    # combined dLOS for catalog and correction 
-    comb_dlos = dlos_env.dlos_env(cat_corr, n=n, **kwargs) 
-
-    combined_dlos = comb_dlos.dlos
-    combined_dNN = comb_dlos.env
-
+    if not isinstance(n_NN, list): 
+        n_NN_list = [ n_NN ] 
+    else:
+        n_NN_list = n_NN
+    
     # set up figure 
     prettyplot() 
     pretty_colors = prettycolors() 
     fig = plt.figure(1, figsize=(8,8))
     sub = fig.add_subplot(1,1,1)
+
+    catalog = cat_corr['catalog']
+    for i_nNN, nNN in enumerate(n_NN_list):   # for different n_NN values 
+        # combined dLOS for catalog and correction 
+        comb_dlos = dlos_env.DlosEnv(cat_corr, n_NN=nNN, **kwargs) 
+        comb_dlos.Read()
+
+        combined_dlos = comb_dlos.dlos
+        combined_dNN = comb_dlos.env
+
+        print 'd'+str(nNN)+'NN, Minimum ', min(combined_dNN), ' Maximum ', max(combined_dNN)
+        dNN_label = ''.join(['d', str(nNN), 'NN'])
     
-    print 'd'+str(n)+'NN, Minimum ', min(combined_dNN), ' Maximum ', max(combined_dNN)
+        # bin dNN values
+        dnn_step = 2    # currently hardcoded
+        istart = np.int(np.floor(min(combined_dNN)))
+        iend = np.int(np.floor(max(combined_dNN)/np.float(dnn_step)))
+        dNN_bins = [ (dnn_step*i, dnn_step*(i+1)) for i in np.arange(istart, iend) ] 
 
-    # bin dNN values
-    dnn_step = 2    # currently hardcoded
-    istart = np.int(np.floor(min(combined_dNN)))
-    iend = np.int(np.floor(max(combined_dNN)/np.float(dnn_step)))
-    dNN_bins = [ (dnn_step*i, dnn_step*(i+1)) for i in np.arange(istart, iend) ] 
+        for i_bin, dNN_bin in enumerate(dNN_bins): 
+            # dNN bin 
+            try: 
+                bin_index = np.where(( combined_dNN >= dNN_bin[0] ) & ( combined_dNN < dNN_bin[1] )) 
+            except TypeError: 
+                bin_index = np.where((combined_dNN >= dNN_bin)) 
 
-    for i_bin, dNN_bin in enumerate(dNN_bins): 
-        # dNN bin 
-        try: 
-            bin_index = np.where(( combined_dNN >= dNN_bin[0] ) & ( combined_dNN < dNN_bin[1] )) 
-        except TypeError: 
-            bin_index = np.where((combined_dNN >= dNN_bin)) 
-
-        bin_dlos = combined_dlos[bin_index] 
-        if len(bin_dlos) < 50: 
-            # if the bin contains too few dLOSs then skip
-            continue
+            bin_dlos = combined_dlos[bin_index] 
+            if len(bin_dlos) < 50: 
+                # if the bin contains too few dLOSs then skip
+                continue
+            
+            # fraction of total dLOS values 
+            bin_perc = np.float( len(bin_dlos) )/np.float( len(combined_dlos) ) * 100.0
         
-        # fraction of total dLOS values 
-        bin_perc = np.float( len(bin_dlos) )/np.float( len(combined_dlos) ) * 100.0
-    
-        # calculate the histogram and fit peak of the distribution 
-        dlos_hist, mpc_mid, peak_param  = \
-                fc_dlos.dlos_hist_peak_fit(bin_dlos, fit='gauss', peak_range=[-15.0, 15.0])
+            # calculate the histogram and fit peak of the distribution 
+            dlos_hist, mpc_mid, peak_param  = \
+                    fc_dlos.dlos_hist_peak_fit(bin_dlos, fit='gauss', peak_range=[-15.0, 15.0])
+            
+            try:        # save avg_dNN and fpeak values 
+                dNN_avg.append( 0.5 * np.float(dNN_bin[0] + dNN_bin[1]) ) 
+                fpeaks.append( peak_param['fpeak'] ) 
+            except NameError: 
+                dNN_avg = [0.5 * np.float(dNN_bin[0] + dNN_bin[1])]
+                fpeaks = [peak_param['fpeak']]
+            except TypeError: 
+                dNN_avg.append( np.float(dNN_bin) ) 
+                fpeaks.append( peak_param['fpeak'] ) 
+
+        sub.scatter( dNN_avg, fpeaks, s=6, c=pretty_colors[i_nNN])       # fpeaks vs dNN-avg
+
+        # MPfit ----
+        p0 = [-0.01, 0.8]            # initial guesses for p0[0] * x + p0[1]
+        fa = {'x': np.array(dNN_avg), 'y': np.array(fpeaks)}
+        fit_param = mpfit.mpfit(fc_dlos.mpfit_linear, p0, functkw=fa, nprint=0)
         
-        try:        # save avg_dNN and fpeak values 
-            dNN_avg.append( 0.5 * np.float(dNN_bin[0] + dNN_bin[1]) ) 
-            fpeaks.append( peak_param['fpeak'] ) 
-        except NameError: 
-            dNN_avg = [0.5 * np.float(dNN_bin[0] + dNN_bin[1])]
-            fpeaks = [peak_param['fpeak']]
-        except TypeError: 
-            dNN_avg.append( np.float(dNN_bin) ) 
-            fpeaks.append( peak_param['fpeak'] ) 
+        fit_slope = fit_param.params[0]
+        fit_yint = fit_param.params[1]
 
-    sub.scatter( dNN_avg, fpeaks, s=6 )       # fpeaks vs dNN-avg
+        dNN_label += ': '+str(fit_slope)+', '+str(fit_yint)
+        # plot best line fit 
+        sub.plot( np.array(dNN_avg), fc_dlos.fit_linear(np.array(dNN_avg), fit_param.params), 
+                lw=4, ls='--', c=pretty_colors[i_nNN], label=dNN_label)       
+        
+        del dNN_avg, fpeaks
 
-    # MPfit ----
-    p0 = [-0.01, 0.8]            # initial guesses for p0[0] * x + p0[1]
-    fa = {'x': np.array(dNN_avg), 'y': np.array(fpeaks)}
-    fit_param = mpfit.mpfit(fc_dlos.mpfit_linear, p0, functkw=fa, nprint=0)
-    
-    fit_slope = fit_param.params[0]
-    fit_yint = fit_param.params[1]
-
-    # plot best line fit 
-    sub.plot( np.array(dNN_avg), fc_dlos.fit_linear(np.array(dNN_avg), fit_param.params), lw=4, ls='--', c='k')       
-
-    sub.set_xlabel('$\mathtt{d_{'+str(n)+'NN}}$', fontsize=20) 
+    sub.set_xlabel('$\mathtt{d_{NN}}$', fontsize=20) 
     sub.set_ylabel('$\mathtt{f_{peak}}$', fontsize=20) 
     sub.set_xlim([0.0, 50.0]) 
     sub.set_ylim([0.0, 1.0])
+    sub.legend(loc='upper right')
 
     fig_file = ''.join(['../figure/', 
-        'dlos_fpeak_d', str(n), 'NN_', catalog['name'], '.png'])
+        'dlos_fpeak', ''.join(['_d'+str(ni)+'NN' for ni in n_NN_list]), '_', catalog['name'], '.png'])
     fig.savefig(fig_file, bbox_inches="tight")
     fig.clear()
 
@@ -179,4 +192,4 @@ def plot_dLOS_fpeak_env(cat_corr, n=3, **kwargs):
 
 if __name__=='__main__':
     cat_corr = {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}
-    plot_dLOS_fpeak_env(cat_corr, n=3)
+    plot_dLOS_fpeak_env(cat_corr, n_NN=[1,2,3,4,5,10])
