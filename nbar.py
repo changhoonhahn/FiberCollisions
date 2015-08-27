@@ -69,71 +69,7 @@ class Nbar:
     def calculate(self, **kwargs): 
         ''' Calculate nbar(z)
         '''
-
-        if catalog['name'].lower() == 'lasdamasgeo':            # LasDamasGeo -----------------------------------------------
-
-            self.file_name = get_nbar_file(**cat_corr)  # nbar file name 
-            
-            ldg_nbar = 0.0000944233     # constant nbar(z) value for true
-
-            if correction['name'] .lower() in ('true', 'upweight', 'peakshot'): 
-                # no correction 
-                self.nbar = np.array([ldg_nbar for i in range(n_zbin)]) 
-
-            else:
-                # nbar(z) needs to be corrected 
-
-                if (os.path.isfile(self.file_name) == True) and (clobber == False): 
-
-                    self.nbar = np.loadtxt(self.file_name, unpack=True, usecols=[3])
-
-                else: 
-
-                    print 'Constructing ', self.file_name 
-
-                    # check that the corrected nbar-ngal files exist
-                    corr_ngal_file = get_nbar_ngal_file('allmocks', **cat_corr)
-
-                    if (os.path.isfile(corr_ngal_file) == False) or clobber: 
-                        print 'Constructing ', corr_ngal_file
-                        write_nbar_ngal('allmocks', **cat_corr) 
-                    else: 
-                        print 'Using ', corr_ngal_file
-
-                    # read corrected nbar_ngal
-                    corr_ngal = np.loadtxt(corr_ngal_file, unpack=True, usecols=[3]) 
-       
-                    # check that the true nbar_ngal fiel exists
-                    true_cat_corr = {'catalog':catalog, 'correction':{'name':'true'}}
-                    true_ngal_file = get_nbar_ngal_file('allmocks', **true_cat_corr) 
-
-                    if os.path.isfile(true_ngal_file) == False: 
-                        print 'Constructing ', true_ngal_file
-                        write_nbar_ngal('allmocks', **true_cat_corr) 
-                    
-                    # read true nbar_ngal
-                    true_ngal = np.loadtxt(true_ngal_file, unpack=True, usecols=[3])
-
-                    # determine corrected nbar(z) using corrected nbar_ngal file
-                    self.nbar = np.zeros(len(self.zlow))
-                    for i in range(len(true_ngal)): 
-                        if true_ngal[i] != 0: 
-                            self.nbar[i] = ldg_nbar*(corr_ngal[i]/true_ngal[i])
-                            #print (corr_ngal[i]/true_ngal[i])
-                        else: 
-                            self.nbar[i] = 0.0
-
-                    self.writenbar()
-
-        else: 
-            raise NameError("Not yet Coded!") 
-
-    def writenbar(self): 
-        ''' Write class object nbar to ASCII file 
-        '''
-        np.savetxt(self.file_name, 
-                np.c_[self.zmid, self.zlow, self.zhigh, self.nbar], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5e'], delimiter='\t')
+        pass
 
 class Ngal: 
     def __init__(self, cat_corr, **kwargs): 
@@ -155,16 +91,21 @@ class Ngal:
         n_zbin = len(self.zlow) 
 
         self.ngal = None
-        self.file_name = self.File(**kwargs)
+        if 'DorR' in kwargs.keys():  # in case random is specified
+            dorr_str = kwargs['DorR']
+            kwargs.pop('DorR', None)
+            self.file_name = self.File(DorR=dorr_str, **kwargs)
+        else: 
+            self.file_name = self.File(**kwargs)
 
-    def File(self, **kwargs): 
+    def File(self, DorR='data', **kwargs): 
         ''' Get file name of nbar(z) file 
         '''
         cat = self.cat_corr['catalog']
         corr = self.cat_corr['correction']
 
         # get data file to construct nbar(z) file name 
-        data_file = fc_data.get_galaxy_data_file('data', **self.cat_corr)
+        data_file = fc_data.get_galaxy_data_file(DorR, **self.cat_corr)
         data_dir = '/'.join(data_file.split('/')[:-1])+'/'      # directory
         data_file_name = data_file.split('/')[-1]           # file name 
 
@@ -179,13 +120,13 @@ class Ngal:
 
         return file_name
     
-    def calculate(self, **kwargs): 
+    def calculate(self, DorR='data', **kwargs): 
         ''' Calculate Ngal(z) from the data file specified by the dictionary   
         '''
         cat = self.cat_corr['catalog'] 
 
         # read data from cat_corr dictionary 
-        data = fc_data.galaxy_data('data', **self.cat_corr)
+        data = fc_data.galaxy_data(DorR, **self.cat_corr)
 
         redshifts = data.z  # redshifts 
         
@@ -195,7 +136,10 @@ class Ngal:
         else:
             if 'cmass' in cat['name'].lower(): 
                 # weights and completeness accounted for CMASS like catalogs 
-                weights = data.wsys * (data.wnoz + data.wfc - 1.0) * (1./data.comp) 
+                if DorR == 'data': 
+                    weights = data.wsys * (data.wnoz + data.wfc - 1.0) * (1./data.comp) 
+                else: 
+                    weights = 1./data.comp
             else: 
                 raise NotImplementedError("Only CMASS implemented so far") 
     
@@ -206,7 +150,7 @@ class Ngal:
             
             ngal.append( np.sum(weights[zbin]) ) 
 
-            print len(weights[zbin]), np.sum(weights[zbin])
+            #print len(weights[zbin]), np.sum(weights[zbin])
 
         self.ngal = np.array(ngal)
 
@@ -247,7 +191,7 @@ class Ngal:
         return self.file_name 
 
 # Plotting -----
-def plot_Ngal(cat_corr, type='regular', **kwargs): 
+def plot_Ngal(cat_corrs, type='regular', DorR_list=None, **kwargs): 
     ''' Plot Ngal(z) given catalog and correction dictionary
 
     Parameters
@@ -257,11 +201,15 @@ def plot_Ngal(cat_corr, type='regular', **kwargs):
 
     '''
     # list of catalog and correction methods 
-    if isinstance(cat_corr, list): 
-        cat_corrs = cat_corr 
-    else: 
-        cat_corrs = [cat_corr]
+    if not isinstance(cat_corrs, list): 
+        cat_corrs = [cat_corrs]
     cat_corr_str = ''
+    if DorR_list != None: 
+        if not isinstance(DorR_list, list): 
+            DorR_list = [DorR_list]
+
+        if len(DorR_list) != len(cat_corrs): 
+            raise ValueError('DorR list must have the same number of elements as cat_corr')
 
     prettyplot()        # set up plot 
     pretty_colors = prettycolors()
@@ -271,13 +219,27 @@ def plot_Ngal(cat_corr, type='regular', **kwargs):
     for i_cc, cc in enumerate(cat_corrs):    # loop through cat corrs 
         cat = cc['catalog']
         corr = cc['correction']
+
+        if DorR_list[i_cc] == 'random': 
+            kwargs['DorR'] = 'random'
         # read Ngal 
         ng = Ngal(cc, **kwargs)
         ng.Read(**kwargs)  
 
         # catalog correction specifier 
-        cat_corr_label = ' '.join([cat['name'], corr['name']]) 
-        cat_corr_str += ''.join(['_', catalog['name'], '_', correction['name']]) 
+        cat_corr_label = ';'.join([''.join(cat['name'].split('_')).upper(), corr['name'].upper()]) 
+        cat_corr_str += ''.join(['_', cat['name'], '_', corr['name']]) 
+        
+        if DorR_list[i_cc] == 'random': 
+            kwargs['DorR'] = 'data'
+            # read Ngal 
+            D_ng = Ngal(cc, **kwargs)
+            D_ng.Read(**kwargs)  
+            alpha = np.sum(D_ng.ngal)/np.sum(ng.ngal)
+        else: 
+            alpha = 1.0
+
+        ng.ngal = alpha * ng.ngal 
         
         if type == 'regular': 
             # plot Ngal(z) 
@@ -322,6 +284,9 @@ def plot_Ngal(cat_corr, type='regular', **kwargs):
         y_label = ''.join([r"$\mathtt{N_\mathrm{gal}} / N_\mathtt{gal}^{", denom_catcorr, "}$"])
         type_str = '_ratio'
 
+    if 'ylimit' in kwargs.keys(): 
+        sub.set_ylim(kwargs['ylimit'])
+
     sub.set_xlim([zmin, zmax]) 
     sub.set_xlabel('Redshift (z)')
     sub.set_ylabel(y_label)
@@ -329,7 +294,7 @@ def plot_Ngal(cat_corr, type='regular', **kwargs):
     sub.legend(loc = 'upper left') 
     
     fig_name = ''.join(['figure/', 
-        'NGAL_', cat_corr_str, type_str, '.png']) 
+        'NGAL', cat_corr_str, type_str, '.png']) 
     fig.savefig(fig_name, bbox_inches='tight')
     fig.clear()
     return None 
@@ -339,6 +304,20 @@ if __name__=='__main__':
             {'catalog': {'name': 'cmasslowz_high'}, 
                 'correction': {'name': 'upweight'}}, 
             {'catalog': {'name': 'cmasslowz_high'}, 
+                'correction': {'name': 'upweight'}}, 
+            {'catalog': {'name': 'cmasslowz_high'}, 
                 'correction': {'name': 'peakshot', 'fit': 'gauss', 'sigma': 6.6, 'fpeak': 0.72}}
             ]
-    plot_Ngal(cat_corrs)
+    plot_Ngal(cat_corrs, DorR_list=['data', 'random', 'data'])
+    plot_Ngal(cat_corrs, type='ratio', DorR_list=['data', 'random', 'data'], ylimit=[0.994, 1.006])
+    
+    cat_corrs = [
+            {'catalog': {'name': 'cmasslowz_low'}, 
+                'correction': {'name': 'upweight'}}, 
+            {'catalog': {'name': 'cmasslowz_high'}, 
+                'correction': {'name': 'upweight'}}, 
+            {'catalog': {'name': 'cmasslowz_low'}, 
+                'correction': {'name': 'peakshot', 'fit': 'gauss', 'sigma': 6.9, 'fpeak': 0.72}}
+            ]
+    plot_Ngal(cat_corrs, DorR_list=['data', 'random', 'data'])
+    plot_Ngal(cat_corrs, type='ratio', DorR_list=['data', 'random', 'data'], ylimit=[0.994, 1.006])
