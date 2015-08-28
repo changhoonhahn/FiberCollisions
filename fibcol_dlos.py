@@ -420,17 +420,28 @@ class dlos:
                 self.neigh_dec = readin_data[5] 
                 self.neigh_z = readin_data[6]
         elif 'cmass' in catalog['name'].lower():            # CMASS -------------------------
-            file_dir = '/mount/riachuelo1/hahn/data/CMASS/'        # directory
+            file_dir = '/mount/riachuelo1/hahn/data/CMASS/dr12v5/'        # directory
             # File name 
             if catalog['name'].lower() == 'cmass': 
                 file_name = ''.join([file_dir, 
                     'DLOS_cmass-dr12v4-N-Reid-weights-zlim.dat']) 
-            elif catalog['name'].lower() == 'cmasslowz_high':
+            elif 'cmasslowz' in catalog['name'].lower():
+                cmasslowz_str = ''
+                if 'e2' in catalog['name'].lower(): 
+                    cmasslowz_str = 'e2'
+                elif 'e3' in catalog['name'].lower(): 
+                    cmasslowz_str = 'e3'
+    
+                if 'high' in catalog['name'].lower(): 
+                    zbin_str = '-high'
+                elif '_low' in catalog['name'].lower():
+                    zbin_str = '-low'
+
                 file_name = ''.join([file_dir, 
-                    'DLOS_cmasslowz-dr12v4-N-Reid-high.dat'])
+                    'DLOS_cmasslowz', cmasslowz_str, '-dr12v5-N', zbin_str, '.dat'])
             elif catalog['name'].lower() == 'cmasslowz_low':
                 file_name = ''.join([file_dir, 
-                    'DLOS_cmasslowz-dr12v4-N-Reid-low.dat'])
+                    'DLOS_cmasslowz', cmasslowz_str, '-dr12v5-N', zbin_str, '.dat'])
             self.file_name = file_name 
             
             if readdata: 
@@ -2128,6 +2139,7 @@ def combined_catalog_dlos_fits(catalog, n_mock):
         raise NameError('asdfasdfasdf')  
 
 if __name__=="__main__": 
+    '''
     cat_corr = {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}} 
     pool = mp.Pool(processes=5)
     mapfn = pool.map
@@ -2144,18 +2156,21 @@ if __name__=="__main__":
     pool.close()
     pool.terminate()
     pool.join() 
+    '''
 
     #combined_dlos_dist(1, **cat_corr)
     #combined_catalog_dlos_fits('lasdamasgeo', 10)
     #combined_catalog_dlos_fits('ldgdownnz', 10)
     #combined_catalog_dlos_fits('cmass', 1)
     #combined_catalog_dlos_fits('bigmd3', 1)
-    #cat_corrs = [
-    #        {'catalog': {'name': 'cmasslowz_high'}, 'correction': {'name': 'upweight'}}, 
-    #        {'catalog': {'name': 'cmasslowz_low'}, 'correction': {'name': 'upweight'}}
-    #        ]
-    #for cat_corr in cat_corrs: 
-    #    combined_catalog_dlos_fits((cat_corr['catalog'])['name'], 1)
+    
+    for cat_str in ['', '_e2', '_e3']: 
+        cat_corrs = [
+                {'catalog': {'name': 'cmasslowz_high'+cat_str}, 'correction': {'name': 'upweight'}}, 
+                {'catalog': {'name': 'cmasslowz_low'+cat_str}, 'correction': {'name': 'upweight'}}
+                ]
+        for cat_corr in cat_corrs: 
+            combined_catalog_dlos_fits((cat_corr['catalog'])['name'], 1)
 
     #{'catalog': {'name': 'bigmd'}, 'correction': {'name': 'upweight'}},
     #{'catalog': {'name': 'bigmd1'}, 'correction': {'name': 'upweight'}}, 
