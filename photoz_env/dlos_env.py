@@ -226,13 +226,18 @@ class DlosEnv:
 
 def fpeak_dNN(dNN, cat_corr, n_NN=3, **kwargs): 
     ''' fpeak value given nth nearest neighbor distance
+
+    Notes
+    -----
+    * Upweight correction automatically assigned
     '''
+    cat_corr['correction'] = {'name': 'upweight'}
+
     comb_dlos = DlosEnv(cat_corr, n_NN=n_NN)
     # fpeak file 
     dlos_dir =  '/'.join( (comb_dlos.file_name).split('/')[:-1] )+'/'
     dlos_file = (comb_dlos.file_name).split('/')[-1]
     fpeak_file = ''.join([dlos_dir, 'fpeak_env_', dlos_file]) 
-    print fpeak_file
     
     if 'truefpeak' in kwargs.keys():
         if kwargs['truefpeak']: 

@@ -6,7 +6,6 @@ Author(s): ChangHoon Hahn
 
 
 '''
-
 import numpy as np
 import scipy as sp 
 import time 
@@ -1090,7 +1089,7 @@ def get_galaxy_data_file(DorR, **cat_corr):
                 if correction['name'].lower() in ('upweight'):      
                     # upweighted
                     file_name = ''.join([data_dir, 
-                        'cmasslowz-dr12v4-N-Reid-high.dat']) # hardcoded
+                        'cmasslowztot-dr12v5-N-high.dat']) # hardcoded
                 elif correction['name'].lower() in ('peakshot'):    
                     # peakshot
                     # correction string in file name 
@@ -1099,13 +1098,13 @@ def get_galaxy_data_file(DorR, **cat_corr):
                         '.sigma', str(correction['sigma']), '.fpeak', str(correction['fpeak'])])
 
                     file_name = ''.join([data_dir, 
-                        'cmasslowz-dr12v4-N-Reid-high.dat', corr_str]) 
+                        'cmasslowztot-dr12v5-N-high.dat', corr_str]) 
             elif catalog['name'].lower() == 'cmasslowz_low':
                 # CMASS LOWZ combined sample low redshift bin 
                 if correction['name'].lower() in ('upweight'):      
                     # upweighted
                     file_name = ''.join([data_dir, 
-                        'cmasslowz-dr12v4-N-Reid-low.dat']) # hardcoded
+                        'cmasslowztot-dr12v5-N-low.dat']) # hardcoded
                 elif correction['name'].lower() in ('peakshot'):    
                     # peakshot
                     # correction string in file name 
@@ -1114,7 +1113,7 @@ def get_galaxy_data_file(DorR, **cat_corr):
                         '.sigma', str(correction['sigma']), '.fpeak', str(correction['fpeak'])])
 
                     file_name = ''.join([data_dir, 
-                        'cmasslowz-dr12v4-N-Reid-low.dat', corr_str]) 
+                        'cmasslowztot-dr12v4-N-low.dat', corr_str]) 
     
         elif DorR == 'random':                  # random catalog 
             if catalog['name'].lower() == 'cmass': 
@@ -1122,10 +1121,10 @@ def get_galaxy_data_file(DorR, **cat_corr):
                     'cmass-dr12v4-N-Reid.ran.dat'])
             elif catalog['name'].lower() == 'cmasslowz_high': 
                 file_name = ''.join([data_dir, 
-                    'cmasslowz-dr12v4-N-Reid-high.ran.dat'])
+                    'cmasslowztot-dr12v5-N-high.ran.dat'])
             elif catalog['name'].lower() == 'cmasslowz_low': 
                 file_name = ''.join([data_dir, 
-                    'cmasslowz-dr12v4-N-Reid-low.ran.dat'])
+                    'cmasslowztot-dr12v5-N-low.ran.dat'])
             else: 
                 raise NotImplementedError('lskdfjaklsdfj')
 
@@ -1331,11 +1330,12 @@ def build_random(**cat_corr):
 
         elif catalog['name'].lower() == 'cmasslowz_high': 
             # random data fits file
-            data_file = ''.join([data_dir, 'cmasslowz-dr12v4-N-Reid.ran.fits']) 
+            data_file = ''.join([data_dir, 'random0_DR12v5_CMASSLOWZTOT_North.fits.gz'])
+            # old version 'cmasslowz-dr12v4-N-Reid.ran.fits'
             cmass = mrdfits(data_file) 
         
             # mask file 
-            mask_file = ''.join([data_dir, 'mask-cmasslowz-dr12v4-N-Reid.fits']) 
+            mask_file = ''.join([data_dir, 'mask_DR12v5_CMASSLOWZTOT_North.fits.gz'])
             mask = mrdfits(mask_file) 
             ipoly = cmass.ipoly # polygon index
             comp = mask.weight[ipoly]
@@ -1345,11 +1345,11 @@ def build_random(**cat_corr):
 
         elif catalog['name'].lower() == 'cmasslowz_low': 
             # random data fits file
-            data_file = ''.join([data_dir, 'cmasslowz-dr12v4-N-Reid.ran.fits']) 
+            data_file = ''.join([data_dir, 'random0_DR12v5_CMASSLOWZTOT_North.fits.gz'])
             cmass = mrdfits(data_file) 
         
             # mask file 
-            mask_file = ''.join([data_dir, 'mask-cmasslowz-dr12v4-N-Reid.fits']) 
+            mask_file = ''.join([data_dir, 'mask_DR12v5_CMASSLOWZTOT_North.fits.gz'])
             mask = mrdfits(mask_file) 
             ipoly = cmass.ipoly # polygon index
             comp = mask.weight[ipoly]
@@ -1562,8 +1562,7 @@ def build_fibercollided(**cat_corr):
             # 0.5 < z < 0.75
 
             # original combined data sample
-            data_file = ''.join([data_dir, 
-                'cmasslowz-dr12v4-N-Reid.dat.fits']) 
+            data_file = ''.join([data_dir, 'galaxy_DR12v5_CMASSLOWZTOT_North.fits.gz'])
             data = mrdfits(data_file) 
 
             zlimit = np.where((data.z >= 0.5) & (data.z < 0.7))  # redshift limit
@@ -1573,8 +1572,7 @@ def build_fibercollided(**cat_corr):
             # 0.2 < z < 0.5
 
             # original combined data sample
-            data_file = ''.join([data_dir, 
-                'cmasslowz-dr12v4-N-Reid.dat.fits']) 
+            data_file = ''.join([data_dir, 'galaxy_DR12v5_CMASSLOWZTOT_North.fits.gz'])
             data = mrdfits(data_file) 
 
             zlimit = np.where((data.z >= 0.2) & (data.z < 0.5)) # redshift limit 

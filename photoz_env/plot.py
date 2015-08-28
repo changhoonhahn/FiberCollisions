@@ -244,6 +244,11 @@ def plot_dLOS_envdist(cat_corr, n_NN=3, **kwargs):
 
 def plot_dLOS_env_fpeakdist(cat_corr, n_NN=3, **kwargs): 
     ''' Plot fpeak distribution of dLOS + Env
+
+    Notes
+    -----
+    * Function designed to investigate which n value for nth nearest neighbor has the greatest variance 
+    
     '''
     if not isinstance(n_NN, list): 
         n_NN_list = [ n_NN ] 
@@ -262,33 +267,36 @@ def plot_dLOS_env_fpeakdist(cat_corr, n_NN=3, **kwargs):
         comb_dlos = dlos_env.DlosEnv(cat_corr, n_NN=nNN, **kwargs) 
         comb_dlos.Read()
 
-        combined_dlos = comb_dlos.dlos
         combined_dNN = comb_dlos.env
+        
+        # calculate fpeak as a function dNN 
+        fpeaks = dlos_env.fpeak_dNN(combined_dNN, cat_corr, n_NN=nNN)
 
-        dNN_label = ''.join(['d', str(nNN), 'NN'])
+        fpeak_label = ''.join(["d", str(nNN), 'NN'])
 
-        dNN_min, dNN_max = min(combined_dNN), max(combined_dNN)
+        fpeak_min, fpeak_max = min(fpeaks), max(fpeaks)
         if 'stepsize' in kwargs.keys():
             stepsize = kwargs['stepsize']
         else: 
-            stepsize = 2.0
-        n_bins = int((dNN_max - dNN_min)/stepsize)
+            stepsize = 0.025 
+        n_bins = int((fpeak_max - fpeak_min)/stepsize)
 
-        dNN_dist, dNN_binedges = np.histogram(combined_dNN, bins=n_bins, range=[dNN_min, dNN_max]) 
+        fpeak_dist, fpeak_binedges = np.histogram(fpeaks, bins=n_bins, range=[fpeak_min, fpeak_max]) 
 
-        dNN_low = dNN_binedges[:-1]
-        dNN_high = dNN_binedges[1:]
-        dNN_mid = np.array([0.5 * (dNN_low[i] + dNN_high[i]) for i in range(len(dNN_low))]) 
+        fpeak_low = fpeak_binedges[:-1]
+        fpeak_high = fpeak_binedges[1:]
+        fpeak_mid = np.array([0.5 * (fpeak_low[i] + fpeak_high[i]) for i in range(len(fpeak_low))]) 
     
-        sub.step(dNN_low, dNN_dist, lw=4, color=pretty_colors[i_nNN], label = dNN_label)
+        sub.step(fpeak_low, fpeak_dist, lw=4, color=pretty_colors[i_nNN], label = fpeak_label)
+        print np.std(fpeaks)
 
-    sub.set_xlabel('$\mathtt{d_{NN}}$', fontsize=20) 
+    sub.set_xlabel(r"$\mathtt{f_{peak}(dNN)}$", fontsize=20)
     sub.set_ylabel(r'$\mathtt{N_{gal}}$', fontsize=20) 
-    sub.set_xlim([0.0, 50.0]) 
+    sub.set_xlim([0.0, 1.0]) 
     sub.legend(loc='upper right')
 
     fig_file = ''.join(['../figure/', 
-        'dlos_envdist', ''.join(['_d'+str(ni)+'NN' for ni in n_NN_list]), '_', catalog['name'], '.png'])
+        'dlos_env_fpeakdist', ''.join(['_d'+str(ni)+'NN' for ni in n_NN_list]), '_', catalog['name'], '.png'])
     fig.savefig(fig_file, bbox_inches="tight")
     fig.clear()
 
@@ -296,4 +304,4 @@ def plot_dLOS_env_fpeakdist(cat_corr, n_NN=3, **kwargs):
 
 if __name__=='__main__':
     cat_corr = {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}
-    plot_dLOS_envdist(cat_corr, n_NN=[1,2,3,4,5,10])
+    plot_dLOS_env_fpeakdist(cat_corr, n_NN=[1,2,3,4,5,10])
