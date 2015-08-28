@@ -420,26 +420,26 @@ class dlos:
                 self.neigh_dec = readin_data[5] 
                 self.neigh_z = readin_data[6]
         elif 'cmass' in catalog['name'].lower():            # CMASS -------------------------
-            file_dir = '/mount/riachuelo1/hahn/data/CMASS/dr12v5/'        # directory
+            file_dir = '/mount/riachuelo1/hahn/data/CMASS/'        # directory
             # File name 
             if catalog['name'].lower() == 'cmass': 
                 file_name = ''.join([file_dir, 
                     'DLOS_cmass-dr12v4-N-Reid-weights-zlim.dat']) 
             elif 'cmasslowz' in catalog['name'].lower():
+                file_dir += 'dr12v5/'
                 cmasslowz_str = ''
                 if 'e2' in catalog['name'].lower(): 
                     cmasslowz_str = 'e2'
                 elif 'e3' in catalog['name'].lower(): 
                     cmasslowz_str = 'e3'
+                elif 'tot' in catalog['name'].lower():
+                    cmasslowz_str = 'tot'
     
                 if 'high' in catalog['name'].lower(): 
                     zbin_str = '-high'
                 elif '_low' in catalog['name'].lower():
                     zbin_str = '-low'
 
-                file_name = ''.join([file_dir, 
-                    'DLOS_cmasslowz', cmasslowz_str, '-dr12v5-N', zbin_str, '.dat'])
-            elif catalog['name'].lower() == 'cmasslowz_low':
                 file_name = ''.join([file_dir, 
                     'DLOS_cmasslowz', cmasslowz_str, '-dr12v5-N', zbin_str, '.dat'])
             self.file_name = file_name 
@@ -2164,7 +2164,7 @@ if __name__=="__main__":
     #combined_catalog_dlos_fits('cmass', 1)
     #combined_catalog_dlos_fits('bigmd3', 1)
     
-    for cat_str in ['', '_e2', '_e3']: 
+    for cat_str in ['tot']: 
         cat_corrs = [
                 {'catalog': {'name': 'cmasslowz_high'+cat_str}, 'correction': {'name': 'upweight'}}, 
                 {'catalog': {'name': 'cmasslowz_low'+cat_str}, 'correction': {'name': 'upweight'}}

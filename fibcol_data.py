@@ -1125,7 +1125,7 @@ def get_galaxy_data_file(DorR, **cat_corr):
                 cmasslowz_str = ''
                 if 'e2' in catalog['name'].lower(): 
                     cmasslowz_str = 'e2'
-                elif 'e3' in catalgo['name'].lower(): 
+                elif 'e3' in catalog['name'].lower(): 
                     cmasslowz_str = 'e3'
                 
                 if '_low' in catalog['name'].lower(): 
@@ -1575,6 +1575,7 @@ def build_fibercollided(**cat_corr):
 
         elif 'cmasslowz' in catalog['name'].lower(): 
             # CMASS LOWZ combined sample
+            data_dir += 'dr12v5/'
             cmasslowz_str = ''
             if 'e2' in catalog['name'].lower(): 
                 cmasslowz_str = 'E2'
@@ -1589,7 +1590,7 @@ def build_fibercollided(**cat_corr):
                 raise NameError("redshift bin must be specified") 
 
             # original combined data sample
-            data_file = ''.join([data_dir, 'galaxy_DR12v5_CMASSLOWZTOT_North.fits.gz'])
+            data_file = ''.join([data_dir, 'galaxy_DR12v5_CMASSLOWZ', cmasslowz_str, '_North.fits.gz'])
             data = mrdfits(data_file) 
 
             zlimit = np.where((data.z >= zmin) & (data.z < zmax))  # redshift limit
@@ -2205,10 +2206,11 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
     elif 'cmass' in catalog['name'].lower():             # CMASS like catalogs
         if catalog['name'].lower() == 'cmass': 
             survey_zmin, survey_zmax = 0.43, 0.7    # survey redshift limits
-        elif catalog['name'].lower() == 'cmasslowz_high': 
-            survey_zmin, survey_zmax = 0.5, 0.75    
-        elif catalog['name'].lower() == 'cmasslowz_low': 
-            survey_zmin, survey_zmax = 0.2, 0.5
+        elif 'cmasslowz' in catalog['name'].lower(): 
+            if '_high' in catalog['name'].lower(): 
+                survey_zmin, survey_zmax = 0.5, 0.75    
+            elif '_low' in catalog['name'].lower(): 
+                survey_zmin, survey_zmax = 0.2, 0.5
         else: 
             raise NotImplementedError('CMASS or CMASSLOWZ combined sample')
         n_mocks = 1 
