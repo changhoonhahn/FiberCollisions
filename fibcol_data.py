@@ -1094,6 +1094,8 @@ def get_galaxy_data_file(DorR, **cat_corr):
                     cmasslowz_str = 'e2'
                 elif 'e3' in catalog['name'].lower(): 
                     cmasslowz_str = 'e3'
+                elif 'tot' in catalog['name'].lower(): 
+                    cmasslowz_str = 'tot'
                 
                 if '_low' in catalog['name'].lower(): 
                     zbin_str = '-low' 
@@ -1127,6 +1129,7 @@ def get_galaxy_data_file(DorR, **cat_corr):
                     cmasslowz_str = 'e2'
                 elif 'e3' in catalog['name'].lower(): 
                     cmasslowz_str = 'e3'
+                elif 'tot' in catalog['name'].lower(): 
                 
                 if '_low' in catalog['name'].lower(): 
                     zbin_str = '-low' 
@@ -1351,6 +1354,8 @@ def build_random(**cat_corr):
                 cmasslowz_str = 'E2' 
             elif 'e3' in catalog['name'].lower(): 
                 cmasslowz_str = 'E3'
+            elif 'tot' in catalog['name'].lower(): 
+                cmasslowz_str = 'TOT'
 
             if 'high' in catalog['name'].lower(): 
                 zmin, zmax = 0.5, 0.75
@@ -1358,20 +1363,38 @@ def build_random(**cat_corr):
                 zmin, zmax = 0.2, 0.5
             else: 
                 raise NameError("CMASSLOWZ Catalog must specify high or lowr edshift bin") 
+            
+            if 'tot' not in catalog['name'].lower(): 
+                # random data fits file
+                data_file = ''.join([data_dir, 'random0_DR12v5_CMASSLOWZ', cmasslowz_str, '_North.fits.gz'])
+                # old version 'cmasslowz-dr12v4-N-Reid.ran.fits'
+                cmass = mrdfits(data_file) 
+            
+                # mask file 
+                mask_file = ''.join([data_dir, 'mask_DR12v5_CMASSLOWZ', cmasslowz_str, '_North.fits.gz'])
+                mask = mrdfits(mask_file) 
+                ipoly = cmass.ipoly # polygon index
+                comp = mask.weight[ipoly]
+            
+                # redshift limit 
+                zlimit = np.where((cmass.z >= zmin) & (cmass.z < zmax))
+            else: 
+                if 'high' in catalog['name'].lower(): 
+                    hl_str = '_high'
+                elif '_low' in catalog['name'].lower():
+                    hl_str = '_low'
 
-            # random data fits file
-            data_file = ''.join([data_dir, 'random0_DR12v5_CMASSLOWZ', cmasslowz_str, '_North.fits.gz'])
-            # old version 'cmasslowz-dr12v4-N-Reid.ran.fits'
-            cmass = mrdfits(data_file) 
-        
-            # mask file 
-            mask_file = ''.join([data_dir, 'mask_DR12v5_CMASSLOWZ', cmasslowz_str, '_North.fits.gz'])
-            mask = mrdfits(mask_file) 
-            ipoly = cmass.ipoly # polygon index
-            comp = mask.weight[ipoly]
-        
-            # redshift limit 
-            zlimit = np.where((cmass.z >= zmin) & (cmass.z < zmax))
+                cc_cmd = 'cat ' 
+                for comb_str in ['', 'e2', 'e3']: 
+                    cc = {'catalog': {'name': 'cmasslowz'+hl_str+comb_str}, 
+                            'correction': {'name': 'upweight'}}
+                    cc_file = get_galaxy_data_file('random', **cc)
+                    cc_cmd += cc_file+' ' 
+
+                random_file = get_galaxy_data_file('random', **cat_corr) 
+                cc_cmd += '> '+random_file 
+                return 
+
         else: 
             raise NotImplementedError("Only CMASS and CMASS+LOWZ combined sample implemented") 
     
@@ -1581,6 +1604,8 @@ def build_fibercollided(**cat_corr):
                 cmasslowz_str = 'E2'
             elif 'e3' in catalog['name'].lower(): 
                 cmasslowz_str = 'E3'
+            elif 'tot' in catalog['name'].lower(): 
+                cmasslowz_str = 'TOT'
 
             if '_low' in catalog['name'].lower(): 
                 zmin, zmax = 0.2, 0.5
@@ -1588,12 +1613,30 @@ def build_fibercollided(**cat_corr):
                 zmin, zmax = 0.5, 0.75
             else: 
                 raise NameError("redshift bin must be specified") 
+        
+            if 'tot' no in catalog['name'].lower(): 
+                # original combined data sample
+                data_file = ''.join([data_dir, 'galaxy_DR12v5_CMASSLOWZ', cmasslowz_str, '_North.fits.gz'])
+                data = mrdfits(data_file) 
 
-            # original combined data sample
-            data_file = ''.join([data_dir, 'galaxy_DR12v5_CMASSLOWZ', cmasslowz_str, '_North.fits.gz'])
-            data = mrdfits(data_file) 
+                zlimit = np.where((data.z >= zmin) & (data.z < zmax))  # redshift limit
+            else: 
+                # Concatenate the other CMASSLOWZ 
+                if 'high' in catalog['name'].lower(): 
+                    hl_str = '_high'
+                elif '_low' in catalog['name'].lower():
+                    hl_str = '_low'
 
-            zlimit = np.where((data.z >= zmin) & (data.z < zmax))  # redshift limit
+                cc_cmd = 'cat ' 
+                for comb_str in ['', 'e2', 'e3']: 
+                    cc = {'catalog': {'name': 'cmasslowz'+hl_str+comb_str}, 
+                            'correction': {'name': 'upweight'}}
+                    cc_file = get_galaxy_data_file('random', **cc)
+                    cc_cmd += cc_file+' ' 
+
+                random_file = get_galaxy_data_file('random', **cat_corr) 
+                cc_cmd += '> '+random_file 
+                return 
     
         head_str = 'columns : ra, dec, z, nbar, w_systot, w_noz, w_cp, comp'
         # save to file 
