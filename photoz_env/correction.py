@@ -144,6 +144,8 @@ def build_photoz_env_dlospeak_fibcol(cat_corr, **kwargs):
         not_tail_fpeak_bin = 1.0 - np.float(n_tail_dNN - n_def_tail_dNN)/np.float(n_dNN - n_def_tail_dNN)
         print 'fpeak of not definitely in tail', not_tail_fpeak_bin 
 
+
+        # FINISH UP THE CORRECTiON METHOD 
     '''
     n_peakcorrected = 0     # Ngal peak corrected
     for i_mock in not_def_tail: 
