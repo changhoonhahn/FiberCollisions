@@ -884,7 +884,7 @@ def mpfit_linear(p, fjac=None, x=None, y=None, err=None):
     status = 0 
     if err == None: 
         err = np.array([1.0 for i in range(len(x))])
-    return([status, (y-model/err)]) 
+    return([status, (y-model)/err]) 
 
 def mpfit_peak_expon(p, fjac=None, x=None, y=None): 
     model = peak_expon(x, p) 
@@ -926,7 +926,7 @@ def dlos_hist_peak_fit(dlos, fit='gauss', peak_range=[-15.0, 15.0]):
         binsize = 2.0*iqr*(2.0*n_sample)**(-1.0/3.0)        # appropriate bin size 
     else: 
         binsize = 0.25
-    print 'Freedman-Diaconis binsize = ', binsize
+    #print 'Freedman-Diaconis binsize = ', binsize
     #------------------------------------------------------------------------------------
     # recompute histogram using freedman-diaconis binsize 
     n_bins = int((x_max-x_min)/binsize)         # new n_bin 
@@ -971,8 +971,8 @@ def dlos_hist_peak_fit(dlos, fit='gauss', peak_range=[-15.0, 15.0]):
     fpeak_dist = np.float( len(dlos[ (dlos > fpeak_xmin) & (dlos < fpeak_xmax) ]) )\
             /np.float(len(dlos))  # computed from the distribution
 
-    print 'fpeak from fitting = ', fpeak
-    print 'fpeak from distrib = ', fpeak_dist 
+    #print 'fpeak from fitting = ', fpeak
+    #print 'fpeak from distrib = ', fpeak_dist 
 
     fit_dict = {'amp': bestfit_amp, 'sigma': sigma, 'fpeak': fpeak_dist} 
 

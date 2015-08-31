@@ -183,22 +183,26 @@ class DlosEnv:
             dlos_hist, mpc_mid, peak_param  = \
                     fc_dlos.dlos_hist_peak_fit(bin_dlos, fit='gauss', peak_range=[-15.0, 15.0])
             
+            if peak_param['fpeak'] == 0.0: 
+                continue 
+            fpeak_err = np.sqrt(peak_param['fpeak'] / np.float(len(bin_dlos)))
+            
             try:        # save avg_dNN and fpeak values 
                 dNN_avg.append( 0.5 * np.float(dNN_bin[0] + dNN_bin[1]) ) 
                 fpeaks.append( peak_param['fpeak'] ) 
-                fpeaks_err.append( np.sqrt(peak_param['fpeak'] / np.float(len(bin_dlos))) )
+                fpeaks_err.append( fpeak_err )
                 sigma.append( peak_param['sigma'] ) 
                 ndlos.append( len(bin_dlos) )
             except NameError: 
                 dNN_avg = [0.5 * np.float(dNN_bin[0] + dNN_bin[1])]
                 fpeaks = [peak_param['fpeak']]
-                fpeaks_err = [ np.sqrt(peak_param['fpeak'] / np.float(len(bin_dlos))) ]
+                fpeaks_err = [ fpeak_err ]
                 sigma = [peak_param['sigma']]
                 ndlos = [len(bin_dlos)]
             except TypeError: 
                 dNN_avg.append( np.float(dNN_bin) ) 
                 fpeaks.append( peak_param['fpeak'] ) 
-                fpeaks_err.append( np.sqrt(peak_param['fpeak'] / np.float(len(bin_dlos))) )
+                fpeaks_err.append( fpeak_err )
                 sigma.append( peak_param['sigma'] ) 
                 ndlos.append( len(bin_dlos) )
 
@@ -212,6 +216,7 @@ class DlosEnv:
         
         fit_head_str = ''.join([' Slope = ', str(fit_slope), ", y-int = ", str(fit_yint), '\n', 
             ' Column : dNN, fpeak, sigma, bestfit fpeak, N_dlos']) 
+        print fit_head_str
 
         bestfit_fpeak = np.array([
             dNN_avg[i] * fit_slope + fit_yint for i in range(len(dNN_avg))])
@@ -258,13 +263,13 @@ def fpeak_dNN(dNN, cat_corr, n_NN=3, **kwargs):
     #for dNN_i in dNN_list:
     #    min_indx.append((np.abs(dNN_avg - dNN_i)).argmin())
 
-    interp_fpeak = sp.interpolate.interp1d(dNN_avg, fpeaks, kind='linear')
+    #interp_fpeak = sp.interpolate.interp1d(dNN_avg, fpeaks, kind='linear')
         
-    return interp_fpeak(dNN)      
+    return np.interp( dNN, dNN_avg, fpeaks )
 
 if __name__=="__main__": 
     cat_corr = {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}} 
-    for nnn in [1,2,3,4,5,10]: 
+    for nnn in [4,10]: 
         comb_dlos = DlosEnv(cat_corr, n_NN=nnn)
         comb_dlos.fpeak_env(stepsize=2)
     print fpeak_dNN([1.2, 3.4, 5.7], cat_corr, n_NN=3) 

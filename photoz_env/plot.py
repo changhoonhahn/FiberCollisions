@@ -30,8 +30,7 @@ def plot_dLOS_env(cat_corr, n_NN=3, **kwargs):
 
     '''
     # combined dLOS for catalog and correction 
-    comb_dlos = dlos_env.dlos_env(cat_corr, n=n, **kwargs) 
-
+    comb_dlos = dlos_env.DlosEnv(cat_corr, n_NN=n_NN, **kwargs) 
     combined_dlos = comb_dlos.dlos
     combined_dNN = comb_dlos.env
 
@@ -41,7 +40,7 @@ def plot_dLOS_env(cat_corr, n_NN=3, **kwargs):
     fig = plt.figure(1, figsize=(14,5))
     sub = fig.add_subplot(1,1,1)
     
-    print 'd'+str(n)+'NN, Minimum ', min(combined_dNN), ' Maximum ', max(combined_dNN)
+    print 'd'+str(n_NN)+'NN, Minimum ', min(combined_dNN), ' Maximum ', max(combined_dNN)
 
     # bin dNN values
     dnn_step = 2    # currently hardcoded
@@ -170,7 +169,7 @@ def plot_dLOS_fpeak_env(cat_corr, n_NN=3, **kwargs):
         fit_slope = fit_param.params[0]
         fit_yint = fit_param.params[1]
 
-        dNN_label += ': '+str(round(fit_slope,2))+', '+str(round(fit_yint, 2))
+        dNN_label += ': '+str(round(fit_slope, 4))+', '+str(round(fit_yint, 4))
         # plot best line fit 
         sub.plot( np.array(dNN_avg), fc_dlos.fit_linear(np.array(dNN_avg), fit_param.params), 
                 lw=4, ls='--', c=pretty_colors[i_nNN], label=dNN_label)       
@@ -287,8 +286,8 @@ def plot_dLOS_env_fpeakdist(cat_corr, n_NN=3, **kwargs):
         fpeak_high = fpeak_binedges[1:]
         fpeak_mid = np.array([0.5 * (fpeak_low[i] + fpeak_high[i]) for i in range(len(fpeak_low))]) 
     
+        fpeak_label += '; sigma = '+str(round(np.std(fpeaks), 4))
         sub.step(fpeak_low, fpeak_dist, lw=4, color=pretty_colors[i_nNN], label = fpeak_label)
-        print np.std(fpeaks)
 
     sub.set_xlabel(r"$\mathtt{f_{peak}(dNN)}$", fontsize=20)
     sub.set_ylabel(r'$\mathtt{N_{gal}}$', fontsize=20) 
@@ -304,4 +303,6 @@ def plot_dLOS_env_fpeakdist(cat_corr, n_NN=3, **kwargs):
 
 if __name__=='__main__':
     cat_corr = {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}
+    plot_dLOS_fpeak_env(cat_corr, n_NN=[1,2,3,4,5,10])
+    plot_dLOS_envdist(cat_corr, n_NN=[1,2,3,4,5,10])
     plot_dLOS_env_fpeakdist(cat_corr, n_NN=[1,2,3,4,5,10])

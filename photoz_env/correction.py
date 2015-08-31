@@ -189,9 +189,9 @@ def build_photoz_env_dlospeak_fibcol(cat_corr, **kwargs):
             raise NotImplementedError("Only Gaussian best-fit function implemented for peak correction")
 
         if (comdis_upw[ii] + rand2 > survey_comdis_max) or (comdis_upw[ii] + rand2 < survey_comdis_max): 
-            collided_z = fc_data.comdis2z(comdis_upw[ii] - rand2, **cosmo)      # convert comoving distnace to z 
-        else: 
-            collided_z = fc_data.comdis2z(comdis_upw[ii] + rand2, **cosmo)
+            rand2 = -1.0 * rand2
+
+        collided_z = fc_data.comdis2z(comdis_upw[ii] + rand2, **cosmo)      # convert comoving distnace to z 
         
         if 'doublecheck' in kwargs.keys(): 
             if kwargs['doublecheck']: 
