@@ -37,12 +37,7 @@ def build_photoz_env_dlospeak_fibcol(cat_corr, **kwargs):
     '''
     catalog = cat_corr['catalog']
     correction = cat_corr['correction']
-    
-    # n th nearest neighbor 
-    if 'n_NN' in kwargs.keys(): 
-        n_NN = kwargs[n_NN]
-    else: 
-        n_NN = 5    # default n_NN = 5
+    n_NN = correction['n_NN']    # n th nearest neighbor 
 
     if correction['name'].lower() != 'photozenvpeakshot': 
         raise NameError("Only accepts photozpeakshot correction")
@@ -98,11 +93,14 @@ def build_photoz_env_dlospeak_fibcol(cat_corr, **kwargs):
     # dNN histogram
     dNN_hist, dNN_binedges = np.histogram(upw_dNN, bins=n_bins, range=[min_dNN, max_dNN]) 
     dNN_low, dNN_high = dNN_binedges[:-1], dNN_binedges[1:]
+    enough_galaxies = np.where(dNN_hist >= 5)
+    dNN_low = dNN_low[enough_galaxies]
+    dNN_high = dNN_high[enough_galaxies]
+    print dNN_low
+    print dNN_hist[enough_galaxies]
     
     # fpeak(dNN)
     fpeak_dNN_arr = dlos_env.fpeak_dNN( 0.5 * (dNN_low + dNN_high), fibcoll_cat_corr, n_NN=n_NN)
-    print 0.5 * (dNN_low + dNN_high)
-    print fpeak_dNN_arr
     
     # not definitely in tail, but sampled as tail or peak 
     Ntot_peak, notdeftail_tail, notdeftail_peak = 0, [], [] 
@@ -127,21 +125,21 @@ def build_photoz_env_dlospeak_fibcol(cat_corr, **kwargs):
         def_tail_bin = dNN_bin[def_tail_dlos_bin]
         n_def_tail_dNN = len(def_tail_bin)
     
-        print str(dNN_low[i_dnn]), ' < dNN < ', str(dNN_high[i_dnn])
-        print 'Ngal fiber collided', n_dNN, ' ; fpeak = ', fpeak_dNN
-        print 'Ngal fiber collided tail', n_tail_dNN 
-        print 'Ngal fiber collided definitely in tail', n_def_tail_dNN
+        #print str(dNN_low[i_dnn]), ' < dNN < ', str(dNN_high[i_dnn])
+        #print 'Ngal fiber collided', n_dNN, ' ; fpeak = ', fpeak_dNN
+        #print 'Ngal fiber collided tail', n_tail_dNN 
+        #print 'Ngal fiber collided definitely in tail', n_def_tail_dNN
         
         # New fpeak_dNN; excluding galaxies that are definitely in the tail  
         try: 
             fpeak_not_tail_bin = 1.0 - np.float(n_tail_dNN - n_def_tail_dNN)/np.float(n_dNN - n_def_tail_dNN)
         except ZeroDivisionError: 
             continue
-        print 'fpeak excluding fibercollided galaxies in tail', fpeak_not_tail_bin 
+        #print 'fpeak excluding fibercollided galaxies in tail', fpeak_not_tail_bin 
     
         # Then the rest of the collided galaxies are not definitely in the tail 
         not_def_tail_bin = list( set(list(dNN_bin)) - set(list(def_tail_bin)) )
-        print 'Ngal fiber collided not definitely in tail', len(not_def_tail_bin)
+        #print 'Ngal fiber collided not definitely in tail', len(not_def_tail_bin)
 
         for i_mock in not_def_tail_bin:         # for each galaxy that is not definitely in the tail,  
             # use new fpeak, to randomly classify peak/tail fibercollided galaxies  
@@ -154,10 +152,25 @@ def build_photoz_env_dlospeak_fibcol(cat_corr, **kwargs):
                 notdeftail_tail.append(i_mock)    
 
     # Preserve Ngal_fc_peak by randomly sampling tail galaxies not definitely in tail 
-    n_extra_tail = n_fc_peak - Ntot_peak  
-    extra_tail = random.sample(notdeftail_tail, n_extra_tail)
+    print 'Expected Peak Corrected Galaxies', n_fc_peak, '; Peak Corrected Galaxies ', Ntot_peak 
+    print len(notdeftail_peak), len(notdeftail_tail)
+    
+    if n_fc_peak > Ntot_peak:   # excess tail galaxies
+        n_extra_tail = n_fc_peak - Ntot_peak  
+        print n_extra_tail, ' extra galaxies must be in the peak'
+        extra_tail = random.sample(notdeftail_tail, n_extra_tail)
+        
+        # append extra to peak 
+        notdeftail_peak += extra_tail   
+    
+    elif n_fc_peak < Ntot_peak:  
+        n_extra_peak = Ntot_peak - n_fc_peak
+        print n_extra_peak, ' extra galaxies must be in the tail'
+    
+        # remove extras in the peak
+        extra_peak = random.sample(notdeftail_peak, n_extra_peak)
+        notdeftail_peak = list( set(notdeftail_peak) - set(extra_peak) )
 
-    notdeftail_peak += extra_tail
     if len(notdeftail_peak) != n_fc_peak: 
         raise ValueError("Ngal_fc_peak must be conserved!")
     
@@ -200,7 +213,7 @@ def build_photoz_env_dlospeak_fibcol(cat_corr, **kwargs):
         data.z[i_mock] = collided_z[0]
 
     # write to file based on mock catalog  
-    corrected_file = get_galaxy_data_file('data', **cat_corr) 
+    corrected_file = fc_data.get_galaxy_data_file('data', **cat_corr) 
     if catalog['name'].lower() in ('nseries'): 
         np.savetxt(corrected_file, 
                 np.c_[data.ra, data.dec, data.z, data.weight, data.comp, 
@@ -210,12 +223,13 @@ def build_photoz_env_dlospeak_fibcol(cat_corr, **kwargs):
     else: 
         raise NotImplementedError('asdfasdf')
     
-    if doublecheck: 
-        np.savetxt(corrected_file+'.dlosvalues', np.c_[dlos_values], fmt=['%10.5f'], delimiter='\t') 
+    if 'doublecheck' in kwargs.keys():
+        if kwargs['doublecheck']: 
+            np.savetxt(corrected_file+'.dlosvalues', np.c_[dlos_values], fmt=['%10.5f'], delimiter='\t') 
 
 if __name__=="__main__": 
     cat_corr = {
             'catalog': {'name': 'nseries', 'n_mock': 1}, 
-            'correction': {'name': 'photozenvpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.69}
+            'correction': {'name': 'photozenvpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.69, 'n_NN': 5}
             }
     build_photoz_env_dlospeak_fibcol(cat_corr, doublecheck=True)

@@ -303,6 +303,6 @@ def plot_dLOS_env_fpeakdist(cat_corr, n_NN=3, **kwargs):
 
 if __name__=='__main__':
     cat_corr = {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}
-    plot_dLOS_fpeak_env(cat_corr, n_NN=[1,2,3,4,5,10])
-    plot_dLOS_envdist(cat_corr, n_NN=[1,2,3,4,5,10])
-    plot_dLOS_env_fpeakdist(cat_corr, n_NN=[1,2,3,4,5,10])
+    plot_dLOS_fpeak_env(cat_corr, n_NN=5)
+    #plot_dLOS_envdist(cat_corr, n_NN=[1,2,3,4,5,10])
+    #plot_dLOS_env_fpeakdist(cat_corr, n_NN=[1,2,3,4,5,10])

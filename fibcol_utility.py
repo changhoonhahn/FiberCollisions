@@ -205,8 +205,8 @@ def fortran_code(fft_power, **cat_corr):
                 elif spec['grid'] == 960: 
                     code_file = 'power-nseries-fkp-w-nbar-960grid-480bin.f'
             elif correction['name'].lower() in \
-                    ('peakshot', 'photozpeakshot', 'shotnoise', 'floriansn', 
-                            'noweight', 'hectorsn', 'peakshot_dnn'): 
+                    ('peakshot', 'photozpeakshot', 'photozenvpeakshot', 
+                            'shotnoise', 'floriansn', 'noweight', 'hectorsn', 'peakshot_dnn'): 
                 # FKP with Igal Irand shot noise correction 
                 if spec['grid'] == 360: 
                     code_file = 'power-nseries-fkp-w-nbar-Igal-Irand-360grid-180bin.f'

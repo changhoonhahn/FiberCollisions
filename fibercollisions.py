@@ -892,9 +892,9 @@ def build_pk(params):
 
     cat = {'name': catalog, 'cosmology': cosmology} 
     spec = {'P0': 20000, 'sscale':3600.0, 'Rbox':1800.0, 'box':3600, 'grid':Ngrid, 'quad':quad}
-    corr = {'name': correction.lower()} 
+    corr = correction 
     
-    if 'peak' in correction.lower(): 
+    if 'peak' in corr['name'].lower(): 
         # unless specified set fit, sigma, and fpeak to 
         # best-fit function parameters 
         try: 
@@ -931,6 +931,12 @@ def build_pk_multiprocessing(catalog, n_mocks, Nthreads=5, **kwargs):
     -----
     * 
 
+    Example
+    -------
+    build_pk_multiprocessing('patchy', 100, Nthreads=8, 
+            corrections=[{'name': 'true'}, {'name': 'upweight'}], 
+            grid=960, quad=False)
+
     '''
     
     try:            # correction method 
@@ -961,7 +967,7 @@ def build_pk_multiprocessing(catalog, n_mocks, Nthreads=5, **kwargs):
     mapfn = pool.map 
     
     # argument list to pass to build_pk() 
-    arglist = [ [catalog, corr['name'],i_mock,  kwargs] for corr in corrs for i_mock in n_mock_list] 
+    arglist = [ [catalog, corr, i_mock,  kwargs] for corr in corrs for i_mock in n_mock_list] 
 
     mapfn( build_pk, [arg for arg in arglist]) 
     pool.close()
@@ -1028,7 +1034,6 @@ if __name__=='__main__':
                 'correction': {'name': 'photozpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.69}
                 }
         fc_data.galaxy_data('data', clobber=True, **cat_corr) 
-    '''
     for cmass_str in ['e2', 'e3']: 
         cat_corr = {'catalog': {'name': 'cmasslowz_high'+cmass_str}, 
                 'correction': {'name': 'upweight'}}
@@ -1044,11 +1049,13 @@ if __name__=='__main__':
                 'correction': {'name': 'peakshot', 'fit': 'gauss', 'sigma': 7.1, 'fpeak': 0.74}}
         fc_data.galaxy_data('data', clobber=True, **cat_corr) 
 
+    '''
     #fc_data.build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr)
-    #build_pk_multiprocessing('patchy', 100, Nthreads=8,
-    #        corrections=[{'name': 'true'}, {'name': 'upweight'}], 
-    #        grid=960, quad=False)
             #corrections=[{'name': 'true'}, {'name': 'upweight'}, {'name': 'peakshot'}, {'name': 'photozpeakshot'}], 
+    
+    build_pk_multiprocessing('nseries', 84, Nthreads=8, 
+            corrections=[{'name': 'photozenvpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.69, 'n_NN':5}], 
+            grid=360, quad=False)
 
     #build_pk('bigmd3', 1, grid=960, quad=False) 
     #build_pk('ldgdownnz', 10, clobber=True, quad=False) 

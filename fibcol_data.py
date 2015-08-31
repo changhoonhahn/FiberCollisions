@@ -23,6 +23,7 @@ import photoz as photoz
 import galaxy_environment as genv
 import pyspherematch as pysph
 from utility.fitstables import mrdfits
+from photoz_env import correction as photozenv_corr
 
 # Classes ------------------------------------------------------------
 class galaxy_data: 
@@ -357,6 +358,9 @@ class galaxy_data:
                     elif correction['name'].lower() == 'photozpeakshot': 
                         # Peak Shot correction using photometric redshift information
                         build_photoz_peakcorrected_fibcol(doublecheck=True, **cat_corr)
+                    elif correction['name'].lower() == 'photozenvpeakshot': 
+                        # Peak Shot correction using photometric redshift information
+                        photozenv_corr.build_photoz_env_dlospeak_fibcol(cat_corr, doublecheck=True)
                     else: 
                         raise NotImplementedError() 
 
@@ -971,7 +975,8 @@ def get_galaxy_data_file(DorR, **cat_corr):
                 file_name = ''.join([data_dir, 
                     'CutskyN', str(catalog['n_mock']), 
                     '.fibcoll.', correction['name'].lower(), '.dat' ]) 
-            elif correction['name'].lower() == 'photozpeakshot':    # peak shot correction utilizing photoz
+            elif correction['name'].lower() == 'photozpeakshot':    
+                # peak shot correction utilizing photoz
                 
                 # specify best fit (expon or gauss) function to peak 
                 if correction['fit'].lower() in ('gauss'): 
@@ -981,6 +986,20 @@ def get_galaxy_data_file(DorR, **cat_corr):
                         '.fpeak', str(correction['fpeak'])]) 
                 else: 
                     raise NotImplementedError('peak fit has to be specified: gauss or expon') 
+
+                file_name = ''.join([data_dir, 
+                    'CutskyN', str(catalog['n_mock']), '.fibcoll', corr_str, cosmo_str, '.dat' ]) 
+            elif correction['name'].lower() == 'photozenvpeakshot':     
+                # Photometric Redshift + Galaxy Environment + Peak + Shot Noise Correction 
+                
+                if correction['fit'].lower() in ('gauss'): 
+                    # specify best fit (expon or gauss) function to peak 
+                    # correction specifier string 
+                    corr_str = ''.join(['.photoz.', 'env_d', str(correction['n_NN']), 'NN.',
+                        correction['fit'].lower(), '.peakshot.sigma', str(correction['sigma']), 
+                        '.fpeak', str(correction['fpeak'])]) 
+                else: 
+                    raise NotImplementedError("Only Gaussian Best-Fit coded") 
 
                 file_name = ''.join([data_dir, 
                     'CutskyN', str(catalog['n_mock']), '.fibcoll', corr_str, cosmo_str, '.dat' ]) 
