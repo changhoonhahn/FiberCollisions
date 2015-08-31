@@ -102,20 +102,30 @@ def build_photoz_env_dlospeak_fibcol(cat_corr, **kwargs):
     # dNN bins 
     min_dNN, max_dNN, dNN_step = np.min(upw_dNN), np.max(upw_dNN), 2.0 
     n_bins = int((max_dNN - min_dNN)/dNN_step)
-
-    dum, dNN_binedges = np.histogram(upw_dNN, bins=n_bins, range=[min_dNN, max_dNN]) 
+    # dNN histogram
+    dNN_hist, dNN_binedges = np.histogram(upw_dNN, bins=n_bins, range=[min_dNN, max_dNN]) 
     dNN_low, dNN_high = dNN_binedges[:-1], dNN_binedges[1:]
+
+    enough_gal = np.where(dNN_hist > 0) # only keep dNN bins with "enough" galaxies
+    dNN_low = dNN_low[enough_gal]
+    dNN_high = dNN_high[enough_gal]
     
+    Ntot_peak = 0
     # for bins of upw_dNN (galaxy environment of upweighted galaxy) 
     for i_dnn in range(len(dNN_low)):   
+        
+        if i_dnn < len(dNN_low)-1: 
+            dNN_bin_fcoll = np.where( (upw_dNN >= dNN_low[i_dnn]) & (upw_dNN < dNN_high[i_dnn]) ) 
+        else: 
+            dNN_bin_fcoll = np.where( upw_dNN >= dNN_low[i_dnn] ) 
 
-        dNN_bin_fcoll = np.where( (upw_dNN >= dNN_low[i_dnn]) & (upw_dNN < dNN_high[i_dnn]) ) 
         dNN_bin = (fcoll[0])[dNN_bin_fcoll]
         n_dNN = len(dNN_bin_fcoll[0])       # number og galaxies in dNN bin 
 
         # Calculate the corresponding fpeak to galaxy environment bin 
-        fpeak_dNN = dlos_env.fpeak_dNN( 0.5*(dNN_low[i_dnn] + dNN_high[i_dnn]), 
+        fpeak_dNN_arr = dlos_env.fpeak_dNN( 0.5*(dNN_low[i_dnn] + dNN_high[i_dnn]), 
                 fibcoll_cat_corr, n_NN=n_NN)
+        fpeak_dNN = fpeak_dNN_arr[0]
         n_peak_dNN = int(np.float(n_dNN) * fpeak_dNN)
         n_tail_dNN = n_dNN - n_peak_dNN
     
@@ -126,88 +136,70 @@ def build_photoz_env_dlospeak_fibcol(cat_corr, **kwargs):
         def_tail_bin = dNN_bin[def_tail_dlos_bin]
         n_def_tail_dNN = len(def_tail_bin)
     
-        print str(dNN_low[i_dnn]), ' < dNN < ', str(dNN_high[i_dnn])
+        if i_dnn < len(dNN_low)-1: 
+            print str(dNN_low[i_dnn]), ' < dNN < ', str(dNN_high[i_dnn])
+        else: 
+            print str(dNN_low[i_dnn]), ' < dNN '
         print 'Ngal fiber collided', n_dNN 
+        print 'fpeak for dNN bin', fpeak_dNN
         print 'Ngal fiber collided tail', n_tail_dNN 
         print 'Ngal fiber collided definitely in tail', n_def_tail_dNN
+        
+        # New fpeak; excluding galaxies that are definitely in the tail  
+        try: 
+            fpeak_not_tail_bin = 1.0 - np.float(n_tail_dNN - n_def_tail_dNN)/np.float(n_dNN - n_def_tail_dNN)
+        except ZeroDivisionError: 
+            continue
+        print 'fpeak of not definitely in tail', fpeak_not_tail_bin 
     
         # Then the rest of the collided galaxies are not definitely in the tail 
         not_def_tail_bin = list(
                 set(list(dNN_bin)) - set(list(def_tail_bin))
                 )
         print 'Ngal fiber collided not definitely in tail', len(not_def_tail_bin)
-
-        # upweighted galaxy indices
-        upw_def_tail_bin = (data.upw_index)[def_tail_bin]
-        upw_def_not_tail_bin = (data.upw_index)[not_def_tail_bin]
-    
-        not_tail_fpeak_bin = 1.0 - np.float(n_tail_dNN - n_def_tail_dNN)/np.float(n_dNN - n_def_tail_dNN)
-        print 'fpeak of not definitely in tail', not_tail_fpeak_bin 
-
-
-        # FINISH UP THE CORRECTiON METHOD 
-    '''
-    n_peakcorrected = 0     # Ngal peak corrected
-    for i_mock in not_def_tail: 
-        # go through each fibercollided galaxy not definitely in the tail        
         
-        # use new fpeak that excludes definitely tail galaxies
-        # to deterimine whether galxay is in peak or not 
-        rand_num = np.random.random(1)      # random number
+        # For last dNN bin, make sure that the total number of fiber collided galaxies in the peak match the original peak fraction so that the normalization is not off 
 
-        if rand_num <= not_tail_fpeak:     # sampled in the peak 
-            # sample a dLOS from the best-fit Gaussian dLOS PDF then place 
-            # the collided galaxy with wfc = 1 dLOS away from the upweighted galaxy 
-            # and then downweight the upweighted galaxy 
+        for i_mock in not_def_tail_bin: 
+            # for each galaxy that is not definitely in the tail,  
+            # use new fpeak, to randomly classify peak/tail fibercollided galaxies  
+            rand_num = np.random.random(1)
+            
+            # randomly sampled in peak 
+            if rand_num <= fpeak_not_tail_bin: 
+                data.weight[ (data.upw_index)[i_mock] ] -= 1.0      # downweight upweighted galaxy 
+                data.weight[i_mock] += 1.0      # upweight fibercollided galaxy 
+                if data.weight[i_mock] > 1.0:   # sanity check 
+                    raise ValueError("Fibercollided galaxies after correction should never be greater than 1.0")
 
-            data.weight[ (data.upw_index)[i_mock] ] -= 1.0  # downweight UPW galaxy 
-            data.weight[i_mock] += 1.0  # upweight collided galaxy 
-            if data.weight[i_mock] > 1.0:
-                raise NameError('something went wrong') 
+                # comoving distance of upweighted galaxy 
+                comdis_upw = cosmos.distance.comoving_distance(
+                        data.zupw[i_mock], **cosmo) * cosmo['h']
 
-            # comoving distance of upweighted galaxy
-            comdis_upw = cosmos.distance.comoving_distance(
-                    data.z[ (data.upw_index)[i_mock] ], **cosmo) * cosmo['h']
-        
-            # compute the displacement within the peak using best-fit function 
-            if correction['fit'].lower() in ('gauss'):  # Gaussian 
+                # compute line-of-sight displacement within the peak using best-fit function 
+                if correction['fit'].lower() in ('gauss'): 
+                    # Gaussian best-fit function 
 
-                rand1 = np.random.random(1) # random number
-                
-                # random dLOS +/- 3-sigma of the distribution 
-                rand2 = np.random.random(1)
-                rand2 = (-3.0 + 6.0 * rand2) * correction['sigma']
-                
-                peak_pofr = fit_func(rand2, correction['sigma']) # probability distribution
-                
-                while peak_pofr <= rand1: 
-                    rand1 = np.random.random(1) # random number
-                    
-                    # random dLOS +/- 3-sigma of the distribution 
+                    rand1 = np.random.random(1)
                     rand2 = np.random.random(1)
-                    rand2 = (-3.0 + 6.0 * rand2) * correction['sigma']
-                    
-                    peak_pofr = fit_func(rand2, correction['sigma']) # probability distribution
-                    
-            else: 
-                NotImplementedError('Not yet implemented') 
-                
-            # in case the displaced coliided galaxy falls out of bound (may generate large scale issues)
-            # this will skew the dLOS displacement slightly at low and high redshift limits 
-            if (comdis_upw + rand2 > survey_comdis_max) or (comdis_upw + rand2 < survey_comdis_min): 
-                collided_z = comdis2z(comdis_upw-rand2, **cosmo)
-            else:
-                collided_z = comdis2z(comdis_upw+rand2, **cosmo)
+                    rand2 = (-3.0 + 6.0 * rand2) * correction['sigma']  # +/- 3 sigmas 
 
-            if doublecheck: 
-                # append sample peak dLOS value to doublecheck 
-                dlos_values.append(rand2) 
+                    peak_pofr = fit_func(rand2, correction['sigma'])     # P(r)
+                else: 
+                    raise NotImplementedError("Only Gaussian best-fit function implemented for peak correction")
 
-            #print data.z[ (data.upw_index)[i_mock] ], data.z[i_mock], collided_z[0] 
-            data.z[i_mock] = collided_z[0]
+                # in case the displaced fiber collided galaxy falls out of bounds (may generate problems on survey scales...)
+                if (comdis_upw + rand2 > survey_comdis_max) or (comdis_upw + rand2 < survey_comdis_min): 
+                    collided_z = fc_data.comdis2z(comdis_upw - rand2, **cosmo)      # convert comoving distnace to z 
+                else: 
+                    collided_z = fc_data.comdis2z(comdis_upw + rand2, **cosmo)
 
-            n_peakcorrected += 1
+                data.z[i_mock] = collided_z[0]
+                Ntot_peak += 1
     
+    print Ntot_peak, n_fc_peak
+
+    '''
     print n_peakcorrected, ' galaxies were peak corrected'
 
     # write to file based on mock catalog  

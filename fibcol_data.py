@@ -1130,6 +1130,7 @@ def get_galaxy_data_file(DorR, **cat_corr):
                 elif 'e3' in catalog['name'].lower(): 
                     cmasslowz_str = 'e3'
                 elif 'tot' in catalog['name'].lower(): 
+                    raise NotImplementedError("Not Implemented Error")
                 
                 if '_low' in catalog['name'].lower(): 
                     zbin_str = '-low' 
@@ -1614,7 +1615,7 @@ def build_fibercollided(**cat_corr):
             else: 
                 raise NameError("redshift bin must be specified") 
         
-            if 'tot' no in catalog['name'].lower(): 
+            if 'tot' not in catalog['name'].lower(): 
                 # original combined data sample
                 data_file = ''.join([data_dir, 'galaxy_DR12v5_CMASSLOWZ', cmasslowz_str, '_North.fits.gz'])
                 data = mrdfits(data_file) 
@@ -2619,7 +2620,7 @@ def build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr):
                     peak_pofr = fit_func(rand2, correction['sigma']) # probability distribution
                     
             else: 
-                NotImplementedError('Not yet implemented') 
+                raise NotImplementedError('Not yet implemented') 
                 
             # in case the displaced coliided galaxy falls out of bound (may generate large scale issues)
             # this will skew the dLOS displacement slightly at low and high redshift limits 
