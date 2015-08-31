@@ -879,10 +879,12 @@ def peak_gauss(x, p):
     return p[0]*np.exp(-0.5*x**2/(p[1])**2)
 
 # --- MPfit ---
-def mpfit_linear(p, fjac=None, x=None, y=None): 
+def mpfit_linear(p, fjac=None, x=None, y=None, err=None): 
     model = fit_linear(x, p) 
     status = 0 
-    return([status, (y-model)]) 
+    if err == None: 
+        err = np.array([1.0 for i in range(len(x))])
+    return([status, (y-model/err)]) 
 
 def mpfit_peak_expon(p, fjac=None, x=None, y=None): 
     model = peak_expon(x, p) 
@@ -919,8 +921,11 @@ def dlos_hist_peak_fit(dlos, fit='gauss', peak_range=[-15.0, 15.0]):
 
     iqr_index = fc_util.find_nearest(dlos_cumu, np.int(np.floor(n_sample/2.0)), index=True)
     iqr = 2.0*(mpc_mid[p_range])[iqr_index]         #interquartile range 
-        
-    binsize = 2.0*iqr*(2.0*n_sample)**(-1.0/3.0)        # appropriate bin size 
+    
+    if n_sample > 0: 
+        binsize = 2.0*iqr*(2.0*n_sample)**(-1.0/3.0)        # appropriate bin size 
+    else: 
+        binsize = 0.25
     print 'Freedman-Diaconis binsize = ', binsize
     #------------------------------------------------------------------------------------
     # recompute histogram using freedman-diaconis binsize 

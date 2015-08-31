@@ -8,6 +8,7 @@ Author(s): ChangHoon Hahn
 
 '''
 import numpy as np
+import scipy as sp 
 from scipy.optimize import curve_fit
 import sys
 import os.path
@@ -174,7 +175,7 @@ class DlosEnv:
                 bin_index = np.where((combined_dNN >= dNN_bin)) 
 
             bin_dlos = combined_dlos[bin_index] 
-            if len(bin_dlos) < 50: 
+            if len(bin_dlos) < 5: 
                 # if the bin contains too few dLOSs then skip
                 continue
             
@@ -185,23 +186,26 @@ class DlosEnv:
             try:        # save avg_dNN and fpeak values 
                 dNN_avg.append( 0.5 * np.float(dNN_bin[0] + dNN_bin[1]) ) 
                 fpeaks.append( peak_param['fpeak'] ) 
+                fpeaks_err.append( np.sqrt(peak_param['fpeak'] / np.float(len(bin_dlos))) )
                 sigma.append( peak_param['sigma'] ) 
                 ndlos.append( len(bin_dlos) )
             except NameError: 
                 dNN_avg = [0.5 * np.float(dNN_bin[0] + dNN_bin[1])]
                 fpeaks = [peak_param['fpeak']]
+                fpeaks_err = [ np.sqrt(peak_param['fpeak'] / np.float(len(bin_dlos))) ]
                 sigma = [peak_param['sigma']]
                 ndlos = [len(bin_dlos)]
             except TypeError: 
                 dNN_avg.append( np.float(dNN_bin) ) 
                 fpeaks.append( peak_param['fpeak'] ) 
+                fpeaks_err.append( np.sqrt(peak_param['fpeak'] / np.float(len(bin_dlos))) )
                 sigma.append( peak_param['sigma'] ) 
                 ndlos.append( len(bin_dlos) )
 
         # MPfit ----
         p0 = [-0.01, 0.8]            # initial guesses for p0[0] * x + p0[1]
-        fa = {'x': np.array(dNN_avg), 'y': np.array(fpeaks)}
-        fit_param = mpfit.mpfit(fc_dlos.mpfit_linear, p0, functkw=fa, nprint=0)
+        fa = {'x': np.array(dNN_avg), 'y': np.array(fpeaks), 'err': np.array(fpeaks_err)}
+        fit_param = mpfit.mpfit(fc_dlos.mpfit_linear, p0, functkw=fa)
         
         fit_slope = fit_param.params[0]
         fit_yint = fit_param.params[1]
@@ -246,15 +250,17 @@ def fpeak_dNN(dNN, cat_corr, n_NN=3, **kwargs):
         dNN_avg, fpeaks, sigmas = np.loadtxt(fpeak_file, skiprows=2, unpack=True, usecols=[0,3,2])
     
     if isinstance(dNN, float):
-        dNN_list = [dNN]
+        dNN_list = np.array([dNN])
     else: 
         dNN_list = dNN
     
-    min_indx = [] 
-    for dNN_i in dNN_list:
-        min_indx.append((np.abs(dNN_avg - dNN_i)).argmin())
+    #min_indx = [] 
+    #for dNN_i in dNN_list:
+    #    min_indx.append((np.abs(dNN_avg - dNN_i)).argmin())
 
-    return fpeaks[min_indx]
+    interp_fpeak = sp.interpolate.interp1d(dNN_avg, fpeaks, kind='linear')
+        
+    return interp_fpeak(dNN)      
 
 if __name__=="__main__": 
     cat_corr = {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}} 

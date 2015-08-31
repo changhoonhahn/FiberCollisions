@@ -99,6 +99,11 @@ def build_photoz_env_dlospeak_fibcol(cat_corr, **kwargs):
     dNN_hist, dNN_binedges = np.histogram(upw_dNN, bins=n_bins, range=[min_dNN, max_dNN]) 
     dNN_low, dNN_high = dNN_binedges[:-1], dNN_binedges[1:]
     
+    # fpeak(dNN)
+    fpeak_dNN_arr = dlos_env.fpeak_dNN( 0.5 * (dNN_low + dNN_high), fibcoll_cat_corr, n_NN=n_NN)
+    print 0.5 * (dNN_low + dNN_high)
+    print fpeak_dNN_arr
+    
     # not definitely in tail, but sampled as tail or peak 
     Ntot_peak, notdeftail_tail, notdeftail_peak = 0, [], [] 
 
@@ -110,9 +115,7 @@ def build_photoz_env_dlospeak_fibcol(cat_corr, **kwargs):
         n_dNN = len(dNN_bin_fcoll[0])       # number og galaxies in dNN bin 
 
         # Calculate the corresponding fpeak to galaxy environment bin 
-        fpeak_dNN_arr = dlos_env.fpeak_dNN( 0.5*(dNN_low[i_dnn] + dNN_high[i_dnn]), 
-                fibcoll_cat_corr, n_NN=n_NN)
-        fpeak_dNN = fpeak_dNN_arr[0]
+        fpeak_dNN = fpeak_dNN_arr[i_dnn]
         n_peak_dNN = int(np.float(n_dNN) * fpeak_dNN)
         n_tail_dNN = n_dNN - n_peak_dNN
     
@@ -125,7 +128,7 @@ def build_photoz_env_dlospeak_fibcol(cat_corr, **kwargs):
         n_def_tail_dNN = len(def_tail_bin)
     
         print str(dNN_low[i_dnn]), ' < dNN < ', str(dNN_high[i_dnn])
-        print 'Ngal fiber collided', n_dNN, ' fpeak = ', fpeak_dNN
+        print 'Ngal fiber collided', n_dNN, ' ; fpeak = ', fpeak_dNN
         print 'Ngal fiber collided tail', n_tail_dNN 
         print 'Ngal fiber collided definitely in tail', n_def_tail_dNN
         
@@ -160,7 +163,7 @@ def build_photoz_env_dlospeak_fibcol(cat_corr, **kwargs):
     
     data.weight[ (data.upw_index)[notdeftail_peak] ] -= 1.0
     data.weight[notdeftail_peak] += 1.0
-    if data.weight[notdeftail_peak] > 1.0:
+    if np.max(data.weight[notdeftail_peak]) > 1.0:
         raise ValueError("Fibercollided galaxies after correction should never be greater than 1.0")
                 
     # comoving distance of upweighted galaxy 
@@ -215,4 +218,4 @@ if __name__=="__main__":
             'catalog': {'name': 'nseries', 'n_mock': 1}, 
             'correction': {'name': 'photozenvpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.69}
             }
-    build_photoz_env_dlospeak_fibcol(cat_corr)
+    build_photoz_env_dlospeak_fibcol(cat_corr, doublecheck=True)
