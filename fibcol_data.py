@@ -2425,7 +2425,8 @@ def build_peakcorrected_fibcol(doublecheck=False, **cat_corr):
                     collided_z = comdis2z(comdis_imock+rand2, **cosmo)
 
                 appended_z.append(collided_z[0]) 
-                appended_nbar.append(nbarofz(collided_z[0]))
+                if 'cmass' in catalog['name'].lower():
+                    appended_nbar.append(nbarofz(collided_z[0]))
 
                 if doublecheck: 
                     dlos_values.append(rand2) 

@@ -1054,7 +1054,7 @@ if __name__=='__main__':
             #corrections=[{'name': 'true'}, {'name': 'upweight'}, {'name': 'peakshot'}, {'name': 'photozpeakshot'}], 
     
     build_pk_multiprocessing('nseries', 84, Nthreads=8, 
-            corrections=[{'name': 'photozenvpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.69, 'n_NN':5}], 
+            corrections=[{'name': 'peakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.69}], 
             grid=360, quad=False)
 
     #build_pk('bigmd3', 1, grid=960, quad=False) 

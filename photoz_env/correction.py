@@ -230,6 +230,6 @@ def build_photoz_env_dlospeak_fibcol(cat_corr, **kwargs):
 if __name__=="__main__": 
     cat_corr = {
             'catalog': {'name': 'nseries', 'n_mock': 1}, 
-            'correction': {'name': 'photozenvpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.69, 'n_NN': 5}
+            'correction': {'name': 'photozenvpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.7, 'n_NN': 5}
             }
     build_photoz_env_dlospeak_fibcol(cat_corr, doublecheck=True)

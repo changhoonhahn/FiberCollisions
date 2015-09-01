@@ -17,10 +17,12 @@ from matplotlib.collections import LineCollection
 import fibcol_data as fc_data
 import fibcol_dlos as fc_dlos
 import fibcol_utility as fc_util
+import plot_fibcol as fc_plot
 import galaxy_environment as genv
 import dlos_env
 import mpfit as mpfit
 
+# LOS Displacement ------
 def plot_dLOS_env(cat_corr, n_NN=3, **kwargs):
     ''' Plot combined dLOS distribution of in bins of galaxy environment 
     
@@ -301,8 +303,53 @@ def plot_dLOS_env_fpeakdist(cat_corr, n_NN=3, **kwargs):
 
     return None 
 
+# Powerspectrum -------
+def plot_photozenv_pk(mock_name, **kwargs): 
+    ''' Plot powerspectrum for PhotoZ + Galaxy Environment + Peak + Shot Noise correction method. 
+
+    Notes
+    -----
+    * Wrapper that uses plot_fibcol.py from FiberCollisions
+    * Optimal correction methods are hardcoded for each mock catalog
+
+    '''
+    if 'Ngrid' in kwargs.keys():        # Ngrid
+        Ngrid = kwargs['Ngrid']
+    else: 
+        Ngrid = 360     # default Ngrid
+
+    if 'quad' in kwargs.keys(): 
+        quad = kwargs['quad']
+    else: 
+        quad = False    # default is monopole
+
+    if mock_name == 'nseries':          # Nseries
+        peakshot_corr = {'name': 'peakshot', 'sigma': '4.0', 'fpeak': '0.69', 'fit':'gauss'}
+        photozpeakshot_corr = {'name': 'photozpeakshot', 'sigma': '4.0', 'fpeak': '0.69', 'fit':'gauss'} 
+        photozenvpeakshot_corr = {'name': 'photozenvpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.69, 'n_NN': 5}
+
+        # list of corrections
+        catcorr_methods = [
+                {'catalog': {'name': mock_name}, 'correction': {'name': 'true'}}, 
+                {'catalog': {'name': mock_name}, 'correction': {'name': 'upweight'}}, 
+                {'catalog': {'name': mock_name}, 'correction': {'name': 'scratch_peakknown'}},
+                {'catalog': {'name': mock_name}, 'correction': peakshot_corr}, 
+                {'catalog': {'name': mock_name}, 'correction': photozpeakshot_corr}, 
+                {'catalog': {'name': mock_name}, 'correction': photozenvpeakshot_corr}
+                ]
+        n_mock_list = 2 
+    else: 
+        raise NotImplementedError("Not Implemented")
+        
+    fc_plot.plot_pk_fibcol_comp(catcorr_methods, n_mock_list, 
+            quad=quad, Ngrid=Ngrid, type='regular', 
+            xrange=[0.001, 1.0], yrange=[10**3, 3*10**5])
+    
+    fc_plot.plot_pk_fibcol_comp(catcorr_methods, n_mock_list, 
+            quad=quad, Ngrid=Ngrid, type='ratio', 
+            xrange=[0.001, 1.0], yrange=[0.0, 2.0])
+
+    return None 
+
 if __name__=='__main__':
-    cat_corr = {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}}
-    plot_dLOS_fpeak_env(cat_corr, n_NN=5)
-    #plot_dLOS_envdist(cat_corr, n_NN=[1,2,3,4,5,10])
-    #plot_dLOS_env_fpeakdist(cat_corr, n_NN=[1,2,3,4,5,10])
+    plot_photozenv_pk('nseries') 

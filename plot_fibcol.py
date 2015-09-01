@@ -545,7 +545,8 @@ def plot_pk_fibcol_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
     else: 
         fig_name = ''.join(['p0k_', n_mock_str, 'mock',
             '_fibcoll_', corr_str, resid_str, '_comparison_Ngrid', str(Ngrid), '.png'])     
-    fig.savefig(''.join(['figure/', fig_name]), bbox_inches="tight")
+    fig_dir = '/home/users/hahn/powercode/FiberCollisions/figure/'
+    fig.savefig(''.join([fig_dir, fig_name]), bbox_inches="tight")
 
     fig.clear()
 
@@ -1237,19 +1238,8 @@ def chi_squared():
             [{'name': 'true'}, {'name':'upweight'}, {'name':'floriansn'}, {'name':'hectorsn'}, {'name': 'peakshot', 'sigma':4.8, 'fpeak':0.62, 'fit':'gauss'}])
 
 if __name__=="__main__":
-    cat_corrs = [
-            {'catalog': {'name': 'nseries', 'n_mock': 2}, 
-                'correction': {'name': 'photozpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.68}}, 
-            {'catalog': {'name': 'nseries', 'n_mock': 2}, 
-                'correction': {'name': 'photozpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.69}}, 
-            {'catalog': {'name': 'nseries', 'n_mock': 2}, 
-                'correction': {'name': 'photozpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.7}} 
-            ] 
-    cat_corrs = [{'catalog': {'name': 'cmasslowz_high', 'n_mock': 1}, 
-                'correction': {'name': 'peakshot', 'fit': 'gauss', 'sigma': 6.6, 'fpeak': 0.72}}]
-    plot_peakcorrection_dlos_check(cat_corrs)
-    cat_corrs = [{'catalog': {'name': 'cmasslowz_low', 'n_mock': 1}, 
-                'correction': {'name': 'peakshot', 'fit': 'gauss', 'sigma': 6.9, 'fpeak': 0.72}}]
+    cat_corrs = [{'catalog': {'name': 'nseries', 'n_mock': 1}, 
+        'correction': {'name': 'photozenvpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.69, 'n_NN':5}}]
     plot_peakcorrection_dlos_check(cat_corrs)
    
     '''
