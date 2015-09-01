@@ -318,9 +318,11 @@ def plot_pk_fibcol_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
                 print resid_label 
                 if Ngrid > 360: 
                     print residual(avg_Pk, avg_Pk_denom)[-100:-1]
+                    print np.sum((residual(avg_Pk, avg_Pk_denom)[-100:-1] - 1.0) )
                     print avg_k[-100:-1]
                 else: 
-                    print residual(avg_Pk, avg_Pk_denom)[avg_k > 0.15]
+                    print (residual(avg_Pk, avg_Pk_denom)[avg_k > 0.15] - 1.0) 
+                    print np.sum((residual(avg_Pk, avg_Pk_denom)[-100:-1] - 1.0) )
                     print avg_k[avg_k > 0.15]
 
         

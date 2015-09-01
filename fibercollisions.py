@@ -1053,9 +1053,9 @@ if __name__=='__main__':
     #fc_data.build_photoz_peakcorrected_fibcol(doublecheck=False, **cat_corr)
             #corrections=[{'name': 'true'}, {'name': 'upweight'}, {'name': 'peakshot'}, {'name': 'photozpeakshot'}], 
     
-    build_pk_multiprocessing('nseries', 84, Nthreads=8, 
-            corrections=[{'name': 'peakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.69}], 
-            grid=360, quad=False)
+    build_pk_multiprocessing('nseries', 20, Nthreads=8, 
+            corrections=[{'name': 'photozenvpeakshot', 'fit': 'gauss', 'sigma': 4.0, 'fpeak': 0.69, 'n_NN': 5}], 
+            grid=960, quad=False)
 
     #build_pk('bigmd3', 1, grid=960, quad=False) 
     #build_pk('ldgdownnz', 10, clobber=True, quad=False) 
