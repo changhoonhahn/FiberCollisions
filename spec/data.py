@@ -15,8 +15,10 @@ import cosmolopy as cosmos
 
 # --- Local ----
 from util import catalog as cata 
-from corrections import Corr
-from corrections import Rand
+from corrections.true import TrueCorr
+from corrections.dlospeak import DlospeakCorr
+from corrections.fibcollided import UpweightCorr
+from corrections.rand import Rand
 
 # Classes ------------------------------------------------------------
 class Data(object): 
@@ -32,16 +34,29 @@ class Data(object):
         cat_corr :  Catalog correction Dictionary 
 
         """ 
-        if DorR not in ['data', 'random']: 
-            raise ValueError("DorR")
 
         self.cat_corr = cat_corr    # catalog and correction metadata 
         self.kwargs = kwargs    # pass extra input along
-        if DorR == 'data':         
-            self.corrclass = Corr(self.cat_corr, **self.kwargs)
-        else: 
-            self.corrclass = Rand(self.cat_corr, **self.kwargs)
 
+        if DorR == 'data':         
+
+            # correction class dictionary 
+            corrclass_dict = { 
+                    'true': TrueCorr,
+                    'upweight': UpweightCorr, 
+                    'dlospeak': DlospeakCorr 
+                    }
+
+            corr_name = ((self.cat_corr)['correction'])['name']
+            if corr_name not in corrclass_dict.keys():
+                raise NameError()
+
+            self.corrclass = corrclass_dict[corr_name](cat_corr, **kwargs)
+
+        elif DorR == 'random': 
+            self.corrclass = Rand(cat_corr, **kwargs)
+        else: 
+            raise ValueError("DorR")
 
         self.file_name = self.File()  # file name 
         self.type = DorR    # type (data or random)
@@ -57,7 +72,7 @@ class Data(object):
     def Build(self): 
         """ Calculate galaxy/random catalog
         """
-        self.file_name = (self.corrclass).file()
+        (self.corrclass).build()
 
         return None 
 
@@ -96,6 +111,8 @@ class Data(object):
         return self.cosmo 
 
 if __name__ == '__main__':
-    cat_corr = {'catalog': {'name': 'cmass', 'n_mock': 1}, 'correction': {'name': 'upweight'}}
-    corrdata = Data('random', cat_corr)
+    cat_corr = {'catalog': {'name': 'nseries', 'n_mock':1}, 
+            'correction': {'name': 'upweight'}}
+    corrdata = Data('data', cat_corr)
     print corrdata.file_name
+    print corrdata.Build()

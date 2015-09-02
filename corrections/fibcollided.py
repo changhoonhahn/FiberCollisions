@@ -6,59 +6,71 @@ Everything is hardcoded. Code can be improved but too lazy.
 
 
 '''
-import corr as Corr 
+import numpy as np
+# --- Local ---
+from corrections import Corrections
 
+class UpweightCorr(Corrections):
 
-def file(cat_corr, **kwargs): 
-    """ Specify correction string
-    """
-    cat = cat_corr['catalog']
+    def __init__(self, cat_corr, **kwargs): 
+        """ Child class of the Corrections class in corrections.py
+        Upweight correction
+        """
+        
+        super(UpweightCorr, self).__init__(cat_corr, **kwargs)
+        
+        self.corrstr() 
 
-    if 'cmass' in cat['name'].lower(): 
-        return ''
-    
-    corr_str = '.fibcoll'
+    def corrstr(self): 
+        """ Specify correction string
+        """
+        cat = (self.cat_corr)['catalog']
 
-    return corr_str 
+        if 'cmass' in cat['name'].lower(): 
+            return ''
+        
+        self.corr_str = '.fibcoll'
 
-def build(cat_corr, **kwargs): 
-    ''' Build Fibercollided mock catalogs using specific idl routines or by using the given fiber collision weights
+        return self.corr_str 
 
-    Parameters
-    ----------
-    cat_corr : catalog correction dictionary 
+    def build(self): 
+        ''' Build Fibercollided mock catalogs using specific idl routines or by using the given fiber collision weights
 
-    Notes
-    -----
-    '''
-    catalog = cat_corr['catalog']
+        Parameters
+        ----------
+        cat_corr : catalog correction dictionary 
 
-    if catalog['name'].lower() == 'nseries':          # N-series 
+        Notes
+        -----
+        '''
 
-        # original file 
-        data_dir = '/mount/riachuelo1/hahn/data/Nseries/'
-        orig_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.rdzwc']) 
-        orig_ra, orig_dec, orig_z, orig_wfc = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,4])
-    
-        # file with mask completeness
-        mask_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.mask_info']) 
-        orig_wcomp = np.loadtxt(mask_file, unpack=True, usecols=[0]) 
+        catdict = (self.cat_corr)['catalog']
 
-        header_str = 'Columns : ra, dec, z, nbar, w_cp, comp' 
-        data_list = [orig_ra, orig_dec, orig_z, orig_wfc, orig_wcomp]   # data column list 
-        data_fmt = ['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f']   # data format
+        if catdict['name'].lower() == 'nseries':          # N-series 
 
-    else: 
-        raise NotImplementedError('not yet coded') 
-    
-    # write to corrected file 
-    corr_class = Corr.correction(cat_corr) 
-    output_file = corr_class.file()
-    np.savetxt(output_file, (np.vstack(np.array(data_list))).T, fmt=data_fmt, delimiter='\t', header=header_str) 
+            # original file 
+            data_dir = '/mount/riachuelo1/hahn/data/Nseries/'
+            orig_file = ''.join([data_dir, 'CutskyN', str(catdict['n_mock']), '.rdzwc']) 
+            orig_ra, orig_dec, orig_z, orig_wfc = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,4])
+        
+            # file with mask completeness
+            mask_file = ''.join([data_dir, 'CutskyN', str(catdict['n_mock']), '.mask_info']) 
+            orig_wcomp = np.loadtxt(mask_file, unpack=True, usecols=[0]) 
 
-    return None
+            header_str = 'Columns : ra, dec, z, nbar, w_cp, comp' 
+            data_list = [orig_ra, orig_dec, orig_z, orig_wfc, orig_wcomp]   # data column list 
+            data_fmt = ['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f']   # data format
 
-    """
+        else: 
+            raise NotImplementedError('not yet coded') 
+        
+        # write to corrected file 
+        output_file = self.file()
+        np.savetxt(output_file, (np.vstack(np.array(data_list))).T, fmt=data_fmt, delimiter='\t', header=header_str) 
+
+        return None
+
+"""
     if 'cmass' in catalog['name'].lower():                  # CMASS ---------------------
 
         if catalog['name'].lower() == 'cmass': 
@@ -185,7 +197,7 @@ def build(cat_corr, **kwargs):
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], delimiter='\t') 
 
         fibcollided_cmd = ''
-    
+
     elif catalog['name'].lower() == 'patchy':           # PATCHY mocks ---------------
 
         # read original mock data 
@@ -207,7 +219,7 @@ def build(cat_corr, **kwargs):
                     ], 
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e', '%10.5f'], 
                 delimiter='\t') 
-    
+
     elif 'bigmd' in catalog['name'].lower():            # Big MD --------------------
         P0 = 20000.0
         # read original random catalog 
@@ -232,7 +244,7 @@ def build(cat_corr, **kwargs):
         print 'min nz', min(nbar)
         print 'max nz', max(nbar)
         vetomask = np.where(veto == 1)  # impose vetomask 
-    
+
         fc_file = get_galaxy_data_file('data', **cat_corr)    # file name 
         np.savetxt(fc_file, 
                 np.c_[
@@ -242,4 +254,4 @@ def build(cat_corr, **kwargs):
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e', '%10.5f'], delimiter='\t') 
         
         fibcollided_cmd = ''
-    """
+"""
