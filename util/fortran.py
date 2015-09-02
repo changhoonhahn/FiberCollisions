@@ -2,21 +2,121 @@
 
 Interface with FORTRAN code 
 
-
 '''
+import subprocess
 
-class fortcode: 
+class fcode: 
+
     def __init__(self, type, cat_corr): 
         """ Class to reference FORTRAN code for fiber collision corrected 
         powerspectrum calculations 
 
         """
-        cata = cat_corr['catalog']
-        corr = cat_corr['correction']
-        spec = cat_corr['spec']
+        self.cat_corr = cat_corr
+        self.type = type
     
-        fortran_dir = '/home/users/hahn/powercode/FiberCollisions/fortran/'
+        fcode_dir = '/home/users/hahn/powercode/FiberCollisions/fortran/'
+        
+        if type == 'fft':       # fft code
+            f_name = 'FFT_fkp.f'
+        elif type == 'pk':      # P(k) code
+            f_name = 'power_IgalIrand.f' 
+        else: 
+            raise NotImplementedError()
+        
+        f_code = ''.join([fcode_dir, f_name])
+        self.code = f_code
 
+    def fexe(self): 
+        """ Fortran executable that corresponds to fortran code
+        """
+        code_dir = ''.join(['/'.join((self.code).split('/')[:-1]), '/'])
+        code_file = (self.code).split('/')[-1]
+    
+        fort_exe = ''.join([code_dir, 'exe/', '.'.join(code_file.rsplit('.')[:-1]), '.exe'])
+        self.exe = fort_exe 
+        
+        return fort_exe 
+
+    def compile(self):
+        """ Compile fortran code
+        """
+
+        # get executable file 
+        fort_exe = self.fexe() 
+
+        # compile command
+        if self.code == '/home/users/hahn/powercode/FiberCollisions/fortran/FFT_FKP_BOSS_cic_il4_v3.f': 
+            compile_cmd = ' '.join(['ifort -fast -o', fort_exe, self.code, '-L/usr/local/fftw_intel_s/lib -lsrfftw -lsfftw -lm'])
+        elif self.code == '/home/users/hahn/powercode/FiberCollisions/fortran/power_FKP_SDSS_BOSS_v3.f': 
+            compile_cmd = ' '.join(['ifort -fast -o', fort_exe, self.code])
+        else: 
+            compile_cmd = ' '.join(['ifort -O3 -o', fort_exe, self.code, '-L/usr/local/fftw_intel_s/lib -lsfftw -lsfftw'])
+        print ' ' 
+        print 'Compiling -----'
+        print compile_cmd
+        print '----------------'
+        print ' ' 
+
+        # call compile command 
+        subprocess.call(compile_cmd.split())
+
+        return None 
+
+if __name__=="__main__": 
+    cat_corr = {'catalog': {'name': 'nseries', 'n_mock': 1}, 'correction': {'name': 'upweight'}}
+    code = fcode('fft', cat_corr)
+    print code.code
+    print code.fexe()
+    print code.compile()
+
+
+
+"""
+        if fft_power.lower() == 'fft':          # FFT code
+            if correction['name'].lower() == 'floriansn': 
+                code_file = 'FFT-nseries-fkp-w-nbar-florian-'+str(spec['grid'])+'grid.f'
+            elif correction['name'].lower() == 'hectorsn': 
+                code_file = 'FFT-nseries-fkp-w-nbar-hector-'+str(spec['grid'])+'grid.f'
+            else: 
+                code_file = 'FFT-nseries-fkp-w-nbar-'+str(spec['grid'])+'grid.f'
+    
+        elif fft_power.lower() == 'power':      # power code
+            if correction['name'].lower() in ('true', 'upweight', 'peaknbar'):
+                # normal FKP shot noise correction
+                if spec['grid'] == 360: 
+                    code_file = 'power-nseries-fkp-w-nbar-360grid-180bin.f'
+                elif spec['grid'] == 960: 
+                    code_file = 'power-nseries-fkp-w-nbar-960grid-480bin.f'
+            elif correction['name'].lower() in \
+                    ('peakshot', 'photozpeakshot', 'photozenvpeakshot', 
+                            'shotnoise', 'floriansn', 'noweight', 'hectorsn', 'peakshot_dnn'): 
+                # FKP with Igal Irand shot noise correction 
+                if spec['grid'] == 360: 
+                    code_file = 'power-nseries-fkp-w-nbar-Igal-Irand-360grid-180bin.f'
+                elif spec['grid'] == 960: 
+                    code_file = 'power-nseries-fkp-w-nbar-Igal-Irand-960grid-480bin.f'
+            elif 'scratch' in correction['name'].lower(): 
+                # FKP with Igal Irand shot noise correction (for scratch pad corrections) 
+                if spec['grid'] == 360: 
+                    code_file = 'power-nseries-fkp-w-nbar-Igal-Irand-360grid-180bin.f'
+                elif spec['grid'] == 960: 
+                    code_file = 'power-nseries-fkp-w-nbar-Igal-Irand-960grid-480bin.f'
+            else: 
+                raise NameError('asldkfjasdf') 
+
+        # quadrupole codes --------------------------------------------
+        # regardess of catalog or correction TEMPORARILY HARDCODED HERE FOR TEST RUN 
+        elif fft_power.lower() == 'quadfft': 
+            code_dir = '/home/users/hahn/powercode/FiberCollisions/' 
+            code_file = 'FFT_FKP_BOSS_cic_il4_v3.f' 
+        elif fft_power.lower() == 'quadpower': 
+            code_dir = '/home/users/hahn/powercode/FiberCollisions/' 
+            code_file = 'power_FKP_SDSS_BOSS_v3.f'
+        else: 
+            raise NameError("not Yet coded") 
+        
+        f_code = ''.join([code_dir, code_file]) 
 
     if catalog['name'].lower() == 'lasdamasgeo':            # LasDamasGeo ----------------------
 
@@ -354,35 +454,4 @@ class fortcode:
     else: 
         raise NaemError('Not coded!') 
 
-    return f_code
-
-def fortran_code2exe(code): 
-    '''
-    get .exe file based on fortran code file name  
-    '''
-    code_dir = '/'.join(code.split('/')[0:-1])+'/' 
-    code_file = code.split('/')[-1]
-
-    fort_exe = code_dir+'exe/'+'.'.join(code_file.rsplit('.')[0:-1])+'.exe'
-
-    return fort_exe
-
-def compile_fortran_code(code): 
-    '''
-    compiles fortran code (very simple, may not work) 
-    '''
-    # get executable file 
-    fort_exe = fortran_code2exe(code) 
-
-    # compile command
-    if code == '/home/users/hahn/powercode/FiberCollisions/FFT_FKP_BOSS_cic_il4_v3.f': 
-        compile_cmd = ' '.join(['ifort -fast -o', fort_exe, code, '-L/usr/local/fftw_intel_s/lib -lsrfftw -lsfftw -lm'])
-    elif code == '/home/users/hahn/powercode/FiberCollisions/power_FKP_SDSS_BOSS_v3.f': 
-        compile_cmd = ' '.join(['ifort -fast -o', fort_exe, code])
-    else: 
-        compile_cmd = ' '.join(['ifort -O3 -o', fort_exe, code, '-L/usr/local/fftw_intel_s/lib -lsfftw -lsfftw'])
-    print compile_cmd
-
-    # call compile command 
-    subprocess.call(compile_cmd.split())
-
+"""

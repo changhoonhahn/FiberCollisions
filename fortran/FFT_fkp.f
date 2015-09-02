@@ -1,5 +1,5 @@
       implicit none  !as FFT_FKP_SDSS_LRG_new but removes some hard-cored choices
-      integer Nsel,Nran,i,iwr,Ngal,Nmax,n,kx,ky,kz,Lm,Ngrid,ix,iy,iz,j,k
+      integer Nsel,Nran,i,iwr,Ngal,Nmax,n,kx,ky,kz,Lm,ix,iy,iz,j,k
       integer Ng,Nr,iflag,ic,Nbin,l,ipoly,wb,wcp,wred,flag
       integer idata,icosmo,Ngrid
       real n_bar,wfkp,wfc,wcomp
@@ -123,7 +123,8 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
          call getarg(7,randomfile)
          allocate(rr(3,Nmax),nbr(Nmax),ir(Nmax),wr(Nmax),cmp(Nmax))
 
-         call readrand(idata,randomfile,Nmax,nbr,wr,rr,P0,Nran,Nrsys)
+         call readrand(idata,randomfile,Nmax,nbr,wr,rr,cmp,
+     &   P0,Nran,Nrsys)
 
          call PutIntoBox(Nran,rr,Rbox,ir,Nr,Nmax)
          gfrac=100. *float(Nr)/float(Nran)
@@ -177,7 +178,7 @@ c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       ! fiducial cosmology (OmM=0.31 h=0.676 Ol=0.69 Obh2=0.022)
       if (icosmo.eq.0) then 
          Om0=0.31
-      elseif 
+      else 
          if (idata.eq.1) then !CMASS sample
             Om0=0.274
          elseif (idata.eq.2) then !LasDamas
@@ -285,21 +286,21 @@ c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       return
       end
 c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      Subroutine readrand(idata,randomfile,Nmax,nbr,wr,rr,
+      Subroutine readrand(idata,randomfile,Nmax,nbr,wr,rr,cmp,
      $           P0,Nran,Nrsys) !for random mocks
 c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       implicit none
       integer i,idata,Nran,Nariel,Nmax,iveto,izbin
       real nbar,chi,pi
       real ra,dec,az,comp,nbb,wsys,wred,cspeed,dum,az2,wnoz,wcp,bias
-      real wboss,veto,rad,P0,nbr(Nmax),wr(Nmax),rr(3,Nmax)
+      real wboss,veto,rad,P0,nbr(Nmax),wr(Nmax),rr(3,Nmax),cmp(Nmax)
       real rcm,thetaobs,phiobs
       parameter(cspeed=299800.0,pi=3.141592654)
       real*8 Nrsys
       character*200 randomfile 
       external nbar,chi
       
-      open(unit=4,file=lssfile,status='old',form='formatted')
+      open(unit=4,file=randomfile,status='old',form='formatted')
       Nran=0 !Ngal will get determined later after survey is put into a box (Ng)
       Nrsys=0.d0
       if (idata.eq.1) then 
@@ -337,7 +338,7 @@ c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       implicit none
       integer i,idata,ifc,icomp,Ngal,Nariel,Nmax
       real nbar,chi,pi
-      real ra,dec,az,comp,nbb,wsys,wred,cspeed,dum,az2,wnoz,wcp,bias
+      real ra,dec,az,comp,nbb,wsys,wred,cspeed,dum,wfc,wnoz,wcp,bias
       real wboss,veto,rad,P0,nbg(Nmax),wg(Nmax),rg(3,Nmax),cmp(Nmax)
       parameter(cspeed=299800.0,pi=3.141592654)
       real*8 Ngsys,Ngsyscomp,Ngsystot,compavg
