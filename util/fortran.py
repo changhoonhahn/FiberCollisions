@@ -5,8 +5,7 @@ Interface with FORTRAN code
 
 '''
 
-class code: 
-    
+class fortcode: 
     def __init__(self, type, cat_corr): 
         """ Class to reference FORTRAN code for fiber collision corrected 
         powerspectrum calculations 
@@ -18,13 +17,6 @@ class code:
     
         fortran_dir = '/home/users/hahn/powercode/FiberCollisions/fortran/'
 
-        ####### Combine FORTRAN FILES in a similar fashion to version5 of FFT code
-        ####### Combine FORTRAN FILES in a similar fashion to version5 of FFT code
-        ####### Combine FORTRAN FILES in a similar fashion to version5 of FFT code
-        ####### Combine FORTRAN FILES in a similar fashion to version5 of FFT code
-        ####### Combine FORTRAN FILES in a similar fashion to version5 of FFT code
-        ####### Combine FORTRAN FILES in a similar fashion to version5 of FFT code
-        ####### Combine FORTRAN FILES in a similar fashion to version5 of FFT code
 
     if catalog['name'].lower() == 'lasdamasgeo':            # LasDamasGeo ----------------------
 

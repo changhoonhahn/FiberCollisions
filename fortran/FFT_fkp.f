@@ -1,13 +1,14 @@
       implicit none  !as FFT_FKP_SDSS_LRG_new but removes some hard-cored choices
       integer Nsel,Nran,i,iwr,Ngal,Nmax,n,kx,ky,kz,Lm,Ngrid,ix,iy,iz,j,k
-      integer Ng,Nr,iflag,ic,Nbin,l,ipoly,wb,wcp,wred,flag,idata
+      integer Ng,Nr,iflag,ic,Nbin,l,ipoly,wb,wcp,wred,flag
+      integer idata,icosmo,Ngrid
       real n_bar,wfkp,wfc,wcomp
       integer*8 planf
       real pi,cspeed,Om0,OL0,redtru,m1,m2,zlo,zhi,garb1,garb2,garb3,veto
-      parameter(Nsel=181,Nmax=2*10**8,Nbin=151,pi=3.141592654)
+      parameter(Nsel=181,Nmax=2*10**8,Nbin=151)
+      parameter(cspeed=299800.0,pi=3.141592654)
       integer grid
       dimension grid(3)
-      parameter(cspeed=299800.0)
       integer, allocatable :: ig(:),ir(:)
       real zbin(Nbin),dbin(Nbin),sec3(Nbin),zt,dum,gfrac
       real cz,sec2(Nsel),chi,nbar,Rbox
@@ -21,7 +22,7 @@
       real kdotr,vol,xscale,rlow,rm(2)
       complex, allocatable :: dcg(:,:,:),dcr(:,:,:)
 c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
-      character typestr*200
+      character typestr*200,cosmostr*200,Ngridstr*200
       character selfunfile*200,lssfile*200,randomfile*200,filecoef*200
       character spltest*200,nbarfile*200
       character fname*200,fftname*200
@@ -36,83 +37,57 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       ! idata= 1 (BOSS data), 2(LasDamas), 3-4 (QPM mocks N-S)
       ! idata= 5 (LOWZ data), 6(PATCHY), 7 (Nseries)
-      call getarg(1,typestr)
+      call getarg(1,typestr) !mock catalog
       read(typestr,*)idata
-
-      call cosmology(idata,Om0,OL0)
+    
+      call getarg(2,cosmostr)
+      read(cosmostr,*)icosmo !fiducial cosmology(0), survey cosmology(1)
+      call cosmology(idata,icosmo,Om0,OL0)
+      call nbtable(idata,Nsel,z,selfun,sec)
+      call radialdist(idata,Nsel,z,Nbin,zbin,dbin,sec3)
       
-      call getarg(1,Rboxstr)
-      read(Rboxstr,*) Rbox
+      call getarg(3,Rboxstr) 
+      read(Rboxstr,*) Rbox !box side 
 
-      grid(1) = Ngrid
-      grid(2) = Ngrid
-      grid(3) = Ngrid
-      call fftwnd_f77_create_plan(planf,3,grid,FFTW_BACKWARD,
-     $     FFTW_ESTIMATE + FFTW_IN_PLACE)
-
-      selfunfile='/mount/riachuelo1/hahn/data/Nseries/'//
-     $     'nbar-nseries-fibcoll.dat'
-      open(unit=4,file=selfunfile,status='old',form='formatted')
-      do i=1,Nsel
-         read(4,*)z(i),dum,dum,selfun(i)
-      enddo 
-      close(4)
-      call spline(z,selfun,Nsel,3e30,3e30,sec)
-
-      zmax=1.1
-      do ic=1,Nbin
-         zt=zmax*float(ic-1)/float(Nbin-1)
-         zbin(ic)=zt
-         dbin(ic)=chi(zt)
-      enddo
-      call spline(dbin,zbin,Nbin,3e30,3e30,sec3)
-!Arguments: Rbox, Mock/Random, P0, File, FFT file
-      call getarg(2,iflagstr)
-      read(iflagstr,*) iflag
-      call getarg(3,P0str) 
-      read(P0str,*) P0
-
+      call getarg(4,Ngridstr)
+      read(Ngridstr,*)Ngrid !FFT grid size
       Lm=Ngrid
       xscale=2.*RBox
       rlow=-Rbox
     
       rm(1)=float(Lm)/xscale
       rm(2)=1.-rlow*rm(1)
+
+      grid(1) = Lm
+      grid(2) = Lm
+      grid(3) = Lm
+      call fftwnd_f77_create_plan(planf,3,grid,FFTW_BACKWARD,
+     $     FFTW_ESTIMATE + FFTW_IN_PLACE)
+
+      call getarg(5,iflagstr) !mock(0) or random(1)?
+      read(iflagstr,*) iflag
+      call getarg(6,P0str) !P0 for FKP weight
+      read(P0str,*) P0
       
-      WRITE(*,*) 'Ngrid=',Ngrid,'Box=',xscale,'P0=',P0
+      write(*,*) 'Ngrid=',Ngrid,'Box=',xscale,'P0=',P0
 
       if (iflag.eq.0) then ! run on mock
-         call getarg(4,lssfile)
-         allocate(rg(3,Nmax),nbg(Nmax),ig(Nmax),wg(Nmax),cmp(Nmax))
-         open(unit=4,file=lssfile,status='old',form='formatted')
-         Ngal=0 !Ngal will get determined later after survey is put into a box (Ng)
-         Ngsys=0.d0
-         do i=1,Nmax
-            read(4,*,end=13)ra,dec,az,wfc,wcomp
-            ra=ra*(pi/180.)
-            dec=dec*(pi/180.)
-            rad=chi(az)
-            rg(1,i)=rad*cos(dec)*cos(ra)
-            rg(2,i)=rad*cos(dec)*sin(ra)
-            rg(3,i)=rad*sin(dec)
-            nbg(i)=nbar(az)
-            cmp(i)=wcomp    ! comp weight 
-            wg(i)=wfc/wcomp ! remove comp variations
-            Ngal=Ngal+1
-            Ngsys=Ngsys+dble(wg(i))           ! contains comp upweighting
-         enddo
- 13      continue
-         close(4)
 
-         WRITE(*,*) 'Ngal,sys=',Ngsys,'Ngal=',Ngal
-         WRITE(*,*) 'Ngal,sys/Ngal=',Ngsys/float(Ngal)
+         call getarg(7,lssfile)
+         allocate(rg(3,Nmax),nbg(Nmax),ig(Nmax),wg(Nmax),cmp(Nmax))
+
+         call readmock(idata,lssfile,Nmax,nbg,wg,rg,cmp,P0,
+     $        Ngal,Ngsys)
 
          call PutIntoBox(Ngal,rg,Rbox,ig,Ng,Nmax)
+
          gfrac=100. *float(Ng)/float(Ngal)
-         WRITE(*,*) 'Ngal,box=',Ng,'Ngal=',Ngal,gfrac,'percent'
-
-         Ngsys=Ngsys*dble(Ng)/dble(Ngal)
-
+         write(*,*)'Number of Galaxies in Box=',Ng,gfrac,'percent'
+         Ngsys=Ngsys*dble(Ng)/dble(Ngal) !in reality we have to do the Ngsys sum again!
+         ! but it does not matter as we always go for 100% galaxies inside FFT box
+         write(*,*)'upweighted-Galaxies in Box=',Ngsys
+        
+         !calculate Iij
          gI10=0.d0
          gI12=0.d0
          gI22=0.d0
@@ -135,7 +110,7 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
          call fftwnd_f77_one(planf,dcg,dcg)      
          call fcomb(Lm,dcg,Ng)
 
-         call getarg(5,filecoef)
+         call getarg(8,filecoef)
          open(unit=6,file=filecoef,status='unknown',form='unformatted')
          write(6)(((dcg(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
          write(6)real(gI10),real(gI12),real(gI22),real(gI13),real(gI23),
@@ -144,31 +119,17 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
          close(6)
 
        elseif (iflag.eq.1) then ! compute discretness integrals and FFT random mock
-         call getarg(4,randomfile)
+
+         call getarg(7,randomfile)
          allocate(rr(3,Nmax),nbr(Nmax),ir(Nmax),wr(Nmax),cmp(Nmax))
-         open(unit=4,file=randomfile,status='old',form='formatted')
-         Nran=0 !Ngal will get determined later after survey is put into a box (Nr)
-         Nrsys=0.d0
-         do i=1,Nmax
-            read(4,*,end=15)ra,dec,az,wcomp
-            ra=ra*(pi/180.)
-            dec=dec*(pi/180.)
-            rad=chi(az)
-            wr(i)=1.0/wcomp         
-            rr(1,i)=rad*cos(dec)*cos(ra)
-            rr(2,i)=rad*cos(dec)*sin(ra)
-            rr(3,i)=rad*sin(dec)
-            nbr(i)=nbar(az)            ! nbar_true no comp variation
-            cmp(i)=wcomp            ! save comp weights
-            Nrsys=Nrsys+dble(wr(i))
-            Nran=Nran+1
-         enddo
- 15      continue
-         close(4)
-      
+
+         call readrand(idata,randomfile,Nmax,nbr,wr,rr,P0,Nran,Nrsys)
+
          call PutIntoBox(Nran,rr,Rbox,ir,Nr,Nmax)
          gfrac=100. *float(Nr)/float(Nran)
-         WRITE(*,*) 'Nran,box=',Nr,'Nran=',Nran, gfrac,'percent'
+         write(*,*)'Number of Randoms in Box=',Nr,gfrac,'percent'
+         Nrsys=Nrsys*dble(Nr)/dble(Nran) !scale in case not 100 % inside mask
+         write(*,*)'upweighted randoms in Box=',Nrsys
 
          I10=0.d0
          I12=0.d0
@@ -187,14 +148,13 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
             I33=I33+dble(nb**2 *weight**3)
          enddo
 
-         WRITE(*,*) 'N_r,sys=',Nrsys,'N_r,sys/Nr=',Nrsys/float(Nran)
          allocate(dcr(Ngrid,Ngrid,Ngrid))
          call assign(Nran,rr,rm,Lm,dcr,P0,nbr,ir,wr)
          call fftwnd_f77_one(planf,dcr,dcr)      
          call fcomb(Lm,dcr,Nr)
 
 !         write(*,*) 'Fourier file :'
-         call getarg(5,filecoef)
+         call getarg(8,filecoef)
          open(unit=6,file=filecoef,status='unknown',form='unformatted')
          write(6)(((dcr(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
          write(6)real(I10),real(I12),real(I22),real(I13),real(I23),
@@ -209,36 +169,210 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
  123  stop
       end
 c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      Subroutine cosmology(idata,Om0,OL0)
+      Subroutine cosmology(idata,icosmo,Om0,OL0)
 c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       implicit none
       real Om0,OL0
-      integer idata
+      integer idata,icosmo
       ! fiducial cosmology (OmM=0.31 h=0.676 Ol=0.69 Obh2=0.022)
-      if (idata.eq.1) then !CMASS sample
-         Om0=0.274
-      elseif (idata.eq.2) then !LasDamas
-         Om0=0.25
-      elseif (idata.eq.3) then !QPM north
-!         Om0=0.29 !dr12c mocks
-         Om0=0.31 !dr12d mocks
-      elseif (idata.eq.4) then !QPM south
-!         Om0=0.29 !dr12c mocks
-         Om0=0.31 !dr12d mocks
-      elseif (idata.eq.5) then !LOWZ sample
-         Om0=0.3
-      elseif (idata.eq.6) then !PATCHY
-         Om0=0.307115
-      elseif (idata.eq.7) then !PTHALOS CMASS north
-         Om0=0.274
-      elseif (idata.eq.8) then !PTHALOS CMASS south
-         Om0=0.274
-      else
-         write(*,*)'specify which dataset you want!'
-         stop
-      endif   
+      if (icosmo.eq.0) then 
+         Om0=0.31
+      elseif 
+         if (idata.eq.1) then !CMASS sample
+            Om0=0.274
+         elseif (idata.eq.2) then !LasDamas
+            Om0=0.25
+         elseif (idata.eq.3) then !QPM north
+    !        Om0=0.29 !dr12c mocks
+            Om0=0.31 !dr12d mocks
+         elseif (idata.eq.4) then !QPM south
+    !        Om0=0.29 !dr12c mocks
+            Om0=0.31 !dr12d mocks
+         elseif (idata.eq.5) then !LOWZ sample
+            Om0=0.3
+         elseif (idata.eq.6) then !PATCHY
+            Om0=0.307115
+         elseif (idata.eq.7) then !PTHALOS CMASS north
+            Om0=0.274
+         elseif (idata.eq.8) then !PTHALOS CMASS south
+            Om0=0.274
+         else
+            write(*,*)'specify which dataset you want!'
+            stop
+         endif   
+      endif 
       OL0=1.-Om0 !assume flatness
       return
+      end
+c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      Subroutine nbtable(idata,Nsel,z,selfun,sec)
+c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      implicit none
+      integer i,idata,Nsel
+      real selfun(Nsel),z(Nsel),sec(Nsel),dum
+      character dummy*200,selfunfile*200,dir*200
+      
+      if (idata.eq.3) then !QPMnorth
+         dir='/mount/riachuelo2/rs123/BOSS/QPM/cmass/'
+         selfunfile=dir(1:len_trim(dir))//'cmass-dr12v1-ngc.zsel' !dr12c
+         selfunfile=dir(1:len_trim(dir))//
+     $    'nbar-cmass-dr12v4-N-Reid-om0p31.dat' !dr12d
+      elseif (idata.eq.4) then !QPMsouth
+         dir='/mount/riachuelo2/rs123/BOSS/QPM/cmass/'
+         selfunfile=dir(1:len_trim(dir))//'cmass-dr12v1-sgc.zsel' !dr12c
+         selfunfile=dir(1:len_trim(dir))//
+     $    'nbar-cmass-dr12v4-S-Reid-om0p31.dat' !dr12d 
+      elseif (idata.eq.7) then !PTHnorth
+         dir='/mount/riachuelo2/rs123/BOSS/PTHalos/'
+         selfunfile=dir(1:len_trim(dir))//
+     $    'nzfit_dr11_vm22_north.txt'
+      elseif (idata.eq.8) then !PTHsouth
+         dir='/mount/riachuelo2/rs123/BOSS/PTHalos/'
+         selfunfile=dir(1:len_trim(dir))//
+     $    'nzfit_dr11_vm22_south.txt'
+      else !just to have z(Nsel)            
+         dir='/mount/riachuelo2/rs123/BOSS/QPM/cmass/'
+         selfunfile=dir(1:len_trim(dir))//'cmass-dr12v1-sgc.zsel'
+      endif
+      if (idata.eq.1 .or. idata.eq.2) then 
+         open(unit=4,file=selfunfile,status='old',form='formatted')
+         do i=1,3 !skip 3 comment lines
+            read(4,'(a)')dummy
+         enddo
+         do i=1,Nsel
+            read(4,*)z(i),selfun(i)
+         enddo   
+         close(4)
+         call spline(z,selfun,Nsel,3e30,3e30,sec)
+      elseif (idata.lt.7) then 
+         open(unit=4,file=selfunfile,status='old',form='formatted')
+         do i=1,3 !skip 2 comment lines 
+            read(4,'(a)')dummy
+         enddo
+         do i=1,Nsel
+c            read(4,*)z(i),dum,dum,selfun(i),dum,dum,dum
+            read(4,*)z(i),selfun(i)
+         enddo   
+         close(4)
+         call spline(z,selfun,Nsel,3e30,3e30,sec)
+      endif
+      
+      return
+      end
+c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      Subroutine radialdist(idata,Nsel,z,Nbin,zbin,dbin,sec3)
+c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      implicit none
+      integer idata,Nsel,ic,Nbin
+      real zend,z(Nsel),zt,zbin(Nbin),dbin(Nbin),sec3(Nbin)
+      real chi
+      external chi
+      
+      zend=1.1 !up to what z we build radial distances
+      if (idata.lt.7) then
+         if (zend.le.z(Nsel)) then
+            write(*,*)'increase zend'
+            stop
+         endif
+      endif
+      do ic=1,Nbin !build comoving distance vs redshift relation
+         zt=zend*float(ic-1)/float(Nbin-1)
+         zbin(ic)=zt
+         dbin(ic)=chi(zt)
+      enddo
+      call spline(dbin,zbin,Nbin,3e30,3e30,sec3)
+
+      return
+      end
+c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      Subroutine readrand(idata,randomfile,Nmax,nbr,wr,rr,
+     $           P0,Nran,Nrsys) !for random mocks
+c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      implicit none
+      integer i,idata,Nran,Nariel,Nmax,iveto,izbin
+      real nbar,chi,pi
+      real ra,dec,az,comp,nbb,wsys,wred,cspeed,dum,az2,wnoz,wcp,bias
+      real wboss,veto,rad,P0,nbr(Nmax),wr(Nmax),rr(3,Nmax)
+      real rcm,thetaobs,phiobs
+      parameter(cspeed=299800.0,pi=3.141592654)
+      real*8 Nrsys
+      character*200 randomfile 
+      external nbar,chi
+      
+      open(unit=4,file=lssfile,status='old',form='formatted')
+      Nran=0 !Ngal will get determined later after survey is put into a box (Ng)
+      Nrsys=0.d0
+      if (idata.eq.1) then 
+         read(4,*)Nariel !ariel has Nobjects in first line:
+      endif 
+      do i=1,Nmax
+         if (idata.eq.7) then !Nseries
+            read(4,*,end=15)ra,dec,az,comp
+            wsys=1.0
+            wred=1.0
+            nbr(i)=nbar(az)
+         endif 
+         wr(i)=wsys*wred/comp
+         cmp(i)=comp
+
+         ra=ra*(pi/180.)
+         dec=dec*(pi/180.)
+         rad=chi(az)
+         rr(1,i)=rad*cos(dec)*cos(ra)
+         rr(2,i)=rad*cos(dec)*sin(ra)
+         rr(3,i)=rad*sin(dec)
+         !Tally up galaxies for normalization purposes
+         Nran=Nran+1
+         Nrsys=Nrsys+dble(wr(i))           ! contains comp upweighting
+      enddo
+ 15   continue
+      close(4)
+
+      return 
+      end
+c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      Subroutine readmock(idata,lssfile,Nmax,nbg,wg,rg,cmp,P0,
+     $           Ngal,Ngsys) !for data mocks
+c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      implicit none
+      integer i,idata,ifc,icomp,Ngal,Nariel,Nmax
+      real nbar,chi,pi
+      real ra,dec,az,comp,nbb,wsys,wred,cspeed,dum,az2,wnoz,wcp,bias
+      real wboss,veto,rad,P0,nbg(Nmax),wg(Nmax),rg(3,Nmax),cmp(Nmax)
+      parameter(cspeed=299800.0,pi=3.141592654)
+      real*8 Ngsys,Ngsyscomp,Ngsystot,compavg
+      character*200 lssfile,lssinfofile,dummy  
+      external nbar,chi,nbar2
+
+      open(unit=4,file=lssfile,status='old',form='formatted')
+      Ngal=0 !Ngal will get determined later after survey is put into a box (Ng)
+      Ngsys=0.d0
+      if (idata.eq.1) then 
+         read(4,*)Nariel !ariel has Nobjects in first line:
+      endif 
+      do i=1,Nmax
+         if (idata.eq.7) then !Nseries
+            read(4,*,end=13)ra,dec,az,wfc,comp
+            wsys=1.0
+            wred=wfc
+            nbg(i)=nbar(az)
+         endif 
+         wg(i)=wsys*wred/comp
+         cmp(i)=comp
+         ra=ra*(pi/180.)
+         dec=dec*(pi/180.)
+         rad=chi(az)
+         rg(1,i)=rad*cos(dec)*cos(ra)
+         rg(2,i)=rad*cos(dec)*sin(ra)
+         rg(3,i)=rad*sin(dec)
+         !Tally up galaxies for normalization purposes
+         Ngal=Ngal+1
+         Ngsys=Ngsys+dble(wg(i))           ! contains comp upweighting
+      enddo
+ 13   continue
+      close(4)
+
+      return 
       end
 c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       Subroutine PutIntoBox(Ng,rg,Rbox,ig,Ng2,Nmax)
