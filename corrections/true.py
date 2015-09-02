@@ -8,7 +8,7 @@ Everything is hardcoded. Code can be improved but too lazy.
 '''
 
 # --- Local ---
-import correction
+import corr as Corr
 
 
 def build(cat_corr): 
@@ -29,7 +29,7 @@ def build(cat_corr):
 
     catalog = cat_corr['catalog']   # catalog dictionary
 
-    corr = correction.correction(cat_corr)
+    corr = Corr.correction(cat_corr)
     output_file = corr.file()
     
     '''

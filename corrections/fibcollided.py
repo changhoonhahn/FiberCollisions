@@ -6,10 +6,10 @@ Everything is hardcoded. Code can be improved but too lazy.
 
 
 '''
-import correction as corrclass
+import corr as Corr 
 
 
-def file(cat_corr): 
+def file(cat_corr, **kwargs): 
     """ Specify correction string
     """
     cat = cat_corr['catalog']
@@ -21,7 +21,7 @@ def file(cat_corr):
 
     return corr_str 
 
-def build(cat_corr): 
+def build(cat_corr, **kwargs): 
     ''' Build Fibercollided mock catalogs using specific idl routines or by using the given fiber collision weights
 
     Parameters
@@ -51,10 +51,9 @@ def build(cat_corr):
     else: 
         raise NotImplementedError('not yet coded') 
     
-    # corrected file 
-    corr_class = corrclass.correction(cat_corr) 
+    # write to corrected file 
+    corr_class = Corr.correction(cat_corr) 
     output_file = corr_class.file()
-    
     np.savetxt(output_file, (np.vstack(np.array(data_list))).T, fmt=data_fmt, delimiter='\t', header=header_str) 
 
     return None
