@@ -7,6 +7,7 @@ Correction galaxy/random catalog
 import true as corr_true
 import fibcollided as corr_fibcol
 import dlospeak as corr_peakshot
+import random as corr_rand
 
 from util import catalog as cata 
 
@@ -62,6 +63,43 @@ class correction:
         file_list.insert( -1, corr_str )
 
         return ''.join(file_list)
+
+class random: 
+
+    def __init__(self, cat_corr, **kwargs): 
+        """ A class describing the correction to random catalog of simulations or BOSS data
+        """
+
+        # correction dictionary 
+        self.corr_dict = {
+                'true': corr_rand
+                }
+
+        self.cat_corr = cat_corr
+        self.kwargs = kwargs
+    
+        corr = cat_corr['correction']
+        
+        # the effect of fiber collision corrections on the nbar(z) is negilible
+        # therefore we use "true" random data for all simulated/data catalogs
+        self.corr_mod = self.corr_dict['true']
+
+    def build(self): 
+        """ Build corrected galaxy catalog
+        """
+
+        # run correction 
+        (self.corr_mod).build(self.cat_corr, **self.kwargs)
+    
+        return None 
+
+    def file(self):
+        """ Name of corrected galaxy catalog file 
+        """
+
+        corr_file = (self.corr_mod).file(self.cat_corr, **self.kwargs)
+
+        return corr_file  
 
 if __name__=="__main__":
     cat_corr = {

@@ -9,9 +9,7 @@ displacement distribution. Code could use overall editing
 import cosmolopy as cosmos
 
 # --- Local ---
-import corr as Corr
 from util import util
-from spec import data as spec_data
 
 def file(cat_corr, **kwargs): 
     """ Specify correction string
@@ -236,7 +234,7 @@ def build(cat_corr, **kwargs):
         raise NotImplementedError('asdfasdf')
 
     # write to corrected file 
-    corr_class = Corr.correction(cat_corr) 
+    corr_class = Corr(cat_corr) 
     output_file = corr_class.file()
     np.savetxt(output_file, (np.vstack(np.array(data_list))).T, 
             fmt=data_fmt, delimiter='\t', header=header_str) 

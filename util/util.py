@@ -8,11 +8,26 @@ Author(s): ChangHoon Hahn
 
 
 '''
-import os.path
-import subprocess
 import cosmolopy as cosmos
 
 # --- Local ---
+
+def comdis2z(comdis, **cosmo): 
+    ''' Given comoving distance and cosmology, determine z 
+    using cubic spline
+
+    Notes
+    -----
+    * Comoving distance *has* to be in Mpc/h
+    '''
+    z_arr = np.array([0.0+0.05*np.float(i) for i in range(21)]) 
+    dm_arr = cosmos.distance.comoving_distance(z_arr, **cosmo)*cosmo['h']
+
+    dmz_spline = sp.interpolate.interp1d(dm_arr, z_arr, kind='cubic') 
+    
+    z = dmz_spline(comdis)
+
+    return z 
 
 def get_fibcoll_dir(file_type, **cat_corr): 
     '''

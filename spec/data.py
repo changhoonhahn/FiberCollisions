@@ -15,6 +15,8 @@ import cosmolopy as cosmos
 
 # --- Local ----
 from util import catalog as cata 
+from corrections import Corr
+from corrections import Rand
 
 # Classes ------------------------------------------------------------
 class Data(object): 
@@ -30,10 +32,19 @@ class Data(object):
         cat_corr :  Catalog correction Dictionary 
 
         """ 
+        if DorR not in ['data', 'random']: 
+            raise ValueError("DorR")
+
         self.cat_corr = cat_corr    # catalog and correction metadata 
         self.kwargs = kwargs    # pass extra input along
-        self.file_name = self.File(DorR, cat_corr)  # file name 
-        self.Type = DorR    # data or random 
+        if DorR == 'data':         
+            self.corrclass = Corr(self.cat_corr, **self.kwargs)
+        else: 
+            self.corrclass = Rand(self.cat_corr, **self.kwargs)
+
+
+        self.file_name = self.File()  # file name 
+        self.type = DorR    # type (data or random)
 
         # galaxy properties
         self.ra = None
@@ -46,14 +57,17 @@ class Data(object):
     def Build(self): 
         """ Calculate galaxy/random catalog
         """
-        #(self.cat_corr)
-        pass
+        self.file_name = (self.corrclass).file()
+
+        return None 
 
     def File(self): 
         """ Name of ASCII file of Data/Random catalogy
         """
 
-        DorR = self.Type        # data or random 
+        self.file_name = (self.corrclass).file()
+        
+        return self.file_name
 
     def Cosmo(self): 
     
@@ -81,14 +95,7 @@ class Data(object):
 
         return self.cosmo 
 
-def comdis2z(comdis, **cosmo): 
-    ''' Given comoving distance and cosmology, determine z 
-    Comoving distance *has* to be in Mpc/h
-    '''
-    z_arr = np.array([0.0+0.05*np.float(i) for i in range(21)]) 
-    dm_arr = cosmos.distance.comoving_distance(z_arr, **cosmo)*cosmo['h']
-
-    dmz_spline = sp.interpolate.interp1d(dm_arr, z_arr, kind='cubic') 
-    
-    z = dmz_spline(comdis)
-    return z 
+if __name__ == '__main__':
+    cat_corr = {'catalog': {'name': 'cmass', 'n_mock': 1}, 'correction': {'name': 'upweight'}}
+    corrdata = Data('random', cat_corr)
+    print corrdata.file_name
