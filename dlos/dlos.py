@@ -8,7 +8,9 @@ Author(s): ChangHoon Hahn (NYU CCPP)
 import numpy as np
 import scipy as sp 
 
-from util.direct import direc
+from spec.data import Data
+from util.direc import direc
+from util.idl import Idl
 
 class Dlos: 
 
@@ -36,8 +38,9 @@ class Dlos:
         dlos_dir = direc('data', self.cat_corr)
         dlos_str = 'DLOS_'
 
-        dataclass = Data(self.type, self.cat_corr, **self.kwargs)  # data class 
+        dataclass = Data('data', self.cat_corr, **self.kwargs)  # data class 
         data_file = dataclass.file_name # galaxy data file
+        self.data_file = data_file
 
         # add bells and whistles here later
         # add bells and whistles here later
@@ -46,7 +49,7 @@ class Dlos:
         file_name = ''.join([
             dlos_dir, 
             dlos_str, 
-            data_file
+            data_file.split('/')[-1]
             ])
 
         return file_name 
@@ -54,6 +57,9 @@ class Dlos:
     def read(self): 
         """ Read dLOS data 
         """
+
+        if not os.path.isfile(self.file_name):
+            raise ValueError()
         
         data_cols = self.datacolumns
         data_list = np.loadtxt(
@@ -72,7 +78,17 @@ class Dlos:
         Uses IDL code with spherematch.pro. 
         """
 
+        cat_name = (self.cat_corr['catalog'])['name']
 
+        ideel = Idl(
+                'dlos', 
+                catalog_name = cat_name, 
+                galaxy_file = self.data_file, 
+                dlos_file = self.file_name 
+                )
+        ideel.run()
+        
+        return None
 
     def datacolumns(self):
         """ Data columns of dLOS data
@@ -87,3 +103,9 @@ class Dlos:
         data_fmt = ['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f']
 
         return data_fmt
+
+if __name__=="__main__":
+    cat_corr = {'catalog': {'name': 'nseries', 'n_mock': 1}, 'correction': {'name': 'upweight'}}
+    deelos = Dlos(cat_corr)
+    print deelos.file_name
+    print deelos.build()

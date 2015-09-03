@@ -240,7 +240,7 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
     free_lun, lun 
     return 
 
-    nseries_jump: orig_file = strmid(mock_file, 0, strpos(mock_file, 'fibcoll.dat'))+'rdzwc'
+    nseries_jump: orig_file = strmid(mock_file, 0, strpos(mock_file, 'fidcosmo.fibcoll.dat'))+'rdzwc'
     readcol, orig_file , mock_ra, mock_dec, mock_redshift, wfkp, w_fc, z_upw, upw_index 
 
     noupw_index = where(w_fc eq 0, n_noupw) 

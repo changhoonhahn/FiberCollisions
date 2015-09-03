@@ -563,6 +563,8 @@ def build_dlos(**cat_corr):
     coll_Dc = cosmos.distance.comoving_distance(coll_z, **cosmo) * cosmo['h']
     
     LOS_d = coll_Dc - upw_Dc
+
+    import os 
     
     los_disp = dlos(readdata=False, **cat_corr)  
     dlos_file = los_disp.file_name
