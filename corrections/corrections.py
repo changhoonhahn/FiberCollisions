@@ -3,7 +3,9 @@
 Corrections class 
 
 '''
-from util import catalog as cata 
+import cosmolopy as cosmos
+
+from util.catalog import Catalog
 
 class Corrections(object): 
 
@@ -23,7 +25,7 @@ class Corrections(object):
     def file(self):
         """ Name of corrected galaxy catalog file 
         """
-        cat = cata.catalog(self.cat_corr)
+        cat = Catalog(self.cat_corr)
         file_list = cat.file()      # list of file name elements
    
         # cosmology string 
@@ -45,3 +47,38 @@ class Corrections(object):
             return ''.join(file_list)
         else: 
             return None
+
+    def cosmo(self): 
+        """ Default cosmology used for the correction 
+        """
+    
+        try: 
+            if self.kwargs['cosmology'] == 'survey': 
+                # survey cosmology
+                cat = Catalog(self.cat_corr)
+                self.cosmo = cat.cosmo()
+
+                return self.cosmo
+            else: 
+                # default fiducial cosmology (hardcoded)
+                omega_m = 0.31 
+
+        except KeyError: 
+            omega_m = 0.31  # default 
+
+        # survey cosmology 
+        cosmo = {} 
+        cosmo['omega_M_0'] = omega_m 
+        cosmo['omega_lambda_0'] = 1.0 - omega_m 
+        cosmo['h'] = 0.676
+        cosmo = cosmos.distance.set_omega_k_0(cosmo) 
+        self.cosmo = cosmo 
+
+        return self.cosmo 
+
+class CorrData(object): 
+    def __init__(self): 
+        """ Wrapper for correction data 
+        """
+        pass 
+

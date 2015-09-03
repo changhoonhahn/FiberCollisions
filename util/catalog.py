@@ -4,7 +4,7 @@
 
 '''
 
-class catalog: 
+class Catalog(object): 
 
     def __init__(self, cat_corr): 
         """ Class describing simulated/data catalog 
@@ -49,3 +49,16 @@ class catalog:
 
         return cosmo 
 
+    def datacolumns(self): 
+        """ Columns of catalog data
+        """
+
+        catdict = (self.cat_corr)['catalog']
+        catname = catdict['name']
+
+        if catname == 'nseries': 
+            cols = ['ra', 'dec', 'z', 'wfc', 'comp']
+        else: 
+            raise NotImplementedError()
+        
+        return cols 

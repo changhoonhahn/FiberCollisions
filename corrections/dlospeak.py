@@ -5,12 +5,15 @@ displacement distribution. Code could use overall editing
 
 
 '''
-
+import numpy as np
 import cosmolopy as cosmos
 
 # --- Local ---
 from util import util
+from util.catalog import Catalog
 from corrections import Corrections
+from corrections import CorrData
+from fibcollided import UpweightCorr 
 
 class DlospeakCorr(Corrections): 
 
@@ -18,6 +21,14 @@ class DlospeakCorr(Corrections):
         """ Child class of Correction class in corrections.py 
         Fiber collisions using the peak of the line-of-sight displacement 
         distribution 
+
+
+        Notes
+        -----
+        * Currently supported peak correction methods: peakshot 
+        * nbar(z) interpolation implemented for CMASS like samples; however this can easily 
+        be extended to other mocks
+        * dLOS within peak is sampled +/- 3-sigmas
         """
 
         super(DlospeakCorr, self).__init__(cat_corr, **kwargs)
@@ -39,21 +50,9 @@ class DlospeakCorr(Corrections):
         return self.corr_str
 
     def build(self): 
-        ''' Build peak corrected fibercollided mock catalogs (using cosmolopy). 
+        """ Build peak corrected fibercollided mock catalogs (using cosmolopy). 
         dLOS peak corrected mock catalogs are constructed from fibercollided mock catalogs
-
-        Parameters
-        ----------
-        cat_corr : Catalog + Correction dictionary
-
-        Notes
-        -----
-        * Currently supported peak correction methods: peakshot 
-        * nbar(z) interpolation implemented for CMASS like samples; however this can easily 
-        be extended to other mocks
-        * dLOS within peak is sampled +/- 3-sigmas
-
-        '''
+        """
 
         catdict = (self.cat_corr)['catalog']
         corrdict = (self.cat_corr)['correction']
@@ -71,10 +70,26 @@ class DlospeakCorr(Corrections):
             raise NameError('correction fit has to be specified as gauss or expon') 
        
         # upweight corrected galaxy catalog 
-        fc_cat_corr = {'catalog': catdict, 'correction': {'name': 'upweight'}}
-        fc_mock = spec_gal.Data('data', fc_cat_corr, **kwargs) 
-        fc_mock.Read()
-        cosmo = fc_mock.Cosmo()      # cosmoslogy 
+        fc_cat_corr = (self.cat_corr).copy()
+        fc_cat_corr['correction'] = {'name': 'upweight'}
+        fc_corr = UpweightCorr(fc_cat_corr, **self.kwargs) 
+        fc_corr_file = fc_corr.file()
+
+        fc_cat = Catalog(fc_cat_corr)
+        fc_cols = fc_cat.datacolumns()
+
+        fc_data = np.loadtxt(
+                fc_corr_file, 
+                skiprows=1, 
+                unpack=True, 
+                usecols=range(len(fc_cols))
+                )
+        
+        fc_mock = CorrData()
+        for i_col, fc_col in enumerate(fc_cols): 
+            setattr(fc_mock, fc_col, fc_data[i_col])
+
+        cosmo = self.cosmo()      # cosmoslogy 
 
         if catdict['name'].lower() not in ('tilingmock', 'lasdamasgeo', 'ldgdownnz'):
             # blah
@@ -164,31 +179,6 @@ class DlospeakCorr(Corrections):
                             rand2 = (-3.0+rand2*6.0)*corrdict['sigma']
                             peakpofr = fit_func(rand2, corrdict['sigma']) 
 
-                    elif corrdict['fit'].lower() == 'true': 
-                        raise NotImplementedError("Need to revive")
-                        '''
-                        # sample dLOS within peak from actual distribution   
-                        dlos_comb_peak_file = ''.join([
-                            ((fc_mock.file_name).rsplit('/', 1))[0], '/', 
-                            'DLOS_norm_peak_dist_', catalog['name'].lower(), '_', str(n_mocks), 'mocks_combined.dat'])
-                        dlos_mid, dlos_dist = np.loadtxt(dlos_comb_peak_file, unpack=True, usecols=[0,1])
-
-                        dlos_cdf = dlos_dist.cumsum()/dlos_dist.sum()
-
-                        rand1 = np.random.random(1) 
-                        
-                        cdf_closest_index = min(range(len(dlos_cdf)), key = lambda i: abs(dlos_cdf[i]-rand1[0])) 
-                        closest_dlos = dlos_mid[cdf_closest_index] 
-                       
-                        try: 
-                            closest_dloses
-                        except NameError:
-                            closest_dloses = [closest_dlos]
-                        else: 
-                            closest_dloses.append(closest_dlos)
-
-                        rand2 = np.array([closest_dlos])
-                        '''
                     else: 
                         raise NotImplementedError('asdfasdf')
 
@@ -226,7 +216,7 @@ class DlospeakCorr(Corrections):
 
             header_str = "Column : ra, dec, z, wfc, comp"
             data_list = [fc_mock.ra, fc_mock.dec, fc_mock.z, fc_mock.weight, fc_mock.comp]
-            data_fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
+            data_fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'] 
 
         elif 'cmass' in catdict['name'].lower():          # CAMSS
 
@@ -245,7 +235,7 @@ class DlospeakCorr(Corrections):
             raise NotImplementedError('asdfasdf')
 
         # write to corrected file 
-        output_file = self.file(cat_corr, **kwargs)
+        output_file = self.file()
         np.savetxt(output_file, (np.vstack(np.array(data_list))).T, 
                 fmt=data_fmt, delimiter='\t', header=header_str) 
         
@@ -280,3 +270,32 @@ class DlospeakCorr(Corrections):
         # read nbar(z) file 
         nb_z, nb_nbar = np.loadtxt(nbar_file, skiprows=2, unpack=True, usecols=[0, 3]) 
         return [nb_z, nb_nbar]
+
+
+"""
+                    elif corrdict['fit'].lower() == 'true': 
+                        raise NotImplementedError("Need to revive")
+                        '''
+                        # sample dLOS within peak from actual distribution   
+                        dlos_comb_peak_file = ''.join([
+                            ((fc_mock.file_name).rsplit('/', 1))[0], '/', 
+                            'DLOS_norm_peak_dist_', catalog['name'].lower(), '_', str(n_mocks), 'mocks_combined.dat'])
+                        dlos_mid, dlos_dist = np.loadtxt(dlos_comb_peak_file, unpack=True, usecols=[0,1])
+
+                        dlos_cdf = dlos_dist.cumsum()/dlos_dist.sum()
+
+                        rand1 = np.random.random(1) 
+                        
+                        cdf_closest_index = min(range(len(dlos_cdf)), key = lambda i: abs(dlos_cdf[i]-rand1[0])) 
+                        closest_dlos = dlos_mid[cdf_closest_index] 
+                       
+                        try: 
+                            closest_dloses
+                        except NameError:
+                            closest_dloses = [closest_dlos]
+                        else: 
+                            closest_dloses.append(closest_dlos)
+
+                        rand2 = np.array([closest_dlos])
+                        '''
+"""

@@ -9,6 +9,8 @@ Author(s): ChangHoon Hahn
 
 '''
 import cosmolopy as cosmos
+import numpy as np 
+import scipy as sp
 
 # --- Local ---
 

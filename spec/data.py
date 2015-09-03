@@ -14,7 +14,7 @@ import subprocess
 import cosmolopy as cosmos
 
 # --- Local ----
-from util import catalog as cata 
+from util.catalog import Catalog 
 from corrections.true import TrueCorr
 from corrections.dlospeak import DlospeakCorr
 from corrections.fibcollided import UpweightCorr
@@ -65,9 +65,31 @@ class Data(object):
         self.ra = None
         self.dec = None
         self.z = None
+        self.wfc = None
         self.weight = None 
+        self.comp = None
 
         self.cosmo = None   # cosmology of catalog 
+
+    def read(self): 
+        """ Read galaxy/random catalog data 
+        """
+
+        cat = Catalog(self.cat_corr)
+
+        data_cols = cat.datacolumns()
+    
+        datah = np.loadtxt(
+                self.file_name, 
+                skiprows=1, 
+                unpack=True, 
+                usecols=range(len(data_cols))
+                )
+
+        for i_col, col in enumerate(data_cols): 
+            setattr(self, col, datah[i_col])
+        
+        return None
     
     def build(self): 
         """ Calculate galaxy/random catalog
@@ -84,12 +106,12 @@ class Data(object):
         
         return self.file_name
 
-    def Cosmo(self): 
+    def cosmo(self): 
     
         try: 
             if self.kwargs['cosmology'] == 'survey': 
                 # survey cosmology
-                cat = cata.catalog(self.cat_corr)
+                cat = Catalog(self.cat_corr)
                 self.cosmo = cat.cosmo()
 
                 return self.cosmo
@@ -111,8 +133,10 @@ class Data(object):
         return self.cosmo 
 
 if __name__ == '__main__':
-    cat_corr = {'catalog': {'name': 'nseries', 'n_mock':1}, 
-            'correction': {'name': 'upweight'}}
+    cat_corr = {
+            'catalog': {'name': 'nseries', 'n_mock':1}, 
+            'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 4.0, 'fpeak':0.69}
+            }
     corrdata = Data('data', cat_corr)
     print corrdata.file_name
     print corrdata.build()

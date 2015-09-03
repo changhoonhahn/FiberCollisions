@@ -75,7 +75,10 @@ class Fft(object):
         catdict = (self.cat_corr)['catalog']
         corrdict = (self.cat_corr)['correction']
         specdict = (self.cat_corr)['spec'] 
-    
+        
+        if not os.path.isfile(self.data_file):
+            galdata = Data(self.type, self.cat_corr, **self.kwargs) 
+            galdata.build()
 
         if 'quad' not in specdict.keys(): 
             specdict['quad'] = False
@@ -85,7 +88,7 @@ class Fft(object):
         else:  
             NotImplementedError()
 
-        codeclass = Fcode(fft_type, cat_corr) 
+        codeclass = Fcode(fft_type, self.cat_corr) 
         fftcode = codeclass.code
         fftexe = codeclass.fexe()
         

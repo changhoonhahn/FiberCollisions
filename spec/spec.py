@@ -139,7 +139,12 @@ class Spec(object):
 
         # fft files 
         datafft = Fft('data', self.cat_corr, **self.kwargs)
+        if not os.path.isfile(datafft.file_name): 
+            datafft.build()
+
         randfft = Fft('random', self.cat_corr, **self.kwargs)
+        if not os.path.isfile(randfft.file_name): 
+            randfft.build()
         
         spec_cmd = codeclass.commandline_call(
                 datafft = datafft.file_name, 
@@ -173,7 +178,7 @@ class Spec(object):
 
 if __name__=='__main__':
 
-    cat_corr = {'catalog': {'name': 'nseries', 'n_mock': 1}, 'correction': {'name': 'upweight'}}
+    cat_corr = {'catalog': {'name': 'nseries', 'n_mock': 1}, 'correction': {'name': 'true'}}
     spectrum = Spec('pk', cat_corr)
     print spectrum.file()
     print spectrum.build()
