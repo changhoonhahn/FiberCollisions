@@ -14,8 +14,15 @@ class Catalog(object):
 
         if self.catalog_name not in ('nseries'): 
             raise NotImplementedError()
-
-        pass
+    
+        # dictionary of catlaog columsn 
+        self.cat_col_dict = {
+                'nseries': {
+                    'cols': ['ra', 'dec', 'z', 'wfc', 'comp'], 
+                    'fmts': ['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
+                    'hdrs': "Column : ra, dec, z, wfc, comp"
+                    }
+                }
 
     def file(self): 
         """ File elements that pertain to the simulated/data catalog
@@ -49,16 +56,51 @@ class Catalog(object):
 
         return cosmo 
 
+    def survey_zlimits(self): 
+        """ Redshift limits of survey 
+        """
+        
+        # survey redshift limits 
+        if self.catalog_name in ('lasdamasgeo', 'ldgdownnz'):     
+            survey_zmin, survey_zmax = 0.16, 0.44
+
+        elif self.catalog_name in ('tilingmock', 'qpm', 'patchy', 'nseries'): 
+            survey_zmin, survey_zmax = 0.43, 0.7 
+
+        elif 'bigmd' in self.catalog_name:             
+            survey_zmin, survey_zmax = 0.43, 0.7    
+
+        elif 'cmass' in self.catalog_name:             
+
+            if catdict['name'].lower() == 'cmass': 
+                survey_zmin, survey_zmax = 0.43, 0.7  
+
+            elif 'cmasslowz' in catdict['name'].lower(): 
+                if '_high' in catdict['name'].lower(): 
+                    survey_zmin, survey_zmax = 0.5, 0.75    
+
+                elif '_low' in catdict['name'].lower(): 
+                    survey_zmin, survey_zmax = 0.2, 0.5
+
+            else: 
+                raise NotImplementedError('CMASS or CMASSLOWZ combined sample')
+
+        else: 
+            raise NotImplementedError('Mock Catalog not included')
+
+        return [survey_zmin, survey_zmax]
+
     def datacolumns(self): 
         """ Columns of catalog data
         """
+        return (self.cat_col_dict[self.catalog_name])['cols']
 
-        catdict = (self.cat_corr)['catalog']
-        catname = catdict['name']
+    def datacols_fmt(self): 
+        """ Data format of columns of catalog data
+        """
+        return (self.cat_col_dict[self.catalog_name])['fmts']
 
-        if catname == 'nseries': 
-            cols = ['ra', 'dec', 'z', 'wfc', 'comp']
-        else: 
-            raise NotImplementedError()
-        
-        return cols 
+    def datacols_header(self): 
+        """ Header string that describes data columsn
+        """
+        return (self.cat_col_dict[self.catalog_name])['hdrs']

@@ -7,12 +7,12 @@ displacement distribution. Code could use overall editing
 '''
 import numpy as np
 import cosmolopy as cosmos
+import time 
 
 # --- Local ---
 from util import util
 from util.catalog import Catalog
 from corrections import Corrections
-from corrections import CorrData
 from fibcollided import UpweightCorr 
 
 class DlospeakCorr(Corrections): 
@@ -57,221 +57,206 @@ class DlospeakCorr(Corrections):
         catdict = (self.cat_corr)['catalog']
         corrdict = (self.cat_corr)['correction']
 
-        f_peak = corrdict['fpeak']    # peak fraction 
-
-        # fit functions
-        if corrdict['fit'].lower() == 'gauss': 
-            fit_func = lambda x, sig: np.exp(-0.5 *x**2/sig**2)
-        elif corrdict['fit'].lower() == 'expon': 
-            fit_func = lambda x, sig: np.exp(-1.0*np.abs(x)/sig)
-        elif corrdict['fit'].lower() == 'true': 
-            pass 
-        else: 
-            raise NameError('correction fit has to be specified as gauss or expon') 
-       
-        # upweight corrected galaxy catalog 
-        fc_cat_corr = (self.cat_corr).copy()
-        fc_cat_corr['correction'] = {'name': 'upweight'}
-        fc_corr = UpweightCorr(fc_cat_corr, **self.kwargs) 
-        fc_corr_file = fc_corr.file()
-
-        fc_cat = Catalog(fc_cat_corr)
-        fc_cols = fc_cat.datacolumns()
-
-        fc_data = np.loadtxt(
-                fc_corr_file, 
-                skiprows=1, 
-                unpack=True, 
-                usecols=range(len(fc_cols))
-                )
-        
-        fc_mock = CorrData()
-        for i_col, fc_col in enumerate(fc_cols): 
-            setattr(fc_mock, fc_col, fc_data[i_col])
-
         cosmo = self.cosmo()      # cosmoslogy 
 
-        if catdict['name'].lower() not in ('tilingmock', 'lasdamasgeo', 'ldgdownnz'):
-            # blah
-            fc_mock.weight = fc_mock.wfc            
-
-        # survey redshift limits 
-        if catdict['name'].lower() in ('lasdamasgeo', 'ldgdownnz'):     
-            survey_zmin, survey_zmax = 0.16, 0.44
-        elif catdict['name'].lower() in ('tilingmock', 'qpm', 'patchy', 'nseries'): 
-            survey_zmin, survey_zmax = 0.43, 0.7 
-        elif catdict['name'].lower() in ('bigmd'):             
-            survey_zmin, survey_zmax = 0.43, 0.7    
-        elif 'cmass' in catdict['name'].lower():             
-            if catdict['name'].lower() == 'cmass': 
-                survey_zmin, survey_zmax = 0.43, 0.7  
-            elif 'cmasslowz' in catdict['name'].lower(): 
-                if '_high' in catdict['name'].lower(): 
-                    survey_zmin, survey_zmax = 0.5, 0.75    
-                elif '_low' in catdict['name'].lower(): 
-                    survey_zmin, survey_zmax = 0.2, 0.5
-            else: 
-                raise NotImplementedError('CMASS or CMASSLOWZ combined sample')
-        else: 
-            raise NotImplementedError('Mock Catalog not included')
+        f_peak = corrdict['fpeak']    # peak fraction 
         
-        # comoving distnace of z_min and z_max 
+        # survey redshift limits  
+        survey_zmin, survey_zmax = self.survey_zlimits()  
+
         survey_comdis_min = cosmos.distance.comoving_distance( survey_zmin, **cosmo ) * cosmo['h']
         survey_comdis_max = cosmos.distance.comoving_distance( survey_zmax, **cosmo ) * cosmo['h']
+
+        # upweight corrected galaxy catalog 
+        fc_cat_corr = {
+                'catalog': (self.cat_corr)['catalog'], 
+                'correction': {'name': 'upweight'}
+                }
+        fc_mock = UpweightCorr(fc_cat_corr, **self.kwargs) 
+        fc_mock_file = fc_mock.file()
+        fc_mock_cols = fc_mock.datacolumns()
+
+        fc_data = np.loadtxt(
+                fc_mock_file, 
+                skiprows=1, 
+                unpack=True, 
+                usecols=range(len(fc_mock_cols))
+                )
         
+        for i_col, fc_col in enumerate(fc_mock_cols): 
+            setattr(fc_mock, fc_col, fc_data[i_col])
+
+        upw = np.where(fc_mock.wfc > 1)  # upweighted
+
+        notcoll = np.where(fc_mock.wfc > 0)  # not collided
+        
+        """
         # nbar(z) for interpolated nbar(z) (hardcoded for CMASS-like catalogs)
         if 'cmass' in catdict['name'].lower(): 
             nb_z, nb_nbar = temp_nbarz(cat_corr)
             # cubic spline nbar(z) interpolation
             nbarofz = sp.interpolate.interp1d(nb_z, nb_nbar, kind='cubic')       
+        """  
 
-        appended_ra, appended_dec, appended_z, appended_weight = [], [], [], []
-        if catdict['name'].lower() in ('qpm', 'nseries'): 
-            appended_comp = []   
-        elif 'cmass' in catdict['name'].lower(): 
-            appended_comp, appended_wsys, appended_wnoz, appended_nbar = [], [], [], [] 
-
-        sampled_dlos = [] 
+        append_i, append_z, append_nbar, sampled_dlos = [], [], [], [] 
         
-        upw = np.where(fc_mock.weight > 1)  # upweighted
-        notcoll = np.where(fc_mock.weight > 0)  # not collided
-
+        start_time = time.time() 
+        d_samp = sample_dlos_peak(corrdict['fit'], corrdict['sigma'])
+        print 'sample_dlos_peak takes', time.time()-start_time()
+        
         for i_gal in upw[0]:    # for every upweighted galaxy 
 
-            while fc_mock.weight[i_gal] > 1:
+            while fc_mock.wfc[i_gal] > 1:
 
                 rand_fpeak = np.random.random(1) 
-                if rand_fpeak <= f_peak:          
-                    # in the peak 
+
+                if rand_fpeak <= f_peak:        # in the peak 
                     
                     # downweight upweighted galaxy 
-                    fc_mock.weight[i_gal] -= 1.0
+                    fc_mock.wfc[i_gal] -= 1.0
+                    
+                    append_i.append(i_gal)
 
-                    # LOS comoving distance of the upweighted galaxy 
-                    comdis_igal = \
-                            cosmos.distance.comoving_distance(
-                                    fc_mock.z[i_gal], **cosmo) * cosmo['h']
+                    comdis_igal = cosmos.distance.comoving_distance(fc_mock.z[i_gal], **cosmo) * cosmo['h']
+                
+                    # sampled dLOS from dLOS peak distribution best-fit function 
+                    d_samp = sample_dlos_peak(corrdict['fit'], corrdict['sigma'])
 
-                    appended_ra.append(fc_mock.ra[i_gal])     
-                    appended_dec.append(fc_mock.dec[i_gal])
-                    appended_weight.append(1.0)     # "new" galaxy has wfc=1
-
-                    if catdict['name'].lower() in ('qpm', 'nseries'):  
-                        appended_comp.append(fc_mock.comp[i_gal]) 
-                    elif 'cmass' in catdict['name'].lower(): 
-                        appended_comp.append(fc_mock.comp[i_gal]) 
-                        appended_wsys.append(fc_mock.wsys[i_gal]) 
-                        appended_wnoz.append(1.0) 
-
-                    if corrdict['fit'].lower() in ('gauss', 'expon'):   
-                        # sample dLOS from peak using best-fit
-
-                        rand1 = np.random.random(1) 
-                        rand2 = np.random.random(1) 
-
-                        rand2 = (-3.0 + rand2 * 6.0)*corrdict['sigma']
-                        peakpofr = fit_func(rand2, corrdict['sigma']) 
-                        
-                        while peakpofr <= rand1: 
-                            rand1 = np.random.random(1) 
-                            rand2 = np.random.random(1) 
-
-                            rand2 = (-3.0+rand2*6.0)*corrdict['sigma']
-                            peakpofr = fit_func(rand2, corrdict['sigma']) 
-
-                    else: 
-                        raise NotImplementedError('asdfasdf')
-
-                    # in case the displacement falls out of bound (may general large scale issues)
-                    if (comdis_igal + rand2 > survey_comdis_max) or (comdis_igal + rand2 < survey_comdis_min): 
-                        rand2 = -1.0 * rand2
+                    # in case the displacement falls out of bounds
+                    # of the survey redshift limits. This crude treatment
+                    # may generate large scale issues. But currently 
+                    # ignoring this issue 
+                    if (comdis_igal + d_samp > survey_comdis_max) or (comdis_igal + d_samp < survey_comdis_min): 
+                        d_samp = -1.0 * d_samp 
                     
                     # convert comoving distance to redshift 
-                    collided_z = util.comdis2z(comdis_igal + rand2, **cosmo)
+                    collided_z = util.comdis2z(comdis_igal + d_samp, **cosmo)
                     
-                    appended_z.append(collided_z[0]) 
-
+                    append_z.append(collided_z[0]) 
+                    
+                    """
                     if 'cmass' in catdict['name'].lower():
-                        appended_nbar.append(nbarofz(collided_z[0]))
+                        append_nbar.append(nbarofz(collided_z[0]))
+                    """
 
-                    sampled_dlos.append(rand2) 
+                    sampled_dlos.append(d_samp) 
+    
+        n_append = len(append_i)
+        print n_append, ' Galaxies were peak corrected'
 
-        print len(appended_ra), ' galaxies were peak corrected'
-        # append artificial galaxies to catalog 
-        fc_mock.ra = np.concatenate([fc_mock.ra[notcoll], appended_ra])
-        fc_mock.dec = np.concatenate([fc_mock.dec[notcoll], appended_dec])
-        fc_mock.weight = np.concatenate([fc_mock.weight[notcoll], appended_weight])
-        fc_mock.z = np.concatenate([fc_mock.z[notcoll], appended_z])
-            
-        if catdict['name'].lower() in ('qpm', 'nseries'): 
-            fc_mock.comp = np.concatenate([fc_mock.comp[notcoll], appended_comp])
-        elif 'cmass' in catdict['name'].lower():
-            fc_mock.comp = np.concatenate([fc_mock.comp[notcoll], appended_comp])
-            fc_mock.wsys = np.concatenate([fc_mock.wsys[notcoll], appended_wsys])
-            fc_mock.wnoz = np.concatenate([fc_mock.wnoz[notcoll], appended_wnoz])
-            fc_mock.nbar = np.concatenate([fc_mock.nbar[notcoll], appended_nbar])
-        
-        # write peak corrected data to file 
-        if catdict['name'].lower() in ('qpm', 'nseries'): 
+        data_cols = self.datacolumns()
+        data_fmts = self.datacols_fmt()
+        data_hdrs = self.datacols_header()
+        data_list = []  
 
-            header_str = "Column : ra, dec, z, wfc, comp"
-            data_list = [fc_mock.ra, fc_mock.dec, fc_mock.z, fc_mock.weight, fc_mock.comp]
-            data_fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'] 
+        for data_col in data_cols: 
 
-        elif 'cmass' in catdict['name'].lower():          # CAMSS
+            if data_col not in ('wfc', 'wnoz', 'z', 'nbar'):
+                append_arr = getattr(fc_mock, data_col)[append_i]
+            elif datacol == 'z':
+                append_arr = append_z 
+            elif datacol == 'nbar': 
+                append_arr = append_nbar
+            else: # new galaxies have wfc and wnoz = 1.0 
+                append_arr = np.array([1.0 for i in range(n_append)])
 
-            header_str = "Columns : ra, dec, z, nbar, w_systot, w_noz, w_fc, comp"
-            data_list = [fc_mock.ra, fc_mock.dec, fc_mock.z, fc_mock.nbar,
-                    fc_mock.wsys, fc_mock.wnoz, fc_mock.weight, fc_mock.comp]
-            data_fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e', '%10.5f', '%10.5f', '%10.5f', '%10.5f']
+            new_col = np.concatenate([
+                getattr(fc_mock, data_col)[notcoll], 
+                append_arr
+                ])
 
-        elif catdict['name'].lower() in ('tilingmock', 'lasdamasgeo', 'ldgdownnz'): 
+            data_list.append(new_cols)
 
-            header_str = "Columns : ra, dec, z, wfc" 
-            data_list = [fc_mock.ra, fc_mock.dec, fc_mock.z, fc_mock.weight]
-            data_fmt = ['%10.5f', '%10.5f', '%10.5f', '%10.5f']
-
-        else: 
-            raise NotImplementedError('asdfasdf')
-
-        # write to corrected file 
+        # write to corrected data to file 
         output_file = self.file()
-        np.savetxt(output_file, (np.vstack(np.array(data_list))).T, 
-                fmt=data_fmt, delimiter='\t', header=header_str) 
+        np.savetxt(
+                output_file, 
+                (np.vstack(np.array(data_list))).T, 
+                fmt=data_fmts, 
+                delimiter='\t', 
+                header=data_hdrs
+                ) 
         
         # write sampled dLOS value to match to actual dLOS peak 
-        np.savetxt(output_file+'.dlos', np.c_[sampled_dlos], fmt=['%10.5f'], delimiter='\t') 
+        np.savetxt(
+                output_file+'.dlos', 
+                np.c_[sampled_dlos], 
+                fmt=['%10.5f'], 
+                delimiter='\t'
+                ) 
 
-    def temp_nbarz(self):
-        """ nbar(z) data for given catalog and correction. Temporary function. 
-        """
+def temp_nbarz(self):
+    """ nbar(z) data for given catalog and correction. Temporary function. 
+    """
 
-        catdict = (self.cat_corr)['catalog']
+    catdict = (self.cat_corr)['catalog']
+    
+    if 'cmass' in catdict['name'].lower(): 
+        if catdict['name'].lower() == 'cmass': 
+            nbar_dir = '/mount/riachuelo1/hahn/data/CMASS/'
+            nbar_file = ''.join([nbar_dir, 'nbar-cmass-dr12v4-N-Reid-om0p31_Pfkp10000.dat'])
+
+        elif 'cmasslowz' in catdict['name'].lower(): 
+            nbar_dir = '/mount/riachuelo1/hahn/data/CMASS/dr12v5/'
+            if 'e2' in catdict['name'].lower(): 
+                nbar_file = ''.join([nbar_dir, 
+                    'nbar_DR12v5_CMASSLOWZE2_North_om0p31_Pfkp10000.dat'])
+            elif 'e3' in catdict['name'].lower(): 
+                nbar_file = ''.join([nbar_dir, 
+                    'nbar_DR12v5_CMASSLOWZE3_North_om0p31_Pfkp10000.dat'])
+            else: 
+                nbar_file = ''.join([nbar_dir, 
+                    'nbar_DR12v5_CMASSLOWZ_North_om0p31_Pfkp10000.dat'])
+    else: 
+        raise NotImplementedError()
+
+    # read nbar(z) file 
+    nb_z, nb_nbar = np.loadtxt(nbar_file, skiprows=2, unpack=True, usecols=[0, 3]) 
+    return [nb_z, nb_nbar]
+
+def sample_dlos_peak(fit, sigma): 
+    """ Randomly sample a line-of-sight displacement value from the peak 
+    of the distribution described by either a best-fit guassian, 
+    exponential, or the true distribution of the peak itself. 
+    """
+
+    if fit in ('gauss', 'expon'):   
+        # sample dLOS from peak using best-fit
+
+        if fit == 'gauss': 
+            peak_fit_func = peak_fit_gauss
+        elif fit == 'expon': 
+            peak_fit_func = peak_fit_expon
+
+        rand1 = np.random.random(1) 
+        rand2 = np.random.random(1) 
+
+        rand2 = (-3.0 + rand2 * 6.0) * sigma 
+
+        peakpofr = peak_fit_func(rand2, sigma) 
         
-        if 'cmass' in catdict['name'].lower(): 
-            if catdict['name'].lower() == 'cmass': 
-                nbar_dir = '/mount/riachuelo1/hahn/data/CMASS/'
-                nbar_file = ''.join([nbar_dir, 'nbar-cmass-dr12v4-N-Reid-om0p31_Pfkp10000.dat'])
+        while peakpofr <= rand1: 
+            rand1 = np.random.random(1) 
+            rand2 = np.random.random(1) 
 
-            elif 'cmasslowz' in catdict['name'].lower(): 
-                nbar_dir = '/mount/riachuelo1/hahn/data/CMASS/dr12v5/'
-                if 'e2' in catdict['name'].lower(): 
-                    nbar_file = ''.join([nbar_dir, 
-                        'nbar_DR12v5_CMASSLOWZE2_North_om0p31_Pfkp10000.dat'])
-                elif 'e3' in catdict['name'].lower(): 
-                    nbar_file = ''.join([nbar_dir, 
-                        'nbar_DR12v5_CMASSLOWZE3_North_om0p31_Pfkp10000.dat'])
-                else: 
-                    nbar_file = ''.join([nbar_dir, 
-                        'nbar_DR12v5_CMASSLOWZ_North_om0p31_Pfkp10000.dat'])
-        else: 
-            raise NotImplementedError()
+            rand2 = (-3.0 + rand2 * 6.0) * sigma
+            peakpofr = peak_fit_func(rand2, sigma) 
 
-        # read nbar(z) file 
-        nb_z, nb_nbar = np.loadtxt(nbar_file, skiprows=2, unpack=True, usecols=[0, 3]) 
-        return [nb_z, nb_nbar]
+    else: 
+        raise NotImplementedError('asdfasdf')
 
+    return rand2 
 
+def peak_fit_gauss(x, sig): 
+    """ Gaussian function  
+    """
+    return np.exp(-0.5 * x**2/sig**2)
+
+def peak_fit_expon(x, sig): 
+    """ Exponential function 
+    """
+    return np.exp(-1.0*np.abs(x)/sig)
+       
 """
                     elif corrdict['fit'].lower() == 'true': 
                         raise NotImplementedError("Need to revive")

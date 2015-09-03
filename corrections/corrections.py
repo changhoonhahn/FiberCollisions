@@ -15,6 +15,7 @@ class Corrections(object):
         self.cat_corr = cat_corr
         self.kwargs = kwargs
         self.corr_str = None 
+        self.catclass = Catalog(self.cat_corr)
 
     def build(self): 
         pass 
@@ -25,6 +26,7 @@ class Corrections(object):
     def file(self):
         """ Name of corrected galaxy catalog file 
         """
+
         cat = Catalog(self.cat_corr)
         file_list = cat.file()      # list of file name elements
    
@@ -76,9 +78,22 @@ class Corrections(object):
 
         return self.cosmo 
 
-class CorrData(object): 
-    def __init__(self): 
-        """ Wrapper for correction data 
+    def survey_zlimits(self): 
+        """ Catalog survey limits
         """
-        pass 
+        return (self.catclass).survey_zlimits()
 
+    def datacolumns(self): 
+        """ Data columns for given catalog and correction
+        """
+        return (self.catclass).datacolumns()
+
+    def datacols_fmt(self): 
+        """ Data format of columns of catalog data
+        """
+        return (self.catclass).datafmt_cols()
+
+    def datacols_header(self): 
+        """ Header string that describes data columsn
+        """
+        return (self.catclass).datacols_header()
