@@ -58,7 +58,7 @@ class Data(object):
         else: 
             raise ValueError("DorR")
 
-        self.file_name = self.File()  # file name 
+        self.file_name = self.file()  # file name 
         self.type = DorR    # type (data or random)
 
         # galaxy properties
@@ -69,14 +69,14 @@ class Data(object):
 
         self.cosmo = None   # cosmology of catalog 
     
-    def Build(self): 
+    def build(self): 
         """ Calculate galaxy/random catalog
         """
         (self.corrclass).build()
 
         return None 
 
-    def File(self): 
+    def file(self): 
         """ Name of ASCII file of Data/Random catalogy
         """
 
@@ -115,4 +115,4 @@ if __name__ == '__main__':
             'correction': {'name': 'upweight'}}
     corrdata = Data('data', cat_corr)
     print corrdata.file_name
-    print corrdata.Build()
+    print corrdata.build()

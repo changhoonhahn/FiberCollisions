@@ -28,7 +28,6 @@ c      complex dcg(Ngrid,Ngrid,Ngrid),dcr(Ngrid,Ngrid,Ngrid)
       character fname*200,fftname*200
       character Rboxstr*200,iflagstr*200,P0str*200
       common /interpol/z,selfun,sec
-      common /interpol2/ra,sec2
       common /interp3/dbin,zbin,sec3
       common /Nrandom/Nran
       common /radint/Om0,OL0
@@ -47,13 +46,14 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       call radialdist(idata,Nsel,z,Nbin,zbin,dbin,sec3)
       
       call getarg(3,Rboxstr) 
-      read(Rboxstr,*) Rbox !box side 
+      read(Rboxstr,*)Rbox !box side 
+      xscale=Rbox
+      Rbox=0.5*Rbox
+      rlow=-Rbox
 
       call getarg(4,Ngridstr)
       read(Ngridstr,*)Ngrid !FFT grid size
       Lm=Ngrid
-      xscale=2.*RBox
-      rlow=-Rbox
     
       rm(1)=float(Lm)/xscale
       rm(2)=1.-rlow*rm(1)
@@ -213,51 +213,20 @@ c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       real selfun(Nsel),z(Nsel),sec(Nsel),dum
       character dummy*200,selfunfile*200,dir*200
       
-      if (idata.eq.3) then !QPMnorth
-         dir='/mount/riachuelo2/rs123/BOSS/QPM/cmass/'
-         selfunfile=dir(1:len_trim(dir))//'cmass-dr12v1-ngc.zsel' !dr12c
+      if (idata.eq.7) then 
+         dir='/mount/riachuelo1/hahn/data/Nseries/'
          selfunfile=dir(1:len_trim(dir))//
-     $    'nbar-cmass-dr12v4-N-Reid-om0p31.dat' !dr12d
-      elseif (idata.eq.4) then !QPMsouth
-         dir='/mount/riachuelo2/rs123/BOSS/QPM/cmass/'
-         selfunfile=dir(1:len_trim(dir))//'cmass-dr12v1-sgc.zsel' !dr12c
-         selfunfile=dir(1:len_trim(dir))//
-     $    'nbar-cmass-dr12v4-S-Reid-om0p31.dat' !dr12d 
-      elseif (idata.eq.7) then !PTHnorth
-         dir='/mount/riachuelo2/rs123/BOSS/PTHalos/'
-         selfunfile=dir(1:len_trim(dir))//
-     $    'nzfit_dr11_vm22_north.txt'
-      elseif (idata.eq.8) then !PTHsouth
-         dir='/mount/riachuelo2/rs123/BOSS/PTHalos/'
-         selfunfile=dir(1:len_trim(dir))//
-     $    'nzfit_dr11_vm22_south.txt'
-      else !just to have z(Nsel)            
-         dir='/mount/riachuelo2/rs123/BOSS/QPM/cmass/'
-         selfunfile=dir(1:len_trim(dir))//'cmass-dr12v1-sgc.zsel'
+     $    'nbar-nseries-fibcoll.dat'
       endif
-      if (idata.eq.1 .or. idata.eq.2) then 
+      if (idata.eq.7) then
          open(unit=4,file=selfunfile,status='old',form='formatted')
-         do i=1,3 !skip 3 comment lines
-            read(4,'(a)')dummy
-         enddo
          do i=1,Nsel
-            read(4,*)z(i),selfun(i)
-         enddo   
+            read(4,*)z(i),dum,dum,selfun(i)
+         enddo 
          close(4)
          call spline(z,selfun,Nsel,3e30,3e30,sec)
-      elseif (idata.lt.7) then 
-         open(unit=4,file=selfunfile,status='old',form='formatted')
-         do i=1,3 !skip 2 comment lines 
-            read(4,'(a)')dummy
-         enddo
-         do i=1,Nsel
-c            read(4,*)z(i),dum,dum,selfun(i),dum,dum,dum
-            read(4,*)z(i),selfun(i)
-         enddo   
-         close(4)
-         call spline(z,selfun,Nsel,3e30,3e30,sec)
-      endif
-      
+      endif 
+
       return
       end
 c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -350,6 +319,8 @@ c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       Ngsys=0.d0
       if (idata.eq.1) then 
          read(4,*)Nariel !ariel has Nobjects in first line:
+      elseif (idata.eq.7) then
+         read(4,'(a)')dummy !skip comment line 
       endif 
       do i=1,Nmax
          if (idata.eq.7) then !Nseries
@@ -637,21 +608,13 @@ c
 c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       REAL function nbar(QQ) !nbar(z)
 c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      implicit none
+      integer Nsel
       parameter(Nsel=181)!80)
-      integer iflag
-      real z(Nsel),selfun(Nsel),sec(Nsel),self,az,qq,area_ang
+      real z(Nsel),selfun(Nsel),sec(Nsel),az,qq
       common /interpol/z,selfun,sec
-      common/radint/Om0,OL0
-      common /zbounds/zmin,zmax
-      real Om0,OL0
-      external chi
       az=QQ
-      if (az.lt.0.43 .or. az.gt.0.7) then
-         nbar=0.0
-      else
-         call splint(z,selfun,sec,Nsel,az,self)
-         nbar=self 
-      endif
+      call splint(z,selfun,sec,Nsel,az,nbar)
       RETURN
       END
 c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

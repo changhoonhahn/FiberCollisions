@@ -4,11 +4,12 @@ Interface with FORTRAN code
 
 '''
 import subprocess
+import os.path
 
-class fcode: 
+class Fcode: 
 
     def __init__(self, type, cat_corr): 
-        """ Class to reference FORTRAN code for fiber collision corrected 
+        """ Class to describe FORTRAN code for fiber collision corrected 
         powerspectrum calculations 
 
         """
@@ -26,6 +27,7 @@ class fcode:
         
         f_code = ''.join([fcode_dir, f_name])
         self.code = f_code
+        self.exe = None 
 
     def fexe(self): 
         """ Fortran executable that corresponds to fortran code
@@ -42,7 +44,6 @@ class fcode:
         """ Compile fortran code
         """
 
-        # get executable file 
         fort_exe = self.fexe() 
 
         # compile command
@@ -63,14 +64,84 @@ class fcode:
 
         return None 
 
+    def commandline_call(self, **kwargs): 
+        """ Command line call for Fortran code
+        """
+        
+        fcode_t_mod, fexe_t_mod = self.mod_time()
+        if fcode_t_mod < fcode_t_mod: 
+            raise ValueError("Compile failed")
+
+        fort_exe = self.fexe() 
+
+        if self.type == 'fft': 
+
+            if not all([kwarg in kwargs.keys() for kwarg in ['DorR', 'datafile', 'fftfile']]):
+                err_msg = ''.join(['For type = ', self.type, " 'DorR', 'datafile', 'fftfile' must be specified in kwargs"])
+                raise KeyError(err_msg)
+            
+            catname = ((self.cat_corr)['catalog'])['name']
+            specdict = (self.cat_corr)['spec']
+
+            if catname == 'nseries': 
+                n_cat = 7
+            else: 
+                raise NotImplementedError()
+            
+            try: 
+                if kwargs['cosmology'] == 'survey': 
+                    n_cosmo = 1
+                else: 
+                    n_cosmo = 0 
+            except KeyError: 
+                n_cosmo = 0 
+
+            if kwargs['DorR'] == 'data': 
+                n_DorR = 0 
+            elif kwargs['DorR'] == 'random': 
+                n_DorR = 1 
+
+            cmdline_call = ' '.join([
+                self.exe, 
+                str(n_cat), 
+                str(n_cosmo), 
+                str(specdict['box']), 
+                str(specdict['grid']), 
+                str(n_DorR),
+                str(specdict['P0']), 
+                kwargs['datafile'], 
+                kwargs['fftfile']
+                ])
+        else: 
+            raise NotImplementError()
+
+        return cmdline_call
+
+    def mod_time(self): 
+        """ Modification time of .f and .exe file 
+        """
+        
+        if self.exe == None: 
+            self.fexe()
+        
+        if not os.path.isfile(self.code): 
+            fcode_t_mod = 0 
+        else: 
+            fcode_t_mod = os.path.getmtime(self.code)
+
+        if not os.path.isfile(self.exe): 
+            fexe_t_mod = 0 
+        else: 
+            fexe_t_mod = os.path.getmtime(self.exe)
+        
+        return [fcode_t_mod, fexe_t_mod]
+
 if __name__=="__main__": 
     cat_corr = {'catalog': {'name': 'nseries', 'n_mock': 1}, 'correction': {'name': 'upweight'}}
     code = fcode('fft', cat_corr)
     print code.code
     print code.fexe()
     print code.compile()
-
-
 
 """
         if fft_power.lower() == 'fft':          # FFT code
