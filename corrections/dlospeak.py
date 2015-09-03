@@ -6,11 +6,11 @@ displacement distribution. Code could use overall editing
 
 '''
 import numpy as np
+import scipy as sp 
 import cosmolopy as cosmos
 import time 
 
 # --- Local ---
-from util import util
 from util.catalog import Catalog
 from corrections import Corrections
 from fibcollided import UpweightCorr 
@@ -66,6 +66,11 @@ class DlospeakCorr(Corrections):
 
         survey_comdis_min = cosmos.distance.comoving_distance( survey_zmin, **cosmo ) * cosmo['h']
         survey_comdis_max = cosmos.distance.comoving_distance( survey_zmax, **cosmo ) * cosmo['h']
+    
+        # comdis2z coded within build to make it faster
+        z_arr = np.arange(0.0, 1.01, 0.01)
+        dm_arr = cosmos.distance.comoving_distance(z_arr, **cosmo) * cosmo['h']
+        comdis2z = sp.interpolate.interp1d(dm_arr, z_arr, kind='cubic') 
 
         # upweight corrected galaxy catalog 
         fc_cat_corr = {
@@ -102,7 +107,7 @@ class DlospeakCorr(Corrections):
         
         start_time = time.time() 
         d_samp = sample_dlos_peak(corrdict['fit'], corrdict['sigma'])
-        print 'sample_dlos_peak takes', time.time()-start_time()
+        print 'sample_dlos_peak takes', time.time()-start_time
         
         for i_gal in upw[0]:    # for every upweighted galaxy 
 
@@ -130,7 +135,7 @@ class DlospeakCorr(Corrections):
                         d_samp = -1.0 * d_samp 
                     
                     # convert comoving distance to redshift 
-                    collided_z = util.comdis2z(comdis_igal + d_samp, **cosmo)
+                    collided_z = comdis2z(comdis_igal + d_samp)
                     
                     append_z.append(collided_z[0]) 
                     
@@ -153,10 +158,13 @@ class DlospeakCorr(Corrections):
 
             if data_col not in ('wfc', 'wnoz', 'z', 'nbar'):
                 append_arr = getattr(fc_mock, data_col)[append_i]
-            elif datacol == 'z':
+
+            elif data_col == 'z':
                 append_arr = append_z 
-            elif datacol == 'nbar': 
+
+            elif data_col == 'nbar': 
                 append_arr = append_nbar
+
             else: # new galaxies have wfc and wnoz = 1.0 
                 append_arr = np.array([1.0 for i in range(n_append)])
 
@@ -165,7 +173,7 @@ class DlospeakCorr(Corrections):
                 append_arr
                 ])
 
-            data_list.append(new_cols)
+            data_list.append(new_col)
 
         # write to corrected data to file 
         output_file = self.file()

@@ -91,7 +91,7 @@ class Corrections(object):
     def datacols_fmt(self): 
         """ Data format of columns of catalog data
         """
-        return (self.catclass).datafmt_cols()
+        return (self.catclass).datacols_fmt()
 
     def datacols_header(self): 
         """ Header string that describes data columsn
