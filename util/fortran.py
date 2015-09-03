@@ -21,7 +21,7 @@ class Fcode:
         if type == 'fft':       # fft code
             f_name = 'FFT_fkp.f'
         elif type == 'pk':      # P(k) code
-            f_name = 'power_IgalIrand.f' 
+            f_name = 'power-Igal-Irand.f' 
         else: 
             raise NotImplementedError()
         
@@ -47,12 +47,26 @@ class Fcode:
         fort_exe = self.fexe() 
 
         # compile command
-        if self.code == '/home/users/hahn/powercode/FiberCollisions/fortran/FFT_FKP_BOSS_cic_il4_v3.f': 
-            compile_cmd = ' '.join(['ifort -fast -o', fort_exe, self.code, '-L/usr/local/fftw_intel_s/lib -lsrfftw -lsfftw -lm'])
-        elif self.code == '/home/users/hahn/powercode/FiberCollisions/fortran/power_FKP_SDSS_BOSS_v3.f': 
-            compile_cmd = ' '.join(['ifort -fast -o', fort_exe, self.code])
+        if 'FFT_FKP_BOSS_cic_il4_v3.f' in self.code:
+            compile_cmd = ' '.join([
+                'ifort -fast -o', 
+                fort_exe, 
+                self.code, 
+                '-L/usr/local/fftw_intel_s/lib -lsrfftw -lsfftw -lm'
+                ])
+        elif 'power_FKP_SDSS_BOSS_v3.f' in self.code: 
+            compile_cmd = ' '.join([
+                'ifort -fast -o', 
+                fort_exe, 
+                self.code])
         else: 
-            compile_cmd = ' '.join(['ifort -O3 -o', fort_exe, self.code, '-L/usr/local/fftw_intel_s/lib -lsfftw -lsfftw'])
+            compile_cmd = ' '.join([
+                'ifort -O3 -o', 
+                fort_exe, 
+                self.code, 
+                '-L/usr/local/fftw_intel_s/lib -lsfftw -lsfftw'
+                ])
+
         print ' ' 
         print 'Compiling -----'
         print compile_cmd
@@ -77,7 +91,11 @@ class Fcode:
         if self.type == 'fft': 
 
             if not all([kwarg in kwargs.keys() for kwarg in ['DorR', 'datafile', 'fftfile']]):
-                err_msg = ''.join(['For type = ', self.type, " 'DorR', 'datafile', 'fftfile' must be specified in kwargs"])
+
+                err_msg = ''.join([
+                    'For type = ', self.type, 
+                    " 'DorR', 'datafile', 'fftfile' must be specified in kwargs"
+                    ])
                 raise KeyError(err_msg)
             
             catname = ((self.cat_corr)['catalog'])['name']
@@ -105,12 +123,35 @@ class Fcode:
                 self.exe, 
                 str(n_cat), 
                 str(n_cosmo), 
-                str(specdict['box']), 
-                str(specdict['grid']), 
+                str(specdict['Lbox']), 
+                str(specdict['Ngrid']), 
                 str(n_DorR),
                 str(specdict['P0']), 
                 kwargs['datafile'], 
                 kwargs['fftfile']
+                ])
+
+        elif self.type == 'pk': 
+
+            if not all([kwarg in kwargs.keys() for kwarg in ['datafft', 'randfft', 'powerfile']]):
+                err_msg = ''.join([
+                    'For type = ', self.type, 
+                    " must be specified in kwargs"
+                    ])
+                raise KeyError(err_msg)
+            
+            catname = ((self.cat_corr)['catalog'])['name']
+            specdict = (self.cat_corr)['spec']
+
+            nbins = int(specdict['Ngrid']/2) # number of bins
+
+            cmdline_call = ' '.join([
+                self.exe, 
+                kwargs['datafft'], 
+                kwargs['randfft'],
+                kwargs['powerfile'], 
+                str(specdict['Lbox']), 
+                str(nbins),
                 ])
         else: 
             raise NotImplementError()
@@ -135,13 +176,6 @@ class Fcode:
             fexe_t_mod = os.path.getmtime(self.exe)
         
         return [fcode_t_mod, fexe_t_mod]
-
-if __name__=="__main__": 
-    cat_corr = {'catalog': {'name': 'nseries', 'n_mock': 1}, 'correction': {'name': 'upweight'}}
-    code = fcode('fft', cat_corr)
-    print code.code
-    print code.fexe()
-    print code.compile()
 
 """
         if fft_power.lower() == 'fft':          # FFT code

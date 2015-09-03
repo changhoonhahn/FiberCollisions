@@ -112,6 +112,7 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
          call getarg(8,filecoef)
          open(unit=6,file=filecoef,status='unknown',form='unformatted')
+         write(6)Lm
          write(6)(((dcg(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
          write(6)real(gI10),real(gI12),real(gI22),real(gI13),real(gI23),
      &   real(gI33)
@@ -157,6 +158,7 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !         write(*,*) 'Fourier file :'
          call getarg(8,filecoef)
          open(unit=6,file=filecoef,status='unknown',form='unformatted')
+         write(6)Lm
          write(6)(((dcr(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
          write(6)real(I10),real(I12),real(I22),real(I13),real(I23),
      &   real(I33)
@@ -274,6 +276,8 @@ c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       Nrsys=0.d0
       if (idata.eq.1) then 
          read(4,*)Nariel !ariel has Nobjects in first line:
+      elseif (idata.eq.7) then
+         read(4,'(a)')dum !skip comment line
       endif 
       do i=1,Nmax
          if (idata.eq.7) then !Nseries

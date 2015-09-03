@@ -17,10 +17,8 @@ class Fft(object):
             # default spectrum parameters
             cat_corr['spec'] = {
                     'P0': 20000, #P0 
-                    'sscale':3600.0, 
-                    'Rbox':1800.0, 
-                    'box':3600, 
-                    'grid':360, 
+                    'Lbox': 3600.0, 
+                    'Ngrid':360, 
                     'quad': False
                     }
 
@@ -63,9 +61,9 @@ class Fft(object):
             fft_dir, 
             fft_str, (self.data_file).rsplit('/')[-1], 
             fft_corr_str,
-            '.grid', str(specdict['grid']), 
+            '.grid', str(specdict['Ngrid']), 
             '.P0', str(specdict['P0']), 
-            '.box', str(specdict['box'])
+            '.box', str(specdict['Lbox'])
             ])
 
         return fft_file  
@@ -77,10 +75,9 @@ class Fft(object):
         catdict = (self.cat_corr)['catalog']
         corrdict = (self.cat_corr)['correction']
         specdict = (self.cat_corr)['spec'] 
-        
-        try:        # if "quad" is not specified, then it's not used.
-            specdict['quad'] 
-        except KeyError: 
+    
+
+        if 'quad' not in specdict.keys(): 
             specdict['quad'] = False
 
         if not specdict['quad']:       # quadrupole or regular FFT code
@@ -113,9 +110,7 @@ class Fft(object):
                     fftfile = self.file_name
                     ) 
 
-            if 'clobber' in (self.kwargs).keys(): 
-                bool_clobber = (self.kwargs)['clobber']
-            else: 
+            if 'clobber' not in (self.kwargs).keys(): 
                 bool_clobber = False
 
             if any([not os.path.isfile(self.file_name), bool_clobber]):
@@ -143,9 +138,9 @@ class Fft(object):
 
 if __name__=='__main__': 
     cat_corr = {'catalog': {'name': 'nseries', 'n_mock': 1}, 'correction': {'name': 'upweight'}}
-    fftee = Fft('random', cat_corr)
-    print fftee.file()
-    print fftee.build()
+    for DorR in ['data', 'random']:
+        fftee = Fft(DorR, cat_corr, clobber=True)
+        print fftee.build()
 
 """
         # Quad FFT argument sequence (SUBJECT TO CHANGE) 
