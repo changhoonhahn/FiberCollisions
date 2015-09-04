@@ -22,7 +22,7 @@ class Fft(object):
                     'quad': False
                     }
 
-        self.cat_corr = cat_corr 
+        self.cat_corr = cat_corr.copy()
         self.kwargs = kwargs
         self.type = DorR
 

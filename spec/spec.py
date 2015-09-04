@@ -45,7 +45,7 @@ class Spec(object):
                     'quad': False
                     }
         
-        self.cat_corr = cat_corr
+        self.cat_corr = cat_corr.copy()
         self.kwargs = kwargs
 
         self.file_name = self.file()

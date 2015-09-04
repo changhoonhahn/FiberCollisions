@@ -113,12 +113,13 @@ class DlospeakCorr(Corrections):
 
             while fc_mock.wfc[i_gal] > 1:
 
+                # downweight upweighted galaxy 
+                fc_mock.wfc[i_gal] -= 1.0
+                
                 rand_fpeak = np.random.random(1) 
 
                 if rand_fpeak <= f_peak:        # in the peak 
-                    
-                    # downweight upweighted galaxy 
-                    fc_mock.wfc[i_gal] -= 1.0
+
                     
                     append_i.append(i_gal)
 

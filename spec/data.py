@@ -35,8 +35,8 @@ class Data(object):
 
         """ 
 
-        self.cat_corr = cat_corr    # catalog and correction metadata 
-        self.kwargs = kwargs    # pass extra input along
+        self.cat_corr = cat_corr.copy()    
+        self.kwargs = kwargs    
 
         if DorR == 'data':         
 

@@ -7,6 +7,7 @@ Author(s): ChangHoon Hahn (NYU CCPP)
 """
 import numpy as np
 import scipy as sp 
+import os 
 
 from spec.data import Data
 from util.direc import direc
@@ -18,9 +19,9 @@ class Dlos:
         """ Class describing line-of-sight displacement 
         """
 
-        if (cat_corr['correction'])['name'] != 'upweight': 
-            cat_corr['correction'] = {'name': 'upweight'}
-        self.cat_corr = cat_corr    
+        self.cat_corr = cat_corr.copy()
+        if (self.cat_corr['correction'])['name'] != 'upweight': 
+            self.cat_corr['correction'] = {'name': 'upweight'}
         self.kwargs = kwargs
 
         self.dlos = None
@@ -61,14 +62,14 @@ class Dlos:
         if not os.path.isfile(self.file_name):
             raise ValueError()
         
-        data_cols = self.datacolumns
+        data_cols = self.datacolumns()
         data_list = np.loadtxt(
                 self.file_name, 
                 unpack=True, 
                 usecols=range(len(data_cols))
                 )
         
-        for i_col, data_col in data_cols:       # store data as attributes
+        for i_col, data_col in enumerate(data_cols):       # store data as attributes
             setattr(self, data_col, data_list[i_col])   
 
         return None

@@ -11,8 +11,8 @@ import os.path
 from matplotlib.collections import LineCollection
 
 # --- Local --- 
-from utility.plotting import prettyplot
-from utility.plotting import prettycolors 
+from defutility.plotting import prettyplot
+from defutility.plotting import prettycolors 
 from dlos.dlos import Dlos
 
 class Plotdlos(object): 
@@ -26,10 +26,12 @@ class Plotdlos(object):
         prettyplot() 
         pretty_colors = prettycolors()  
     
-        fig = plt.figure(1) 
-        sub = fig.add_subplot(111) 
+        self.fig = plt.figure(1) 
+        self.sub = self.fig.add_subplot(111) 
+
+        self.hist_max = 0.0 
    
-    def from_catcorr(self, cat_corr, **pltkwargs): 
+    def plotfrom_catcorr(self, cat_corr, **pltkwargs): 
         """ dLOS distribution from catalog correction dictionary
         """
 
@@ -39,41 +41,101 @@ class Plotdlos(object):
         dlosclass = Dlos(cat_corr)
         dlos_file = dlosclass.file_name 
 
-        xmid, dlos_hist = dlosclass.dlos_dist( binsize = 0.5 )
+        if 'binsize' in pltkwargs.keys(): 
+            binsize = pltkwargs['binsize']
+            pltkwargs.pop('binsize', None) # remove from dictionary
+        else: 
+            binsize = 0.5   # (default)
+
+        xmid, dlos_hist = dlosclass.dlos_dist( binsize = binsize )
     
         if 'label' not in pltkwargs.keys(): 
-            pltkwargs['label'] = #INSERT SOMETHING!
+            pltkwargs['label'] = ''.join([
+                catdict['name'], ':', 
+                corrdict['name']
+                ])
+        elif pltkwargs['label'] == False: 
+            pass
 
-        sub.plot(xmid, dlos_hist, label=catcorr_label, **pltkwargs) 
+        self.sub.plot(xmid, dlos_hist, **pltkwargs) 
+    
+        self.hist_max = max([ dlos_hist.max(), self.hist_max ]) 
 
-    def from_dlos(self, dlosdata, **pltkwargs): 
+        return None 
+
+    def plotfrom_dlos(self, dlosdata, **pltkwargs): 
         """ dLOS distribution from dLOS data  
         """
-        
+
+        # arbitrary catalog correction dictionary 
+        cat_corr = {
+                'catalog': {'name': 'nseries', 'n_mock': 1}, 
+                'correction': {'name': 'upweight'} 
+                }
+
         dlosclass = Dlos(cat_corr)
         dlosclass.dlos = dlosdata
         
-        xmid, dlos_hist = dlosclass.dlos_dist( binsize = 0.5 ) 
-
-        sub.plot(xmid, dlos_hist, label=dlos_label, **pltkwargs) 
-
-    for i_cat, cat in enumerate(cat_list): 
-        cat_corr = {'catalog': cat, 'correction': None}
-        # read in dLOS values for cat_corr 
-        los_disp_i = fc_dlos.dlos(**cat_corr)
-        # calculate dLOS histogram 
-        dlos_hist, mpc_binedges = np.histogram(los_disp_i.dlos, bins=n_bins, range=[x_min, x_max])
-        if np.sum(peakdlos_hist)/np.sum(dlos_hist) > 3.: 
-            # plot dLOS distribution of mock 
-            sub.plot(xmid, (1.0/fpeak_list[i_cat])*(np.sum(peakdlos_hist)/np.sum(dlos_hist))*dlos_hist, 
-                    lw=2, ls='--', color='k', label='dLOS of Mock Catalog') 
+        if 'binsize' in pltkwargs.keys(): 
+            binsize = pltkwargs['binsize']
+            pltkwargs.pop('binsize', None) # remove from dictionary
         else: 
-            # plot dLOS distribution of mock 
-            sub.plot(xmid, dlos_hist, 
-                    lw=2, ls='--', color='k', label='dLOS of Mock Catalog') 
-    sub.set_xlim([-20., 20.])
-    sub.set_xlabel(r"$d_{LOS}$ Mpc") 
-    sub.legend() 
+            binsize = 0.5   # (default)
+        
+        xmid, dlos_hist = dlosclass.dlos_dist( binsize = binsize ) 
+        
+        self.sub.plot(xmid, dlos_hist, **pltkwargs) 
+        
+        self.hist_max = max([ dlos_hist.max(), self.hist_max ]) 
+        
+        return None 
+
+    def set_range(self, **rangekwargs): 
+        """ Set x and y range for the plot 
+        """
+
+        if 'xrange' in rangekwargs.keys(): 
+            xrange = rangekwargs['xrange']
+        else: 
+            xrange = [-50.0, 50.0] # (default)
+
+        if 'yrange' in rangekwargs.keys(): 
+            yrange = rangekwargs['yrange']
+        else: 
+            yrange = [0.0, 1.25 * self.hist_max]
+
+        self.sub.set_xlim(xrange) 
+        self.sub.set_ylim(yrange) 
+
+        self.sub.set_xlabel(r"$\mathtt{d_{LOS}}$ (Mpc/h)", fontsize=20)
+
+        return None 
+
+    def set_legend(self, **lgdkwargs): 
+        """ Set the legend of the figure 
+        """
+
+        if 'loc' not in lgdkwargs.keys(): 
+            lgdkwargs['loc'] = 'upper right'
+        
+        if 'scatterpoints' not in lgdkwargs.keys(): 
+            lgdkwargs['scatterpoints'] = 1 
+
+        self.sub.legend(**lgdkwargs) 
  
+        return None 
+    
+    def save_fig(self, fig_name): 
+        """ Save figure
+        """
+        self.fig.savefig(fig_name, bbox_inches="tight")
+        self.fig.clear() 
+
+        return None 
+
+    def show_fig(self): 
+        """ Show figure
+        """
+        plt.show()
 
 
