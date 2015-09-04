@@ -1,11 +1,8 @@
 '''
 
-
-Utility codes for FiberCollisions project
-
+Arbitrary functions for convenience 
 
 Author(s): ChangHoon Hahn 
-
 
 '''
 import cosmolopy as cosmos

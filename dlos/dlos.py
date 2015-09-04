@@ -12,6 +12,7 @@ import os
 from spec.data import Data
 from util.direc import direc
 from util.idl import Idl
+from util import util
 
 class Dlos: 
 
@@ -27,6 +28,8 @@ class Dlos:
         self.dlos = None
         self.targ_z = None
         self.neigh_z = None 
+
+        self.peak_range = [-15.0, 15.0]     # hardcoded approximate peak range
 
         self.file_name = self.file()   
 
@@ -129,8 +132,60 @@ class Dlos:
 
         return [xmid, dlos_hist]
 
+    def fd_binsize(self, **fdkwargs): 
+        """ Freedman-Diaconis binsize for dLOS distribution *peak*
+        """
+
+        if 'dlos' in fdkwargs.keys(): 
+            dlos_value = fdkwargs['dlos']
+        else:
+            if self.dlos == None: 
+                raise ValueError()
+
+            dlos_value = self.dlos
+
+        x_min, x_max = -1000.0, 1000.0
+
+        guess_binsize = 0.1 
+
+        n_bins = int((x_max-x_min)/guess_binsize) 
+    
+        guess_dlos_hist, x_binedges = np.histogram(
+                dlos_value, 
+                bins = n_bins, 
+                range=[x_min, x_max]
+                )
+
+        xlow = x_binedges[:-1]
+        xhigh = x_binedges[1:] 
+        xmid = np.array([ 0.5 * (xlow[i] + xhigh[i]) for i in range(len(xlow))])
+
+        if 'peak_range' in fdkwargs.keys():
+            peak_min, peak_max = fdkwargs['peak_range']
+        else: 
+            peak_min, peak_max = self.peak_range
+    
+        inpeak = np.where((xmid >= 0.0) & (xmid < peak_max))
+
+        dlos_cumu = (guess_dlos_hist[inpeak]).cumsum() 
+
+        n_sample = dlos_cumu[-1]
+
+        iqr_index = util.find_nearest(
+                dlos_cumu, 
+                np.int(np.floor(n_sample/2.0)), 
+                index=True
+                )
+
+        iqr = 2.0 * (xmid[inpeak])[iqr_index]       # interquartile range 
+        
+        fd_binsize = 2.0*iqr*(2.0*n_sample)**(-1.0/3.0)
+
+        return fd_binsize 
+
 if __name__=="__main__":
     cat_corr = {'catalog': {'name': 'nseries', 'n_mock': 1}, 'correction': {'name': 'upweight'}}
     deelos = Dlos(cat_corr)
     print deelos.file_name
-    print deelos.build()
+    print deelos.read()
+    print deelos.fd_binsize(peak_range=[-20.0, 20.0])

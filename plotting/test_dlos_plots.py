@@ -29,7 +29,6 @@ def dlospeak_dlos_check(cat_corr):
 
     dlos_fig = Plotdlos()
     
-    print cat_corr
     # plot dLOS distribution from dLOS file for 
     # data corresponding to catalog correction  
     # dictionary
@@ -41,7 +40,6 @@ def dlospeak_dlos_check(cat_corr):
             )
 
     # read in sampled peak dLOS values 
-    print cat_corr
     dataclass = Data('data', cat_corr)
     datafile = dataclass.file_name
 
@@ -59,7 +57,7 @@ def dlospeak_dlos_check(cat_corr):
             color = 'k', 
             label = 'sampled dLOS' 
             )
-    dlos_fig.set_range()
+    dlos_fig.set_range(xrange=[-20.0, 20.0])
     dlos_fig.set_legend()
 
     dlos_fig.show_fig()
