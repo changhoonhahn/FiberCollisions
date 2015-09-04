@@ -104,6 +104,30 @@ class Dlos:
 
         return data_fmt
 
+    def dlos_dist(self, binsize=0.5, **histkwargs): 
+        """ Calculate dLOS distribution using numpy histogram 
+        """
+
+        if self.dlos == None: 
+            self.read()
+
+        x_min, x_max = -1000.0, 1000.0
+
+        n_bins = int((x_max - x_min)/binsize) 
+
+        dlos_hist, binedges = np.histogram(
+                self.dlos, 
+                bins = n_bins, 
+                range = [x_min, x_max], 
+                **histkwargs
+                ) 
+        # x values for plotting 
+        xlow = binedges[:-1]
+        xhigh = binedges[1:] 
+        xmid = np.array([0.5*(xlow[i]+xhigh[i]) for i in range(len(xlow))])
+
+        return [xmid, dlos_hist]
+
 if __name__=="__main__":
     cat_corr = {'catalog': {'name': 'nseries', 'n_mock': 1}, 'correction': {'name': 'upweight'}}
     deelos = Dlos(cat_corr)
