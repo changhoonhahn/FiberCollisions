@@ -77,7 +77,12 @@ class Plotdlos(object):
         dlosclass.dlos = dlosdata
         
         if 'binsize' in pltkwargs.keys(): 
-            binsize = pltkwargs['binsize']
+            if isinstance(pltkwargs['binsize'], float): 
+                binsize = pltkwargs['binsize']
+            else: 
+                if pltkwargs['binsize'] == 'fd_binsize': 
+                    binsize = dlosclass.fd_binsize()
+
             pltkwargs.pop('binsize', None) # remove from dictionary
         else: 
             binsize = 0.5   # (default)
