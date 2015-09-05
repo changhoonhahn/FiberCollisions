@@ -27,6 +27,22 @@ def build_combinedsample():
 
     return None 
 
+def build_combinedsample_random(): 
+    """ Build CMASS LOWZ combined sample for three separate sector regions and two 
+    redshfit bins
+    """
+    for zbin_str in ['_low', '_high']:
+        for specifier_str in ['', 'e2', 'e3']: 
+            cat_corr = {
+                    'catalog': {'name': 'cmasslowz'+specifier_str+zbin_str}, 
+                    'correction': {'name': 'upweight'} 
+                    }
+            corrdata = Data('random', cat_corr)
+            print 'Constructing ', corrdata.file_name
+            corrdata.build()
+
+    return None 
+
 def build_dlospeak_corr_combinedsample(): 
     """ Build "dlospeak" corrected CMASS LOWZ combined sample for three separate sector regions and two 
     redshfit bins
@@ -238,5 +254,6 @@ def dlospeak_sampled_dlos_test():
         dlos_fig.save_fig(fig_name)
 
 if __name__=="__main__": 
-    build_dlospeak_corr_combinedsample()
-    dlospeak_sampled_dlos_test()
+    build_combinedsample_random()
+    #build_dlospeak_corr_combinedsample()
+    #dlospeak_sampled_dlos_test()

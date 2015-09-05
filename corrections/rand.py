@@ -8,6 +8,7 @@ import numpy as np
 # --- Local ---
 from defutility.fitstables import mrdfits
 from corrections import Corrections
+from util.direc import direc
 
 class Rand(Corrections): 
 
@@ -26,38 +27,42 @@ class Rand(Corrections):
         """
 
         cat_name = ((self.cat_corr)['catalog'])['name'].lower()
+    
+        data_dir = direc('data', self.cat_corr)
 
         if 'cmass' in cat_name: # CMASS
 
-            data_dir = '/mount/riachuelo1/hahn/data/CMASS/'
-        
             if cat_name == 'cmass': 
                 # CMASS random catalog 
                 file_name = 'cmass-dr12v4-N-Reid.ran.dat'
+
             elif 'cmasslowz' in cat_name:  
+
                 # CMASS LOWZ combined random catalog
-                cmasslowz_str = ''
-                if 'e2' in catalog['name'].lower(): 
+                if 'e2' in cat_name: 
                     cmasslowz_str = 'e2'
-                elif 'e3' in catalog['name'].lower(): 
+                elif 'e3' in cat_name: 
                     cmasslowz_str = 'e3'
-                elif 'tot' in catalog['name'].lower(): 
-                    raise NotImplementedError("Not Implemented Error")
+                else: 
+                    cmasslowz_str = ''
                         
-                if '_low' in catalog['name'].lower(): 
-                    zbin_str = '-low' 
-                elif 'high' in catalog['name'].lower(): 
-                    zbin_str = '-high'
+                if '_low' in cat_name: 
+                    zbin_str = '_LOW' 
+                elif 'high' in cat_name: 
+                    zbin_str = '_HIGH'
                 else: 
                     raise NameError("Must specify redshift bin of CMASS LOWZ sample") 
 
-                file_name = ''.join(['dr12v5/cmasslowz', cmasslowz_str, '-dr12v5-N', zbin_str, '.ran.dat'])
+                file_name = ''.join([
+                    'random0_DR12v5_CMASSLOWZ', 
+                    cmasslowz_str.upper(), 
+                    zbin_str, 
+                    '_North.ran.dat'
+                    ])
             else: 
                 raise NotImplementedError()
 
         elif cat_name == 'nseries':   # Nseries
-
-            data_dir = '/mount/riachuelo1/hahn/data/Nseries/'
 
             file_name = 'Nseries_cutsky_randoms_50x_redshifts_comp.dat'
 
@@ -89,9 +94,8 @@ class Rand(Corrections):
             data_fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f']
 
         elif 'cmass' in cat_name:          # CMASS -------------------------------- 
-            data_dir = '/mount/riachuelo1/hahn/data/CMASS/'
-            if 'cmasslowz' in cat_name: 
-                data_dir += 'dr12v5/'
+
+            data_dir = direc('data', self.cat_corr) 
 
             if cat_name == 'cmass': 
                 # random data fits file
@@ -111,13 +115,12 @@ class Rand(Corrections):
                 # CMASS LOWZ combined data
                 
                 # three different CMASS LOWZ  
-                cmasslowz_str = ''
                 if 'e2' in cat_name: 
                     cmasslowz_str = 'E2' 
                 elif 'e3' in cat_name: 
                     cmasslowz_str = 'E3'
-                elif 'tot' in cat_name: 
-                    cmasslowz_str = 'TOT'
+                else: 
+                    cmasslowz_str = ''
 
                 if 'high' in cat_name: 
                     zmin, zmax = 0.5, 0.75
@@ -126,37 +129,28 @@ class Rand(Corrections):
                 else: 
                     raise NameError("CMASSLOWZ Catalog must specify high or lowr edshift bin") 
                 
-                if 'tot' not in cat_name: 
-                    # random data fits file
-                    data_file = ''.join([data_dir, 'random0_DR12v5_CMASSLOWZ', cmasslowz_str, '_North.fits.gz'])
-                    # old version 'cmasslowz-dr12v4-N-Reid.ran.fits'
-                    cmass = mrdfits(data_file) 
-                
-                    # mask file 
-                    mask_file = ''.join([data_dir, 'mask_DR12v5_CMASSLOWZ', cmasslowz_str, '_North.fits.gz'])
-                    mask = mrdfits(mask_file) 
-                    ipoly = cmass.ipoly # polygon index
-                    comp = mask.weight[ipoly]
-                
-                    # redshift limit 
-                    zlimit = np.where((cmass.z >= zmin) & (cmass.z < zmax))
-
-                else: 
-                    if 'high' in cat_name: 
-                        hl_str = '_high'
-                    elif '_low' in cat_name:
-                        hl_str = '_low'
-
-                    cc_cmd = 'cat ' 
-                    for comb_str in ['', 'e2', 'e3']: 
-                        cc = {'catalog': {'name': ''.join(['cmasslowz', hl_str, comb_str])}, 
-                                'correction': {'name': 'upweight'}}
-                        cc_file = get_galaxy_data_file('random', **cc)
-                        cc_cmd += cc_file+' ' 
-
-                    random_file = get_galaxy_data_file('random', **cat_corr) 
-                    cc_cmd += '> '+random_file 
-                    return 
+                # random data fits file
+                data_file = ''.join([
+                    data_dir, 
+                    'random0_DR12v5_CMASSLOWZ', 
+                    cmasslowz_str, 
+                    '_North.fits.gz'
+                    ])
+                cmass = mrdfits(data_file) 
+            
+                # mask file 
+                mask_file = ''.join([
+                    data_dir, 
+                    'mask_DR12v5_CMASSLOWZ', 
+                    cmasslowz_str, 
+                    '_North.fits.gz'
+                    ])
+                mask = mrdfits(mask_file) 
+                ipoly = cmass.ipoly # polygon index
+                comp = mask.weight[ipoly]
+            
+                # redshift limit 
+                zlimit = np.where((cmass.z >= zmin) & (cmass.z < zmax))
 
             else: 
                 raise NotImplementedError("Only CMASS and CMASS+LOWZ combined sample implemented") 
@@ -170,8 +164,13 @@ class Rand(Corrections):
 
         # write to corrected file 
         output_file = self.file(cat_corr, **kwargs)
-        np.savetxt(output_file, (np.vstack(np.array(data_list))).T, 
-                fmt=data_fmt, delimiter='\t', header=header_str) 
+        np.savetxt(
+                output_file, 
+                (np.vstack(np.array(data_list))).T, 
+                fmt=data_fmt, 
+                delimiter='\t', 
+                header=header_str
+                ) 
 
         return None 
 
