@@ -91,14 +91,15 @@ class Catalog(object):
 
         elif 'cmass' in self.catalog_name:             
 
-            if catdict['name'].lower() == 'cmass': 
+            if self.catalog_name == 'cmass': 
                 survey_zmin, survey_zmax = 0.43, 0.7  
 
-            elif 'cmasslowz' in catdict['name'].lower(): 
-                if '_high' in catdict['name'].lower(): 
+            elif 'cmasslowz' in self.catalog_name: 
+
+                if '_high' in self.catalog_name: 
                     survey_zmin, survey_zmax = 0.5, 0.75    
 
-                elif '_low' in catdict['name'].lower(): 
+                elif '_low' in self.catalog_name: 
                     survey_zmin, survey_zmax = 0.2, 0.5
 
             else: 

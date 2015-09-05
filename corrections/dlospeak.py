@@ -11,6 +11,7 @@ import cosmolopy as cosmos
 import time 
 
 # --- Local ---
+from util.direc import direc
 from util.catalog import Catalog
 from corrections import Corrections
 from fibcollided import UpweightCorr 
@@ -19,9 +20,8 @@ class DlospeakCorr(Corrections):
 
     def __init__(self, cat_corr, **kwargs): 
         """ Child class of Correction class in corrections.py 
-        Fiber collisions using the peak of the line-of-sight displacement 
+        Fiber collisions correction using the peak of the line-of-sight displacement 
         distribution 
-
 
         Notes
         -----
@@ -96,13 +96,15 @@ class DlospeakCorr(Corrections):
 
         notcoll = np.where(fc_mock.wfc > 0)  # not collided
         
-        """
-        # nbar(z) for interpolated nbar(z) (hardcoded for CMASS-like catalogs)
+        # nbar(z) cubic spline interpolation, which is currently hardcoded
+        # in the function temp_nbarz(). However, this should 
+        # ultimately be edited so that it works for any catalog 
+        # (currently only works for CMASS-like catalogs)
         if 'cmass' in catdict['name'].lower(): 
-            nb_z, nb_nbar = temp_nbarz(cat_corr)
-            # cubic spline nbar(z) interpolation
+
+            nb_z, nb_nbar = temp_nbarz(self.cat_corr)
+
             nbarofz = sp.interpolate.interp1d(nb_z, nb_nbar, kind='cubic')       
-        """  
 
         append_i, append_z, append_nbar, sampled_dlos = [], [], [], [] 
         
@@ -111,17 +113,23 @@ class DlospeakCorr(Corrections):
         print 'sample_dlos_peak takes', time.time()-start_time
         
         for i_gal in upw[0]:    # for every upweighted galaxy 
+            
+            # fiber collision weight is in place because
+            # we need to make sure that the dLOS peak is 
+            # sampled for every upweight
+            wfc_counter = fc_mock.wfc[i_gal]
 
-            while fc_mock.wfc[i_gal] > 1:
+            while wfc_counter > 1:
 
-                # downweight upweighted galaxy 
-                fc_mock.wfc[i_gal] -= 1.0
-                
+                wfc_counter -= 1.0 
+
                 rand_fpeak = np.random.random(1) 
 
                 if rand_fpeak <= f_peak:        # in the peak 
+                
+                    # downweight upweighted galaxy 
+                    fc_mock.wfc[i_gal] -= 1.0
 
-                    
                     append_i.append(i_gal)
 
                     comdis_igal = cosmos.distance.comoving_distance(fc_mock.z[i_gal], **cosmo) * cosmo['h']
@@ -141,10 +149,8 @@ class DlospeakCorr(Corrections):
                     
                     append_z.append(collided_z[0]) 
                     
-                    """
                     if 'cmass' in catdict['name'].lower():
                         append_nbar.append(nbarofz(collided_z[0]))
-                    """
 
                     sampled_dlos.append(d_samp) 
     
@@ -195,28 +201,40 @@ class DlospeakCorr(Corrections):
                 delimiter='\t'
                 ) 
 
-def temp_nbarz(self):
+def temp_nbarz(cat_corr):
     """ nbar(z) data for given catalog and correction. Temporary function. 
     """
 
-    catdict = (self.cat_corr)['catalog']
+    catdict = cat_corr['catalog']
+    catalog_name = catdict['name'].lower()
     
-    if 'cmass' in catdict['name'].lower(): 
-        if catdict['name'].lower() == 'cmass': 
-            nbar_dir = '/mount/riachuelo1/hahn/data/CMASS/'
-            nbar_file = ''.join([nbar_dir, 'nbar-cmass-dr12v4-N-Reid-om0p31_Pfkp10000.dat'])
+    nbar_dir = direc('data', cat_corr)
 
-        elif 'cmasslowz' in catdict['name'].lower(): 
-            nbar_dir = '/mount/riachuelo1/hahn/data/CMASS/dr12v5/'
-            if 'e2' in catdict['name'].lower(): 
-                nbar_file = ''.join([nbar_dir, 
-                    'nbar_DR12v5_CMASSLOWZE2_North_om0p31_Pfkp10000.dat'])
-            elif 'e3' in catdict['name'].lower(): 
-                nbar_file = ''.join([nbar_dir, 
-                    'nbar_DR12v5_CMASSLOWZE3_North_om0p31_Pfkp10000.dat'])
+    if 'cmass' in catalog_name: 
+
+        if catalog_name == 'cmass': 
+            nbar_file = ''.join([
+                nbar_dir, 
+                'nbar-cmass-dr12v4-N-Reid-om0p31_Pfkp10000.dat'
+                ])
+
+        elif 'cmasslowz' in catalog_name: 
+
+            if 'e2' in catalog_name: 
+                nbar_file = ''.join([
+                    nbar_dir, 
+                    'nbar_DR12v5_CMASSLOWZE2_North_om0p31_Pfkp10000.dat'
+                    ])
+            elif 'e3' in catalog_name: 
+                nbar_file = ''.join([
+                    nbar_dir, 
+                    'nbar_DR12v5_CMASSLOWZE3_North_om0p31_Pfkp10000.dat'
+                    ])
             else: 
-                nbar_file = ''.join([nbar_dir, 
-                    'nbar_DR12v5_CMASSLOWZ_North_om0p31_Pfkp10000.dat'])
+                nbar_file = ''.join([
+                    nbar_dir, 
+                    'nbar_DR12v5_CMASSLOWZ_North_om0p31_Pfkp10000.dat'
+                    ])
     else: 
         raise NotImplementedError()
 

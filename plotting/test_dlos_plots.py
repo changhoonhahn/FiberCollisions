@@ -64,6 +64,7 @@ def dlospeak_dlos_test(cat_corr):
     dlos_fig.set_legend()
 
     dlos_fig.show_fig()
+    return dlos_fig
 
 def catalog_dlospeak_fit_test(catalog_name, fit='gauss', **kwargs): 
     """ Test dLOS distribution peaking fitting 

@@ -50,12 +50,21 @@ class Plotdlos(object):
         xmid, dlos_hist = dlosclass.dlos_dist( binsize = binsize )
     
         if 'label' not in pltkwargs.keys(): 
+            if 'cmasslowz' in catdict['name']: 
+                catname = 'cmasslowz'
+            else: 
+                catname = catdict['name']
+
             pltkwargs['label'] = ''.join([
-                catdict['name'], ':', 
+                catname, ':', 
                 corrdict['name']
                 ])
         elif pltkwargs['label'] == False: 
             pass
+        
+        if 'rescale' in pltkwargs.keys(): 
+            dlos_hist = dlos_hist * pltkwargs['rescale']
+            pltkwargs.pop('rescale', None)
 
         self.sub.plot(xmid, dlos_hist, **pltkwargs) 
     
@@ -88,6 +97,10 @@ class Plotdlos(object):
             binsize = 0.5   # (default)
         
         xmid, dlos_hist = dlosclass.dlos_dist( binsize = binsize ) 
+
+        if 'rescale' in pltkwargs.keys(): 
+            dlos_hist = dlos_hist * pltkwargs['rescale']
+            pltkwargs.pop('rescale', None)
         
         self.sub.plot(xmid, dlos_hist, **pltkwargs) 
         
