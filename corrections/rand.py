@@ -99,8 +99,11 @@ class Rand(Corrections):
 
             if cat_name == 'cmass': 
                 # random data fits file
+                start_time = time.time()
                 data_file = ''.join([data_dir, 'cmass-dr12v4-N-Reid.ran.fits']) 
                 cmass = mrdfits(data_file) 
+                print 'Reading ', data_file 
+                print 'took ', (time.time() - start_time)/60.0, ' minutes'
             
                 # mask file 
                 mask_file = ''.join([data_dir, 'mask-cmass-dr12v4-N-Reid.fits']) 
