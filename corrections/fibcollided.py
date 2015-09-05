@@ -8,6 +8,7 @@ Everything is hardcoded. Code can be improved but too lazy.
 '''
 import numpy as np
 # --- Local ---
+from util.direc import direc
 from corrections import Corrections
 from defutility.fitstables import mrdfits
 
@@ -52,10 +53,10 @@ class UpweightCorr(Corrections):
         data_fmts = self.datacols_fmt()
         data_hdrs = self.datacols_header()
 
+        data_dir = direc('data', self.cat_corr) 
         if catalog_name == 'nseries':          # N-series 
 
             # original file 
-            data_dir = '/mount/riachuelo1/hahn/data/Nseries/'
             orig_file = ''.join([data_dir, 'CutskyN', str(catdict['n_mock']), '.rdzwc']) 
             orig_ra, orig_dec, orig_z, orig_wfc = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,4])
         
@@ -66,8 +67,6 @@ class UpweightCorr(Corrections):
             data_list = [orig_ra, orig_dec, orig_z, orig_wfc, orig_wcomp]   # data column list 
 
         elif 'cmass' in catalog_name: 
-            
-            data_dir = '/mount/riachuelo1/hahn/data/CMASS/'
 
             if catalog_name == 'cmass': 
                 # CMASS DR12v4 galaxy data
@@ -84,8 +83,6 @@ class UpweightCorr(Corrections):
                 # CMASS LOWZ DR12v5 combined sample
                 # for Ariel's sample has three separate 
                 # set of sectors '', 'e2', and 'e3'
-
-                data_dir += 'dr12v5/'
 
                 cmasslowz_str = ''
                 if 'e2' in catalog_name: 

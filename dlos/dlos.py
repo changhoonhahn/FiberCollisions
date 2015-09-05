@@ -87,6 +87,10 @@ class Dlos:
 
         cat_name = (self.cat_corr['catalog'])['name']
 
+        if 'cmass' in cat_name: 
+            if cat_name != 'cmass': 
+                cat_name = 'cmass'
+
         ideel = Idl(
                 'dlos', 
                 catalog_name = cat_name, 
@@ -116,6 +120,7 @@ class Dlos:
         """
 
         if self.dlos == None: 
+            print 'Reading dLOS data from ', self.file_name
             self.read()
 
         x_min, x_max = -1000.0, 1000.0
@@ -139,13 +144,11 @@ class Dlos:
         """ Freedman-Diaconis binsize for dLOS distribution *peak*
         """
 
-        if 'dlos' in fdkwargs.keys(): 
-            dlos_value = fdkwargs['dlos']
-        else:
-            if self.dlos == None: 
-                raise ValueError()
+        if self.dlos == None: 
+            print 'Reading dLOS data from ', self.file_name
+            self.read()
 
-            dlos_value = self.dlos
+        dlos_value = self.dlos
 
         x_min, x_max = -1000.0, 1000.0
 

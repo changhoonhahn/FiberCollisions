@@ -21,10 +21,9 @@ def dlospeak_fit(dlos, fit = 'gauss', peak_range = [-15.0, 15.0], **kwargs):
             }
 
     dlosclass = Dlos(dum_cat_corr)
-
+    dlosclass.dlos = dlos
     # Freedman Diaconis binsize
     fd_binsize = dlosclass.fd_binsize(
-            dlos = dlos, 
             peak_range = peak_range
             )
     

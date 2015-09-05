@@ -177,9 +177,10 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
     endif 
 
     gal_upcp = m_upcp[uniq(m_upcp, sort(m_upcp))]
-
+    print, '----------------'
     print, 'Writing ... ', dlos_file 
     openw, lun, dlos_file, /get_lun
+    print, '----------------'
 
     all_dlos = [] 
     all_targ_ra  = []

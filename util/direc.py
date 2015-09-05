@@ -35,8 +35,11 @@ def direc(type, cat_corr, **kwargs):
         catdir = 'PATCHY/dr12/v6c/'
     elif 'bigmd' in catname:
         catdir = 'BigMD/'
-    elif catname == 'cmass': 
-        catdir = 'CMASS/'
+    elif 'cmass' in catname: 
+        if catname == 'cmass': 
+            catdir = 'CMASS/'
+        elif 'cmasslowz' in catname: 
+            catdir = 'CMASS/dr12v5/'
     else: 
         raise NotImplementedError()
 
