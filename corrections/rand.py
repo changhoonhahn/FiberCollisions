@@ -3,8 +3,8 @@
 "True" random data for simulated/observed catalogs 
 
 '''
-
 import numpy as np
+import time 
 # --- Local ---
 from defutility.fitstables import mrdfits
 from corrections import Corrections
@@ -99,11 +99,8 @@ class Rand(Corrections):
 
             if cat_name == 'cmass': 
                 # random data fits file
-                start_time = time.time()
                 data_file = ''.join([data_dir, 'cmass-dr12v4-N-Reid.ran.fits']) 
                 cmass = mrdfits(data_file) 
-                print 'Reading ', data_file 
-                print 'took ', (time.time() - start_time)/60.0, ' minutes'
             
                 # mask file 
                 mask_file = ''.join([data_dir, 'mask-cmass-dr12v4-N-Reid.fits']) 
@@ -132,15 +129,6 @@ class Rand(Corrections):
                 else: 
                     raise NameError("CMASSLOWZ Catalog must specify high or lowr edshift bin") 
                 
-                # random data fits file
-                data_file = ''.join([
-                    data_dir, 
-                    'random0_DR12v5_CMASSLOWZ', 
-                    cmasslowz_str, 
-                    '_North.fits.gz'
-                    ])
-                cmass = mrdfits(data_file) 
-            
                 # mask file 
                 mask_file = ''.join([
                     data_dir, 
@@ -148,7 +136,23 @@ class Rand(Corrections):
                     cmasslowz_str, 
                     '_North.fits.gz'
                     ])
+                start_time = time.time()
+                print 'Reading ', mask_file 
                 mask = mrdfits(mask_file) 
+                print 'took ', (time.time() - start_time)/60.0, ' minutes'
+                
+                # random data fits file
+                data_file = ''.join([
+                    data_dir, 
+                    'random0_DR12v5_CMASSLOWZ', 
+                    cmasslowz_str, 
+                    '_North.fits.gz'
+                    ])
+                start_time = time.time()
+                print 'Reading ', data_file 
+                cmass = mrdfits(data_file) 
+                print 'took ', (time.time() - start_time)/60.0, ' minutes'
+            
                 ipoly = cmass.ipoly # polygon index
                 comp = mask.weight[ipoly]
             
@@ -166,7 +170,7 @@ class Rand(Corrections):
             raise NotImplementedError()
 
         # write to corrected file 
-        output_file = self.file(cat_corr, **kwargs)
+        output_file = self.file()
         np.savetxt(
                 output_file, 
                 (np.vstack(np.array(data_list))).T, 
