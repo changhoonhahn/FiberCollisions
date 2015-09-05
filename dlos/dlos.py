@@ -63,7 +63,10 @@ class Dlos:
         """
 
         if not os.path.isfile(self.file_name):
-            raise ValueError()
+            self.build()
+        elif 'clobber' in self.kwargs.keys():
+            if self.kwargs['clobber']: 
+                self.build()
         
         data_cols = self.datacolumns()
         data_list = np.loadtxt(

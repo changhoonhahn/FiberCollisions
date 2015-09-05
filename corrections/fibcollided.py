@@ -9,6 +9,7 @@ Everything is hardcoded. Code can be improved but too lazy.
 import numpy as np
 # --- Local ---
 from corrections import Corrections
+from defutility.fitstables import mrdfits
 
 class UpweightCorr(Corrections):
 
@@ -19,7 +20,7 @@ class UpweightCorr(Corrections):
         
         super(UpweightCorr, self).__init__(cat_corr, **kwargs)
         
-        self.corrstr() 
+        self.corr_str = self.corrstr() 
 
     def corrstr(self): 
         """ Specify correction string
@@ -29,9 +30,9 @@ class UpweightCorr(Corrections):
         if 'cmass' in cat['name'].lower(): 
             return ''
         
-        self.corr_str = '.fibcoll'
+        corr_str = '.fibcoll'
 
-        return self.corr_str 
+        return corr_str 
 
     def build(self): 
         ''' Build Fibercollided mock catalogs using specific idl routines or by using the given fiber collision weights
@@ -45,8 +46,13 @@ class UpweightCorr(Corrections):
         '''
 
         catdict = (self.cat_corr)['catalog']
+        catalog_name = catdict['name'].lower()
 
-        if catdict['name'].lower() == 'nseries':          # N-series 
+        data_cols = self.datacolumns()
+        data_fmts = self.datacols_fmt()
+        data_hdrs = self.datacols_header()
+
+        if catalog_name == 'nseries':          # N-series 
 
             # original file 
             data_dir = '/mount/riachuelo1/hahn/data/Nseries/'
@@ -57,85 +63,81 @@ class UpweightCorr(Corrections):
             mask_file = ''.join([data_dir, 'CutskyN', str(catdict['n_mock']), '.mask_info']) 
             orig_wcomp = np.loadtxt(mask_file, unpack=True, usecols=[0]) 
 
-            header_str = 'Columns : ra, dec, z, nbar, w_cp, comp' 
             data_list = [orig_ra, orig_dec, orig_z, orig_wfc, orig_wcomp]   # data column list 
-            data_fmt = ['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f']   # data format
 
-        else: 
-            raise NotImplementedError('not yet coded') 
+        elif 'cmass' in catalog_name: 
+            
+            data_dir = '/mount/riachuelo1/hahn/data/CMASS/'
+
+            if catalog_name == 'cmass': 
+                # CMASS DR12v4 galaxy data
+                data_file = ''.join([
+                    data_dir, 
+                    'cmass-dr12v4-N-Reid.dat.fits'
+                    ]) 
+
+                data = mrdfits(data_file) # fits data object
+
+                zlimit = np.where((data.z >= 0.43) & (data.z <= 0.7))
+            
+            elif 'cmasslowz' in catalog_name: 
+                # CMASS LOWZ DR12v5 combined sample
+                # for Ariel's sample has three separate 
+                # set of sectors '', 'e2', and 'e3'
+
+                data_dir += 'dr12v5/'
+
+                cmasslowz_str = ''
+                if 'e2' in catalog_name: 
+                    cmasslowz_str = 'E2'
+                elif 'e3' in catalog_name: 
+                    cmasslowz_str = 'E3'
+
+                # Divide combined sample in two 
+                # two bins of redshift 
+                if '_low' in catalog_name:  
+                    zmin, zmax = 0.2, 0.5
+                elif '_high' in catalog_name: 
+                    zmin, zmax = 0.5, 0.75
+                else: 
+                    raise NameError("redshift bin must be specified") 
+        
+                # .fits data files from mk_catalog pipeline  
+                data_file = ''.join([
+                    data_dir, 
+                    'galaxy_DR12v5_CMASSLOWZ', cmasslowz_str, '_North.fits.gz'
+                    ])
+                data = mrdfits(data_file) 
+
+                zlimit = np.where((data.z >= zmin) & (data.z < zmax))  # redshift limit
+
+            else: 
+                raise NameError() 
+
+            data_list = [
+                (data.ra)[zlimit], 
+                (data.dec)[zlimit], 
+                (data.z)[zlimit], 
+                (data.nz)[zlimit],
+                (data.weight_systot)[zlimit], 
+                (data.weight_noz)[zlimit], 
+                (data.weight_cp)[zlimit], 
+                (data.comp)[zlimit]
+                ] 
         
         # write to corrected file 
         output_file = self.file()
-        np.savetxt(output_file, (np.vstack(np.array(data_list))).T, fmt=data_fmt, delimiter='\t', header=header_str) 
+        np.savetxt(
+                output_file, 
+                (np.vstack(np.array(data_list))).T, 
+                fmt=data_fmts, 
+                delimiter='\t', 
+                header=data_hdrs
+                ) 
 
         return None
 
 """
-    if 'cmass' in catalog['name'].lower():                  # CMASS ---------------------
-
-        if catalog['name'].lower() == 'cmass': 
-            data_file = ''.join([data_dir, 'cmass-dr12v4-N-Reid.dat.fits']) # fits file 
-            data = mrdfits(data_file)
-
-            zlimit = np.where((data.z >= 0.43) & (data.z <= 0.7))
-        '''
-        elif 'cmasslowz' in catalog['name'].lower(): 
-            # CMASS LOWZ combined sample
-            cmasslowz_str = ''
-            if 'e2' in catalog['name'].lower(): 
-                cmasslowz_str = 'E2'
-            elif 'e3' in catalog['name'].lower(): 
-                cmasslowz_str = 'E3'
-            elif 'tot' in catalog['name'].lower(): 
-                cmasslowz_str = 'TOT'
-
-            if '_low' in catalog['name'].lower(): 
-                zmin, zmax = 0.2, 0.5
-            elif 'high' in catalog['name'].lower(): 
-                zmin, zmax = 0.5, 0.75
-            else: 
-                raise NameError("redshift bin must be specified") 
-        
-            if 'tot' not in catalog['name'].lower(): 
-                # original combined data sample
-                data_file = ''.join([data_dir, 'galaxy_DR12v5_CMASSLOWZ', cmasslowz_str, '_North.fits.gz'])
-                data = mrdfits(data_file) 
-
-                zlimit = np.where((data.z >= zmin) & (data.z < zmax))  # redshift limit
-            else: 
-                # Concatenate the other CMASSLOWZ 
-                if 'high' in catalog['name'].lower(): 
-                    hl_str = '_high'
-                elif '_low' in catalog['name'].lower():
-                    hl_str = '_low'
-
-                cc_cmd = 'cat ' 
-                for comb_str in ['', 'e2', 'e3']: 
-                    cc = {'catalog': {'name': 'cmasslowz'+hl_str+comb_str}, 
-                            'correction': {'name': 'upweight'}}
-                    cc_file = get_galaxy_data_file('random', **cc)
-                    cc_cmd += cc_file+' ' 
-
-                random_file = get_galaxy_data_file('random', **cat_corr) 
-                cc_cmd += '> '+random_file 
-                return 
-        ''' 
-        head_str = 'columns : ra, dec, z, nbar, w_systot, w_noz, w_cp, comp'
-
-        # save to file 
-        np.savetxt(output_file, 
-                np.c_[
-                    (data.ra)[zlimit], (data.dec)[zlimit], (data.z)[zlimit], (data.nz)[zlimit],
-                    (data.weight_systot)[zlimit], (data.weight_noz)[zlimit], 
-                    (data.weight_cp)[zlimit], (data.comp)[zlimit]
-                    ], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e', 
-                    '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
-                delimiter='\t', 
-                header=head_str) 
-
-        fibcollided_cmd = ''
-
     elif catalog['name'].lower() == 'lasdamasgeo':        # Las Damas Geo 
         fibcollided_cmd = 'idl -e "ldg_fibcollmock_wcp_assign,'+str(catalog['n_mock'])+", '"+\
                 str(catalog['letter'])+"'"+'"'

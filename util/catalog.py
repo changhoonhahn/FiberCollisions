@@ -9,10 +9,14 @@ class Catalog(object):
     def __init__(self, cat_corr): 
         """ Class describing simulated/data catalog 
         """
-        self.cat_corr = cat_corr
+        self.cat_corr = cat_corr.copy()
         self.catalog_name = (cat_corr['catalog'])['name'].lower()
 
-        if self.catalog_name not in ('nseries'): 
+        if self.catalog_name in ('nseries'): 
+            self.cat_col_dict_key = self.catalog_name
+        elif 'cmass' in self.catalog_name: 
+            self.cat_col_dict_key = 'cmass' 
+        else: 
             raise NotImplementedError()
     
         # dictionary of catlaog columsn 
@@ -21,6 +25,11 @@ class Catalog(object):
                     'cols': ['ra', 'dec', 'z', 'wfc', 'comp'], 
                     'fmts': ['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
                     'hdrs': "Column : ra, dec, z, wfc, comp"
+                    }, 
+                'cmass': {
+                    'cols': ['ra', 'dec', 'z', 'nbar', 'wsys', 'wnoz', 'wfc', 'comp'], 
+                    'fmts': ['%10.5f', '%10.5f', '%10.5f', '%.5e', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
+                    'hdrs': 'Columns : ra, dec, z, nbar, w_systot, w_noz, w_cp, comp'
                     }
                 }
 
@@ -34,6 +43,16 @@ class Catalog(object):
             data_dir = '/mount/riachuelo1/hahn/data/Nseries/'
             file_beg = ''.join(['CutskyN', str(cat['n_mock'])])
             file_end = '.dat'
+
+        elif 'cmass' in self.catalog_name: 
+
+            if self.catalog_name == 'cmass': 
+                data_dir = '/mount/riachuelo1/hahn/data/CMASS/'
+
+            elif 'cmasslowz' in self.catalog_name:
+                data_dir = '/mount/riachuelo1/hahn/data/CMASS/dr12v5/'
+                file_beg = ''.join(['galaxy_DR12v5_', self.catalog_name.upper(), '_North'])
+                file_end = '.dat'
     
         return [data_dir, file_beg, file_end]
 
@@ -93,14 +112,14 @@ class Catalog(object):
     def datacolumns(self): 
         """ Columns of catalog data
         """
-        return (self.cat_col_dict[self.catalog_name])['cols']
+        return (self.cat_col_dict[self.cat_col_dict_key])['cols']
 
     def datacols_fmt(self): 
         """ Data format of columns of catalog data
         """
-        return (self.cat_col_dict[self.catalog_name])['fmts']
+        return (self.cat_col_dict[self.cat_col_dict_key])['fmts']
 
     def datacols_header(self): 
         """ Header string that describes data columsn
         """
-        return (self.cat_col_dict[self.catalog_name])['hdrs']
+        return (self.cat_col_dict[self.cat_col_dict_key])['hdrs']

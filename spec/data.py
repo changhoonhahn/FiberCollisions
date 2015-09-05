@@ -133,10 +133,12 @@ class Data(object):
         return self.cosmo 
 
 if __name__ == '__main__':
-    cat_corr = {
-            'catalog': {'name': 'nseries', 'n_mock':1}, 
-            'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 4.0, 'fpeak':0.69}
-            }
-    corrdata = Data('data', cat_corr)
-    print corrdata.file_name
-    print corrdata.build()
+    for zbin_str in ['_low', '_high']:
+        for specifier_str in ['', 'e2', 'e3']: 
+            cat_corr = {
+                    'catalog': {'name': 'cmasslowz'+specifier_str+zbin_str}, 
+                    'correction': {'name': 'upweight'} 
+                    }
+            corrdata = Data('data', cat_corr)
+            print corrdata.file_name
+            print corrdata.build()

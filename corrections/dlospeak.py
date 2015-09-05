@@ -67,7 +67,8 @@ class DlospeakCorr(Corrections):
         survey_comdis_min = cosmos.distance.comoving_distance( survey_zmin, **cosmo ) * cosmo['h']
         survey_comdis_max = cosmos.distance.comoving_distance( survey_zmax, **cosmo ) * cosmo['h']
     
-        # comdis2z coded within build to make it faster
+        # spline interpolation function hardcoded here 
+        # to make it faster
         z_arr = np.arange(0.0, 1.01, 0.01)
         dm_arr = cosmos.distance.comoving_distance(z_arr, **cosmo) * cosmo['h']
         comdis2z = sp.interpolate.interp1d(dm_arr, z_arr, kind='cubic') 
