@@ -16,7 +16,7 @@ import cosmolopy as cosmos
 from spec.data import Data
 from util.util import radecz_to_xyz
 
-def d_NN(ra, dec, redshift, cat_corr, n=3): 
+def d_NN(ra, dec, redshift, cat_corr, n_NN=3): 
     ''' Calculate nth nearest non-fiber collided neighbor distances in catalog 
     for input ra, dec, z. When counting neighbors only non fiber collided galaxies are
     considered. 
@@ -28,7 +28,7 @@ def d_NN(ra, dec, redshift, cat_corr, n=3):
     ra : Target RA array 
     dec : Target Dec array 
     redshift : Target Redshift array 
-    n : n th nearest neighbor (default 3) 
+    n_NN : n th nearest neighbor (default 3) 
     cat_corr : catalog correction dictionary 
 
     Notes 
@@ -72,9 +72,13 @@ def d_NN(ra, dec, redshift, cat_corr, n=3):
     tree = scipy.spatial.KDTree( zip(cat_x, cat_y, cat_z) )       
 
     # query KD Tree for n+1 neighbors because it counts itself
-    distance, index = tree.query( zip( targ_x, targ_y, targ_z ), k = n+1 ) 
+    distance, index = tree.query( 
+            zip( targ_x, targ_y, targ_z ), 
+            k = n_NN + 1 
+            ) 
 
     return distance[:, n]
+
 """
 def n_nearest(cat_corr, n=3): 
     ''' Calculate nth nearest neighbor distances for upweighted galaxies
@@ -105,17 +109,3 @@ def n_nearest(cat_corr, n=3):
     print np.min(distance[:, n]), np.max(distance[:, n])
     return distance[:, n]
 """
-
-def dlos_d_NN(n=3, clobber=False, **cat_corr): 
-    ''' Get nth nearest neighbor distance for dLOS file 
-    '''
-
-    NN_dist_file = dlos_d_NN_file(n=n, **cat_corr)      # dNN file  
-    
-    if not os.path.isfile(NN_dist_file) or clobber: 
-        build_dlos_d_NN(n=n, **cat_corr)  
-    else: 
-        pass
-
-    dNN = np.loadtxt(NN_dist_file, unpack=True, usecols=[0])
-    return dNN 

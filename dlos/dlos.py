@@ -26,8 +26,8 @@ class Dlos:
         self.kwargs = kwargs
 
         self.dlos = None
-        self.targ_z = None
-        self.neigh_z = None 
+        self.upw_z = None
+        self.coll_z = None 
 
         self.peak_range = [-15.0, 15.0]     # hardcoded approximate peak range
 
@@ -104,7 +104,7 @@ class Dlos:
     def datacolumns(self):
         """ Data columns of dLOS data
         """
-        data_cols = ['dlos', 'targ_ra', 'targ_dec', 'targ_z', 'neigh_ra', 'neigh_dec', 'neigh_z']
+        data_cols = ['dlos', 'upw_ra', 'upw_dec', 'upw_z', 'coll_ra', 'coll_dec', 'coll_z']
 
         return data_cols 
 

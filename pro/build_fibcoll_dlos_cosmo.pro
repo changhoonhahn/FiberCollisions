@@ -260,9 +260,9 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
     openw, lun, dlos_file, /get_lun
 
     for j=0L,n_noupw-1L do begin
-        i_targ = upw_index[noupw_index[j]]
+        i_upw = upw_index[noupw_index[j]]
         ; d_LOS, target_ra, target_dec, target redshift, neighbor_ra, neighbor_dec, neighbor redshift
-        printf, lun, dlos[j], mock_ra[i_targ], mock_dec[i_targ], mock_redshift[i_targ], $
+        printf, lun, dlos[j], mock_ra[i_upw], mock_dec[i_upw], mock_redshift[i_upw], $
             mock_ra[j], mock_dec[j], mock_redshift[j], format='(f, f, f, f, f, f, f)'   
     endfor
     free_lun, lun 

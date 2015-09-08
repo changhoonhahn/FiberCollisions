@@ -9,76 +9,144 @@ Author(s): ChangHoon Hahn
 '''
 import numpy as np
 import scipy as sp 
-from scipy.optimize import curve_fit
-import sys
 import os.path
-import subprocess
 import cosmolopy as cosmos
-import multiprocessing as mp
 
 # --- Local ---
-import fibcol_data as fc_data
-import fibcol_dlos as fc_dlos
-import fibcol_utility as fc_util
-import galaxy_environment as genv
-import pyspherematch as pysph 
-import mpfit as mpfit 
+from dlos import Dlos
+from galenv.galenv import d_NN
 
-class DlosEnv: 
+class DlosEnv(Dlos): 
+
     def __init__(self, cat_corr, n_NN=3, **kwargs):
-        ''' dLOS with corresponding nth nearest neighbor distances (a tracer of galaxy environment)
-        '''
-        self.cat_corr = cat_corr
+        """ Child class of Dlos class that describes the nth nearest neighbor distance of 
+        upweighted galaxies in fiber collided pair
+        """
+        super(DlosEnv, self).__init__(cat_corr, **kwargs)
+
         self.n_NN = n_NN
 
-        self.file_name = self.File(n_NN=3, **kwargs) 
         self.dlos = None
         self.env = None 
 
-    def File(self, **kwargs): 
-        ''' Get file name for the combined dLOS + Env values 
-        '''
-        cat = self.cat_corr['catalog'] 
-        if 'n_mock' not in cat.keys():
-            cat['n_mock'] = 1 
-        corr = self.cat_corr['correction']
-        if corr['name'].lower() != 'upweight':
-            corr = {'name': 'upweight'} 
-                
-        f_dlos = fc_dlos.dlos(**{'catalog': cat, 'correction': corr})         
-        dlos_dir = '/'.join((f_dlos.file_name).split('/')[:-1])+'/'
-    
-        try: 
-            nmock_str = '_' + str(kwargs['n_mocks'])+'mocks'
-        except KeyError: 
-            if cat['name'].lower() == 'nseries': 
-                nmock_str = '_84mocks'
-            else: 
-                raise NotImplementedError("Only Nseries Implemented For Now") 
+        self.file_name = self.file()
+        self.dlos_file = super(Child, self).file()
+
+    def file(self): 
+        """ Name of dLOS + galaxy environment file
+        """
+
+        dlos_filename = super(DlosEnv, self).file()
+
+        nNN_str = ''.join([
+            'DLOS_d', 
+            str(n_NN),
+            'NN_'
+            ]) 
         
-        file_name = ''.join([dlos_dir, 
-            'DLOSENV_d', str(self.n_NN), 'NN_', cat['name'], nmock_str, '.dat']) 
+        file_name = nNN_str.join( 
+                dlos_filename.split('DLOS_')
+                ) 
 
         return file_name 
 
-    def Read(self, **kwargs): 
-        ''' Read file 
-        '''
-        if not os.path.isfile(self.file_name):
-            # if file does not exist then make it 
-            self.calculate(**kwargs)
-            self.Write(**kwargs)
-        try: 
-            if kwargs['clobber']: 
-                self.calculate(**kwargs)
-                self.Write(**kwargs)
-        except KeyError: 
-            pass 
+    def build(self): 
+        """ Calculate the nth nearest neighbor distances for fiber collided pairs 
+        """
 
-        self.dlos, self.env = np.loadtxt(self.file_name, skiprows=1, unpack=True, usecols=[0,1])
+        if self.dlos == None: 
+            self.read()
+
+        # dNN for upweighted galaxy in fiber collided 
+        # pairs. Each fiber collided pair corresponds to 
+        # a value of dLOS 
+        NN_dist = d_NN( 
+                self.upw_ra, 
+                self.upw_dec, 
+                self.upw_z, 
+                cat_corr, 
+                n_NN = self.n_NN 
+                ) 
+    
+        # each value of d_NN corresponds to a dLOS value 
+        # in dLOS file 
+        np.savetxt(self.file_name, 
+                np.c_[NN_dist], 
+                fmt=['%10.5f']
+                header='Columns : d_NN'
+                ) 
 
         return None 
 
+    def read(self, **kwargs): 
+        """ Read both dLOS and dNN values 
+        """
+
+        if not os.path.isfile(self.file_name):
+            self.build()
+        elif 'clobber' in self.kwargs.keys():
+            if self.kwargs['clobber']: 
+                self.build()
+        
+        if not os.path.isfile(self.dlos_file):
+            super(DlosEnv, self).build()
+        
+        # read dLOS file from parent class
+        super(DlosEnv, self).read()
+
+        self.env = np.loadtxt(
+                self.file_name, 
+                skiprows=1, 
+                unpack=True, 
+                usecols=[0]
+                )
+
+        return None 
+
+
+def fpeak_dNN(dNN, cat_corr, n_NN=3, **kwargs): 
+    ''' fpeak value given nth nearest neighbor distance
+
+    Notes
+    -----
+    * Upweight correction automatically assigned
+    '''
+    cat_corr['correction'] = {'name': 'upweight'}
+
+    comb_dlos = DlosEnv(cat_corr, n_NN=n_NN)
+    # fpeak file 
+    dlos_dir =  '/'.join( (comb_dlos.file_name).split('/')[:-1] )+'/'
+    dlos_file = (comb_dlos.file_name).split('/')[-1]
+    fpeak_file = ''.join([dlos_dir, 'fpeak_env_', dlos_file]) 
+    
+    if 'truefpeak' in kwargs.keys():
+        if kwargs['truefpeak']: 
+            dNN_avg, fpeaks, sigmas = np.loadtxt(fpeak_file, skiprows=2, unpack=True, usecols=[0,1,2])
+    else: 
+        dNN_avg, fpeaks, sigmas = np.loadtxt(fpeak_file, skiprows=2, unpack=True, usecols=[0,3,2])
+    
+    if isinstance(dNN, float):
+        dNN_list = np.array([dNN])
+    else: 
+        dNN_list = dNN
+    
+    #min_indx = [] 
+    #for dNN_i in dNN_list:
+    #    min_indx.append((np.abs(dNN_avg - dNN_i)).argmin())
+
+    #interp_fpeak = sp.interpolate.interp1d(dNN_avg, fpeaks, kind='linear')
+        
+    return np.interp( dNN, dNN_avg, fpeaks )
+
+if __name__=="__main__": 
+    cat_corr = {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}} 
+    for nnn in [4,10]: 
+        comb_dlos = DlosEnv(cat_corr, n_NN=nnn)
+        comb_dlos.fpeak_env(stepsize=2)
+    print fpeak_dNN([1.2, 3.4, 5.7], cat_corr, n_NN=3) 
+
+
+"""
     def calculate(self, **kwargs): 
         ''' Construct combined dLOS distribution with corresponding nth nearest neighbor distances (galaxy environment)
 
@@ -232,44 +300,4 @@ class DlosEnv:
                 delimiter='\t', header=fit_head_str)
 
         return [dNN_avg, fpeaks, sigma]
-
-def fpeak_dNN(dNN, cat_corr, n_NN=3, **kwargs): 
-    ''' fpeak value given nth nearest neighbor distance
-
-    Notes
-    -----
-    * Upweight correction automatically assigned
-    '''
-    cat_corr['correction'] = {'name': 'upweight'}
-
-    comb_dlos = DlosEnv(cat_corr, n_NN=n_NN)
-    # fpeak file 
-    dlos_dir =  '/'.join( (comb_dlos.file_name).split('/')[:-1] )+'/'
-    dlos_file = (comb_dlos.file_name).split('/')[-1]
-    fpeak_file = ''.join([dlos_dir, 'fpeak_env_', dlos_file]) 
-    
-    if 'truefpeak' in kwargs.keys():
-        if kwargs['truefpeak']: 
-            dNN_avg, fpeaks, sigmas = np.loadtxt(fpeak_file, skiprows=2, unpack=True, usecols=[0,1,2])
-    else: 
-        dNN_avg, fpeaks, sigmas = np.loadtxt(fpeak_file, skiprows=2, unpack=True, usecols=[0,3,2])
-    
-    if isinstance(dNN, float):
-        dNN_list = np.array([dNN])
-    else: 
-        dNN_list = dNN
-    
-    #min_indx = [] 
-    #for dNN_i in dNN_list:
-    #    min_indx.append((np.abs(dNN_avg - dNN_i)).argmin())
-
-    #interp_fpeak = sp.interpolate.interp1d(dNN_avg, fpeaks, kind='linear')
-        
-    return np.interp( dNN, dNN_avg, fpeaks )
-
-if __name__=="__main__": 
-    cat_corr = {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}} 
-    for nnn in [4,10]: 
-        comb_dlos = DlosEnv(cat_corr, n_NN=nnn)
-        comb_dlos.fpeak_env(stepsize=2)
-    print fpeak_dNN([1.2, 3.4, 5.7], cat_corr, n_NN=3) 
+"""

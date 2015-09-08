@@ -78,6 +78,7 @@ class Data(object):
         cat = Catalog(self.cat_corr)
 
         data_cols = cat.datacolumns()
+        self.datacolumns = cat.datacolumns()
     
         datah = np.loadtxt(
                 self.file_name, 
