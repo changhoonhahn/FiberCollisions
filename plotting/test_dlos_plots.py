@@ -107,18 +107,18 @@ def catalog_dlospeak_fit_test(catalog_name, fit='gauss', **kwargs):
 
     dlos_fig.set_range(xrange=[-20.0, 20.0])
     dlos_fig.set_legend()
-    dlos_fig.show_fig()
+    #dlos_fig.show_fig()
+    
+    fig_file = ''.join([
+        '/home/users/hahn/powercode/FiberCollisions/figure/' , 
+        catalog_name, 
+        '_combined_dlos_peakfit_', 
+        fit, '.png'
+        ])
 
-"""
-        fig_dir = 'figure/'
-        fig_file = ''.join([fig_dir, 
-            catalog['name'].lower(), '_', str(n_mocks), 
-            'mocks_combined_dlos_peakfit_', fit.lower(), bigfc_flag, '.png'])
-        fig.savefig(fig_file, bbox_inches="tight")
-        fig.clear() 
+    dlos_fig.save_fig(fig_file)
 
     return [sigma, fpeak]
-"""
 
 if __name__=="__main__": 
     cat_corr = {

@@ -156,4 +156,3 @@ class Plotdlos(object):
         """
         plt.show()
 
-

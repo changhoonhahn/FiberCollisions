@@ -22,6 +22,7 @@ def dlospeak_fit(dlos, fit = 'gauss', peak_range = [-15.0, 15.0], **kwargs):
 
     dlosclass = Dlos(dum_cat_corr)
     dlosclass.dlos = dlos
+
     # Freedman Diaconis binsize
     fd_binsize = dlosclass.fd_binsize(
             peak_range = peak_range
@@ -56,6 +57,7 @@ def dlospeak_fit(dlos, fit = 'gauss', peak_range = [-15.0, 15.0], **kwargs):
     best_sigma = fit_param.params[1]
 
     if fit == 'gauss': 
+        # analytic integral of gaussian with bestfit amplitude and sigma 
         bestfit_func_integral = np.sqrt(2.0 * np.pi) * best_amp * best_sigma 
     else: 
         raise NotImplementedError()
@@ -95,11 +97,12 @@ def catalog_dlospeak_fit(catalog_name, fit='gauss', **kwargs):
     """
     
     # depends on catalog 
-    n_mocks = 1 
-    catdict_list = [ 
-            {'name': catalog_name, 'n_mock': i_mock} for i_mock in range(1, n_mocks+1)
-            ]
-    corrdict = {'name': 'upweight'}
+    if catalog_name in ('nseries'): 
+        n_mocks = 84 
+        catdict_list = [ 
+                {'name': catalog_name, 'n_mock': i_mock} for i_mock in range(1, n_mocks+1)
+                ]
+        corrdict = {'name': 'upweight'}
 
     if 'combined_dlos' in kwargs.keys(): 
         combined_dlos = kwargs['combined_dlos'] 
@@ -126,7 +129,7 @@ def catalog_dlospeak_fit(catalog_name, fit='gauss', **kwargs):
 
     return fpeak, sigma, amp
 
-#---- Fitting -----
+#---- fit functions -----
 def fit_linear(x, p): 
     ''' Linear function y = a * x + b 
     p[0] = a , p[1] = b
@@ -143,7 +146,7 @@ def peak_gauss(x, p):
     """
     return p[0]*np.exp(-0.5*x**2/(p[1])**2)
 
-# --- MPfit ---
+# --- MPfit wrappers ---
 def mpfit_linear(p, fjac=None, x=None, y=None, err=None): 
     model = fit_linear(x, p) 
     status = 0 
