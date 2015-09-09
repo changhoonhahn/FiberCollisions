@@ -127,7 +127,7 @@ class Spec(object):
             # not sure what to do here yet 
             NotImplementedError()
 
-        codeclass = Fcode(spec_type, cat_corr) 
+        codeclass = Fcode(spec_type, self.cat_corr) 
         spec_code = codeclass.code
         spec_exe = codeclass.fexe()
         
@@ -178,7 +178,10 @@ class Spec(object):
 
 if __name__=='__main__':
 
-    cat_corr = {'catalog': {'name': 'nseries', 'n_mock': 1}, 'correction': {'name': 'true'}}
+    cat_corr = {
+            'catalog': {'name': 'nseries', 'n_mock': 1}, 
+            'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68} 
+            }
     spectrum = Spec('pk', cat_corr)
     print spectrum.file()
     print spectrum.build()

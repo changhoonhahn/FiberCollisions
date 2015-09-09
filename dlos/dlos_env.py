@@ -21,16 +21,20 @@ class DlosEnv(Dlos):
     def __init__(self, cat_corr, n_NN=3, **kwargs):
         """ Child class of Dlos class that describes the nth nearest neighbor distance of 
         upweighted galaxies in fiber collided pair
-        """
-        super(DlosEnv, self).__init__(cat_corr, **kwargs)
 
+        Notes
+        -----
+        * Very clunky because it has to communicate with dLOS parent class 
+        """
         self.n_NN = n_NN
+
+        super(DlosEnv, self).__init__(cat_corr, **kwargs)
 
         self.dlos = None
         self.env = None 
 
         self.file_name = self.file()
-        self.dlos_file = super(Child, self).file()
+        self.dlos_file = super(DlosEnv, self).file()
 
     def file(self): 
         """ Name of dLOS + galaxy environment file
@@ -40,7 +44,7 @@ class DlosEnv(Dlos):
 
         nNN_str = ''.join([
             'DLOS_d', 
-            str(n_NN),
+            str(self.n_NN),
             'NN_'
             ]) 
         
@@ -53,9 +57,9 @@ class DlosEnv(Dlos):
     def build(self): 
         """ Calculate the nth nearest neighbor distances for fiber collided pairs 
         """
-
+        self.kwargs.pop('clobber', None)
         if self.dlos == None: 
-            self.read()
+            super(DlosEnv, self).read()
 
         # dNN for upweighted galaxy in fiber collided 
         # pairs. Each fiber collided pair corresponds to 
@@ -64,15 +68,16 @@ class DlosEnv(Dlos):
                 self.upw_ra, 
                 self.upw_dec, 
                 self.upw_z, 
-                cat_corr, 
+                self.cat_corr, 
                 n_NN = self.n_NN 
                 ) 
     
         # each value of d_NN corresponds to a dLOS value 
         # in dLOS file 
+        print self.file_name
         np.savetxt(self.file_name, 
                 np.c_[NN_dist], 
-                fmt=['%10.5f']
+                fmt=['%10.5f'],
                 header='Columns : d_NN'
                 ) 
 
@@ -102,7 +107,6 @@ class DlosEnv(Dlos):
                 )
 
         return None 
-
 
 def fpeak_dNN(dNN, cat_corr, n_NN=3, **kwargs): 
     ''' fpeak value given nth nearest neighbor distance
@@ -139,11 +143,12 @@ def fpeak_dNN(dNN, cat_corr, n_NN=3, **kwargs):
     return np.interp( dNN, dNN_avg, fpeaks )
 
 if __name__=="__main__": 
-    cat_corr = {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}} 
-    for nnn in [4,10]: 
-        comb_dlos = DlosEnv(cat_corr, n_NN=nnn)
-        comb_dlos.fpeak_env(stepsize=2)
-    print fpeak_dNN([1.2, 3.4, 5.7], cat_corr, n_NN=3) 
+    pass
+    #cat_corr = {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}} 
+    #for nnn in [4,10]: 
+    #    comb_dlos = DlosEnv(cat_corr, n_NN=nnn)
+    #    comb_dlos.fpeak_env(stepsize=2)
+    #print fpeak_dNN([1.2, 3.4, 5.7], cat_corr, n_NN=3) 
 
 
 """

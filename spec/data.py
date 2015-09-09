@@ -6,6 +6,7 @@ Author(s): ChangHoon Hahn
 
 
 '''
+import numpy as np
 import scipy as sp 
 import time 
 import random
@@ -69,7 +70,7 @@ class Data(object):
         self.weight = None 
         self.comp = None
 
-        self.cosmo = None   # cosmology of catalog 
+        self.cosmos = None   # cosmology of catalog 
 
     def read(self): 
         """ Read galaxy/random catalog data 
@@ -129,9 +130,9 @@ class Data(object):
         cosmo['omega_lambda_0'] = 1.0 - omega_m 
         cosmo['h'] = 0.676
         cosmo = cosmos.distance.set_omega_k_0(cosmo) 
-        self.cosmo = cosmo 
+        self.cosmos = cosmo 
 
-        return self.cosmo 
+        return self.cosmos
 
 if __name__ == '__main__':
     for zbin_str in ['_low', '_high']:

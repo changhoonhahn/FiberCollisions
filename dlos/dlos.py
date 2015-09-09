@@ -14,7 +14,7 @@ from util.direc import direc
 from util.idl import Idl
 from util import util
 
-class Dlos: 
+class Dlos(object): 
 
     def __init__(self, cat_corr, **kwargs):
         """ Class describing line-of-sight displacement 
@@ -32,6 +32,7 @@ class Dlos:
         self.peak_range = [-15.0, 15.0]     # hardcoded approximate peak range
 
         self.file_name = self.file()   
+        self.dlos_file = self.file_name
 
     def file(self): 
         """ Name of line-of-sight displacement file 
@@ -62,7 +63,7 @@ class Dlos:
         """ Read dLOS data 
         """
 
-        if not os.path.isfile(self.file_name):
+        if not os.path.isfile(self.dlos_file):
             self.build()
         elif 'clobber' in self.kwargs.keys():
             if self.kwargs['clobber']: 
@@ -70,7 +71,7 @@ class Dlos:
         
         data_cols = self.datacolumns()
         data_list = np.loadtxt(
-                self.file_name, 
+                self.dlos_file, 
                 unpack=True, 
                 usecols=range(len(data_cols))
                 )

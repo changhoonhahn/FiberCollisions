@@ -7,7 +7,9 @@ in parallel
 import multiprocessing as mp
 
 from data import Data 
+from spec import Spec
 
+# --- Wrappers ---
 def build_corrdata_wrapper(params): 
     ''' Wrapper for calculating corrected data   
 
@@ -29,7 +31,22 @@ def build_corrdata_wrapper(params):
 
     return None
 
-def build_corrdata_multipro(catalog_name, corr_name, n_mocks, Nthreads=8): 
+def build_spec_wrapper(params): 
+    """ Wrapper for calculating power/bispectrum
+    """
+    cat_corr = params[0]
+    kwargs = {} 
+    if len(params) > 1: 
+        kwargs = params[1]
+
+    spectrum = Spec('pk', cat_corr, **kwargs)
+    print spectrum.file()
+    spectrum.build()
+
+    return None 
+
+# --- Multiprocessing --- 
+def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8): 
     """ Calculate dLOS for catalogs in parallel using 
     multiprocessing pool
 
@@ -68,7 +85,10 @@ def build_corrdata_multipro(catalog_name, corr_name, n_mocks, Nthreads=8):
                 }]
             for i_mock in n_mock_list]
     
-    mapfn( build_corrdata_wrapper, [arg for arg in arglist])
+    if type == 'data': 
+        mapfn( build_corrdata_wrapper, [arg for arg in arglist])
+    elif type == 'spec': 
+        mapfn( build_spec_wrapper, [arg for arg in arglist])
 
     pool.close()
     pool.terminate()
@@ -76,6 +96,8 @@ def build_corrdata_multipro(catalog_name, corr_name, n_mocks, Nthreads=8):
 
     return None 
 
+
 if __name__=="__main__":
-    build_corrdata_multipro('nseries', 'upweight', 84, Nthreads=10)
-    build_corrdata_multipro('nseries', 'dlospeak', 84, Nthreads=10)
+    #build_multipro('data', 'nseries', 'upweight', 84, Nthreads=10)
+    #build_multipro('data', 'nseries', 'dlospeak', 84, Nthreads=10)
+    build_multipro('spec', 'nseries', 'dlospeak', 84, Nthreads=10)

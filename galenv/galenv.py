@@ -41,10 +41,9 @@ def d_NN(ra, dec, redshift, cat_corr, n_NN=3):
     if corrdict['name'] != 'upweight': 
         corrdict = {'name': 'upweight'} 
 
-
     dataclass = Data('data', cat_corr)
     dataclass.read()
-    data_cosmo = dataclass.cosmo()
+    data_cosmos = dataclass.cosmo()
     
     if 'weight' in dataclass.datacolumns:    
         # accounts for poorly planned column names 
@@ -55,21 +54,21 @@ def d_NN(ra, dec, redshift, cat_corr, n_NN=3):
     hasfibers = np.where(fc_weights > 0) 
     
     cat_x, cat_y, cat_z = radecz_to_xyz(
-            (dataclass.ra)[hasfiber], 
-            (dataclass.dec)[hasfiber], 
-            (dataclass.z)[hasfiber], 
-            **data_cosmo
+            (dataclass.ra)[hasfibers], 
+            (dataclass.dec)[hasfibers], 
+            (dataclass.z)[hasfibers], 
+            **data_cosmos
             )
 
     targ_x, targ_y, targ_z = radecz_to_xyz(
             ra, 
             dec, 
             redshift, 
-            **data_cosmo
+            **data_cosmos
             )
 
     # set up KD Tree
-    tree = scipy.spatial.KDTree( zip(cat_x, cat_y, cat_z) )       
+    tree = sp.spatial.KDTree( zip(cat_x, cat_y, cat_z) )       
 
     # query KD Tree for n+1 neighbors because it counts itself
     distance, index = tree.query( 
@@ -77,7 +76,7 @@ def d_NN(ra, dec, redshift, cat_corr, n_NN=3):
             k = n_NN + 1 
             ) 
 
-    return distance[:, n]
+    return distance[:, n_NN]
 
 """
 def n_nearest(cat_corr, n=3): 
