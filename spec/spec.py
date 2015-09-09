@@ -49,6 +49,34 @@ class Spec(object):
         self.kwargs = kwargs
 
         self.file_name = self.file()
+    
+    def read(self): 
+        """ Read power/bispectrum of simulated/observed data catalog
+        """
+
+        spec_dict = self.cat_corr['spec']
+    
+        if self.type == 'pk': 
+                
+            if not spec_dict['quad']: 
+                cols_index = [0, 1]
+                data_cols = ['k', 'p0k']
+            else: 
+                raise NotImplementedError()
+
+        else: 
+            raise NotImplementedError()
+
+        spec_data = np.loadtxt(
+                    self.file_name, 
+                    unpack = True, 
+                    usecols = col_index
+                    )
+
+        for i_col, col in enumerate(data_cols): 
+            setattr(self, col, spec_data[i_col])
+
+        return None 
 
     def file(self):
         """ power/bispectrum file 
@@ -175,7 +203,7 @@ class Spec(object):
             print ''
 
         return None
-
+    
 if __name__=='__main__':
 
     cat_corr = {

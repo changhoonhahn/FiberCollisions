@@ -100,4 +100,5 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8):
 if __name__=="__main__":
     #build_multipro('data', 'nseries', 'upweight', 84, Nthreads=10)
     #build_multipro('data', 'nseries', 'dlospeak', 84, Nthreads=10)
-    build_multipro('spec', 'nseries', 'dlospeak', 84, Nthreads=10)
+    build_multipro('spec', 'nseries', 'true', 84, Nthreads=1)
+    build_multipro('spec', 'nseries', 'upweight', 84, Nthreads=10)
