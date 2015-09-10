@@ -8,6 +8,7 @@ import numpy as np
 
 import mpfit
 from dlos import Dlos
+from dlos_env import DlosEnv
 
 def dlospeak_fit(dlos, fit = 'gauss', peak_range = [-15.0, 15.0], **kwargs): 
     """ Fit the peak of the dLOS distribution to specified 
@@ -128,6 +129,109 @@ def catalog_dlospeak_fit(catalog_name, fit='gauss', **kwargs):
     fpeak, sigma, amp = dlospeak_fit(np.array(combined_dlos), fit = 'gauss', peak_range = [-15.0, 15.0])   
 
     return fpeak, sigma, amp
+
+def catalog_dlospeak_env_fit(catalog_name, n_NN=3, fit='gauss', **kwargs): 
+    """ Fit peak of the dLOS distribution as a function of environment 
+    for various catalogs. dLOS distribution is calculated for bins of 
+    galaxy environment. These dLOS distributions are individually fit. 
+
+    Parameters
+    ----------
+    catalog_name : 'nseries'
+    n_NN : n in n-th nearest neighbor 
+    fit : 'gauss' best fit function type 
+
+    Returns 
+    ------- 
+    sigma : sigma value of gaussian/exponential function  
+    fpeak : peak fraction of the dLOS distribution 
+
+    """
+    
+    if 'dNN_stepsize' in kwargs.keys(): 
+        dNN_stepsize = kwargs['dNN_stepsize']
+    else:
+        dNN_stepsize = 2.0
+    
+    # this is to pass combined_dlos and combined_env as a 
+    # global variable when this function is called
+    if 'combined_dlos' in kwargs.keys(): 
+        combined_dlos = kwargs['combined_dlos'] 
+    
+    if 'combined_env' in kwargs.keys(): 
+        combined_env = kwargs['combined_env'] 
+    
+    # for each catalog set list of catalog correction 
+    # dictionaries which are used to read in dLOS files
+    if catalog_name in ('nseries'): 
+        n_mocks = 84 
+        catdict_list = [ 
+                {'name': catalog_name, 'n_mock': i_mock} 
+                for i_mock in range(1, n_mocks+1)
+                ]
+        corrdict = {'name': 'upweight'}
+    
+    for catdict in catdict_list: 
+
+        i_cat_corr = { 
+                'catalog': catdict, 
+                'correction': corrdict
+                }
+
+        dlosclass = DlosEnv(i_cat_corr, n_NN=n_NN)
+        dlosclass.read() 
+
+        dlos_i = dlosclass.dlos
+        env_i = dlosclass.env
+
+        # Combine dLOS and env values 
+        try: 
+            combined_dlos += list(dlos_i)
+            combined_env += list(env_i)
+        except NameError: 
+            combined_dlos = list(dlos_i)
+            combined_env = list(env_i)
+
+    comb_dlos = np.array(combined_dlos)
+    comb_env = np.array(combined_env)
+
+    print 'd'+str(n_NN)+'NN, Minimum ', comb_env.min(), ' Maximum ', comb_env.max()
+    
+    istart = np.int( np.floor( comb_env.min()/np.float(dNN_stepsize) ) )
+    iend = np.int( np.ceil( comb_env.max()/np.float(dNN_stepsize) ) )
+
+    env_bins = [ 
+            (dNN_stepsize * i, dNN_stepsize * (i+1))
+            for i in np.arange(istart, iend) 
+            ] 
+
+    fpeaks, sigmas, amps, envbins = [], [], [], []
+
+    for i_bin, env_bin in enumerate(env_bins): 
+        
+        in_envbin = np.where(
+                (comb_env >= env_bin[0]) & 
+                (comb_env < env_bin[1])
+                )
+
+        if len(in_envbin[0]) < 10: 
+            continue 
+    
+        try: 
+            fpeak, sigma, amp = dlospeak_fit(
+                    comb_dlos[in_envbin], 
+                    fit = 'gauss', 
+                    peak_range = [-15.0, 15.0]
+                    )   
+        except ZeroDivisionError: 
+            continue
+
+        envbins.append( env_bin ) 
+        fpeaks.append(fpeak)
+        sigmas.append(sigma)
+        amps.append(amp)
+
+    return fpeaks, sigmas, amps, envbins
 
 #---- fit functions -----
 def fit_linear(x, p): 
