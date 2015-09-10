@@ -4,10 +4,9 @@ Multiprocessing code to calculate dLOS values
 in parallel
 
 '''
-import multiprocessing as mp
-
 from dlos import Dlos
 from dlos_env import DlosEnv
+from until.interruptible_pool import InterruptiblePool as Pewl
 
 def build_dlos_wrapper(params): 
     ''' Wrapper for calculating dLOS values  
@@ -59,7 +58,7 @@ def build_dlos_multipro(catalog_name, n_mocks, Nthreads=8):
     else:
         n_mock_list = range(1, n_mocks + 1)
     
-    pool = mp.Pool(processes=Nthreads)
+    pool = Pewl(processes=Nthreads)
     mapfn = pool.map
     
     arglist = [ [{
@@ -88,7 +87,7 @@ def build_dlosenv_multipro(catalog_name, n_mocks, Nthreads=8):
 
     n_NN_list = [1, 3, 5, 7, 10] 
 
-    pool = mp.Pool(processes=Nthreads)
+    pool = Pewl(processes=Nthreads)
     mapfn = pool.map
     
     arglist = [] 

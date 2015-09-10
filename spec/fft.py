@@ -40,9 +40,6 @@ class Fft(object):
         galdata = Data(self.type, self.cat_corr, **self.kwargs)  # data class 
         self.data_file = galdata.file_name # galaxy data file
 
-        if not os.path.isfile(self.data_file): 
-            raise ValueError()
-    
         # FFT label 
         try: 
             if specdict['quad']: 

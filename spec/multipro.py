@@ -4,10 +4,9 @@ Multiprocessing code to calculate corrected data
 in parallel
 
 '''
-import multiprocessing as mp
-
 from data import Data 
 from spec import Spec
+from interruptible_pool import InterruptiblePool as Pewl
 
 # --- Wrappers ---
 def build_corrdata_wrapper(params): 
@@ -76,7 +75,7 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8):
             corrdict['sigma'] = 3.9
             corrdict['fpeak'] = 0.68 
     
-    pool = mp.Pool(processes=Nthreads)
+    pool = Pewl(processes=Nthreads)
     mapfn = pool.map
     
     arglist = [ [{
@@ -100,5 +99,5 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8):
 if __name__=="__main__":
     #build_multipro('data', 'nseries', 'upweight', 84, Nthreads=10)
     #build_multipro('data', 'nseries', 'dlospeak', 84, Nthreads=10)
-    build_multipro('spec', 'nseries', 'true', 84, Nthreads=1)
+    build_multipro('spec', 'nseries', 'true', 84, Nthreads=10)
     build_multipro('spec', 'nseries', 'upweight', 84, Nthreads=10)
