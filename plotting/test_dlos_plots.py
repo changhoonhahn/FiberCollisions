@@ -19,6 +19,7 @@ from dlos_plot import Plotdlos
 from dlos.fitting import catalog_dlospeak_fit
 from dlos.fitting import catalog_dlospeak_env_fit
 from dlos.fitting import peak_gauss 
+from dlos.dlos_env import dlos_env_bestfit
 
 
 def dlospeak_dlos_test(cat_corr):
@@ -136,10 +137,10 @@ def catalog_dlospeak_env_fit_test(catalog_name, n_NN=3, fit='gauss', **kwargs):
 
     combined_dlos = np.array(combined_dlos)
     combined_env = np.array(combined_env)
+        
+    dlos_fig = Plotdlos()
     
     for i_env, envbin in enumerate(bestfit_envbins): 
-
-        dlos_fig = Plotdlos()
 
         in_envbin = np.where(
                 (combined_env >= envbin[0]) & 
@@ -157,7 +158,7 @@ def catalog_dlospeak_env_fit_test(catalog_name, n_NN=3, fit='gauss', **kwargs):
                 combined_dlos[in_envbin], 
                 binsize = 'fd_binsize', 
                 lw = 4, 
-                color = prettycolors()[1], 
+                color = prettycolors()[i_env % 15], 
                 label = envbin_label
                 )
 
@@ -177,33 +178,102 @@ def catalog_dlospeak_env_fit_test(catalog_name, n_NN=3, fit='gauss', **kwargs):
                     ), 
                 ls = '--', 
                 lw = 4, 
-                color = 'k',
+                color = prettycolors()[i_env % 15], 
                 label = fit_label
                 )
 
-        dlos_fig.set_range(xrange=[-20.0, 20.0])
-        dlos_fig.set_legend()
+    dlos_fig.set_range(xrange=[-20.0, 20.0])
+    #dlos_fig.set_legend()
         
-        fig_file = ''.join([
-            '/home/users/hahn/powercode/FiberCollisions/figure/' , 
-            'qaplot_', 
-            catalog_name, 
-            '_combined_dlos_d', str(n_NN), 'NN_', 
-            str(i_env), 'of', str(len(bestfit_envbins)),
-            '_peakfit_', fit, 
-            '.png'
-            ])
+    fig_file = ''.join([
+        '/home/users/hahn/powercode/FiberCollisions/figure/' , 
+        'qaplot_', 
+        catalog_name, 
+        '_combined_dlos_d', str(n_NN), 'NN', 
+        '_peakfit_', fit, 
+        '.png'
+        ])
 
-        dlos_fig.save_fig(fig_file)
-        plt.close()
+    dlos_fig.save_fig(fig_file)
+    plt.close()
 
     return None
+
+def dlos_env_bestfit_test(cat_corr, n_NN=3, **kwargs): 
+    """
+    """
+    catdict = cat_corr['catalog']
+    
+    prettyplot()
+
+    fpeak_fig = plt.figure(1)
+    fpeak_sub = fpeak_fig.add_subplot(111)
+    sigma_fig = plt.figure(2)
+    sigma_sub = sigma_fig.add_subplot(111)
+
+    if not isinstance(n_NN, list): 
+        n_NN_list = [n_NN]
+    else: 
+        n_NN_list = n_NN
+        
+    for i_nNN, nNN in enumerate(n_NN_list): 
+
+        env_low, env_high, fpeaks, sigmas, amps =  dlos_env_bestfit(
+                cat_corr, 
+                n_NN = nNN, 
+                **kwargs
+                )
+
+        env_mid = 0.5 * ( env_low + env_high )
+
+        fpeak_sub.plot(env_mid, fpeaks, lw=4, c=prettycolors()[i_nNN], label=r"$\mathtt{d_{"+str(nNN)+"NN}}$")
+
+        sigma_sub.plot(env_mid, sigmas, lw=4, c=prettycolors()[i_nNN], label=r"$\mathtt{d_{"+str(nNN)+"NN}}$")
+
+    fpeak_sub.set_xlabel(''.join([r"$\mathtt{d_{", str(n_NN), "NN}}$"]), fontsize = 20)
+    fpeak_sub.set_ylabel(''.join([r"$\mathtt{f_{peak}}$"]), fontsize = 20)
+    fpeak_sub.set_xlim([0.0, env_high[-1]])
+    fpeak_sub.set_ylim([0.0, 1.0]) 
+    fpeak_sub.legend()
+
+    sigma_sub.set_xlabel(''.join([r"$\mathtt{d_{", str(n_NN), "NN}}$"]), fontsize = 20)
+    sigma_sub.set_ylabel(''.join([r"$\mathtt{\sigma}$"]), fontsize = 20)
+    sigma_sub.set_xlim([0.0, env_high[-1]])
+    sigma_sub.set_ylim([0.0, 5.0])
+    sigma_sub.legend()
+    
+    fpeak_fig_file = ''.join([
+        '/home/users/hahn/powercode/FiberCollisions/figure/' , 
+        'qaplot_', 
+        catdict['name'], 
+        '_fpeak_d', ','.join([str(nNN) for nNN in n_NN_list]), 'NN',
+        '.png'
+        ])
+    fpeak_fig.savefig(fpeak_fig_file, bbox_inches="tight")
+
+    sigma_fig_file = ''.join([
+        '/home/users/hahn/powercode/FiberCollisions/figure/' , 
+        'qaplot_', 
+        catdict['name'], 
+        '_sigma_d', ','.join([str(nNN) for nNN in n_NN_list]), 'NN',
+        '.png'
+        ])
+    sigma_fig.savefig(sigma_fig_file, bbox_inches="tight")
+
+    plt.close()
+
+    return None
+
 
 if __name__=="__main__": 
     cat_corr = {
             'catalog': {'name': 'nseries', 'n_mock':1}, 
             'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 4.0, 'fpeak':0.69}
             }
-    catalog_dlospeak_env_fit_test('nseries', n_NN=3, fit='gauss') 
+
+    #for nNN in [1,3,5,7,10]: 
+    #    catalog_dlospeak_env_fit_test('nseries', n_NN=nNN, fit='gauss') 
+
+    dlos_env_bestfit_test(cat_corr, n_NN=[1,3,5,7,10])
     #catalog_dlospeak_fit_test('nseries', fit='gauss')
     #dlospeak_dlos_test(cat_corr)

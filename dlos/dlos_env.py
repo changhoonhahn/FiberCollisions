@@ -108,6 +108,37 @@ class DlosEnv(Dlos):
 
         return None 
 
+def dlos_env_bestfit(cat_corr, n_NN=3, **kwargs): 
+    """
+    """
+    dlosclass = Dlos(cat_corr)
+    dlosclass.file_name
+       
+    # file that contains the bestfit parameters of the 
+    # dLOS distribution for dLOS in bins of galaxy 
+    # environment
+    dlos_envbin_fit_file = ''.join([
+        (dlosclass.file_name).rsplit('/', 1)[0], '/', 
+        'DLOS_env_d', str(n_NN), 'NN_bin_dist_bestfit.dat'
+        ])
+    
+    if not os.path.isfile(dlos_envbin_fit_file): 
+        bestfit_fpeaks, bestfit_sigmas, bestfit_amps, bestfit_envbins = catalog_dlospeak_env_fit(
+                catalog_name, 
+                n_NN=n_NN,
+                fit='gauss',
+                writeout=True
+                )
+
+    env_low, env_high, fpeaks, sigmas, amps = np.loadtxt(
+            dlos_envbin_fit_file, 
+            skiprows = 1, 
+            unpack = True, 
+            usecols = [0,1,2,3,4]
+            )
+
+    return [env_low, env_high, fpeaks, sigmas, amps] 
+
 def fpeak_dNN(dNN, cat_corr, n_NN=3, **kwargs): 
     ''' fpeak value given nth nearest neighbor distance
 
@@ -149,7 +180,6 @@ if __name__=="__main__":
     #    comb_dlos = DlosEnv(cat_corr, n_NN=nnn)
     #    comb_dlos.fpeak_env(stepsize=2)
     #print fpeak_dNN([1.2, 3.4, 5.7], cat_corr, n_NN=3) 
-
 
 """
     def calculate(self, **kwargs): 

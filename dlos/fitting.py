@@ -130,10 +130,11 @@ def catalog_dlospeak_fit(catalog_name, fit='gauss', **kwargs):
 
     return fpeak, sigma, amp
 
-def catalog_dlospeak_env_fit(catalog_name, n_NN=3, fit='gauss', **kwargs): 
+def catalog_dlospeak_env_fit(catalog_name, n_NN=3, fit='gauss', writeout=True, **kwargs): 
     """ Fit peak of the dLOS distribution as a function of environment 
     for various catalogs. dLOS distribution is calculated for bins of 
-    galaxy environment. These dLOS distributions are individually fit. 
+    galaxy environment. For each galaxy environment bin, dLOS distributions 
+    are individually fit using MPFIT 
 
     Parameters
     ----------
@@ -230,6 +231,35 @@ def catalog_dlospeak_env_fit(catalog_name, n_NN=3, fit='gauss', **kwargs):
         fpeaks.append(fpeak)
         sigmas.append(sigma)
         amps.append(amp)
+    
+    # write out the bestfit parameters for each of the environment bins
+    if writeout: 
+
+        envbins_low = np.array([ebin[0] for ebin in envbins])
+        envbins_high = np.array([ebin[1] for ebin in envbins])
+        
+        data_list = [
+                envbins_low, 
+                envbins_high, 
+                np.array(fpeaks), 
+                np.array(sigmas), 
+                np.array(amps)
+                ]
+        data_hdr = "Columns : dNN_low, dNN_high, fpeak, sigma, amplitude"
+        data_fmt = ['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f']
+
+        output_file = ''.join([
+            (dlosclass.dlos_file).rsplit('/', 1)[0], '/', 
+            'DLOS_env_d', str(n_NN), 'NN_bin_dist_bestfit.dat'
+            ])
+
+        np.savetxt(
+                output_file, 
+                (np.vstack(np.array(data_list))).T, 
+                fmt = data_fmt, 
+                delimiter = '\t', 
+                header = data_hdr
+                ) 
 
     return fpeaks, sigmas, amps, envbins
 
