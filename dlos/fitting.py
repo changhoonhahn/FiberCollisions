@@ -5,6 +5,7 @@ Fitting the peak of the line-of-sight displacement distribution
 
 """
 import numpy as np
+import random 
 import os 
 
 import mpfit
@@ -233,6 +234,59 @@ def catalog_dlospeak_env_fit(catalog_name, n_NN=3, fit='gauss', writeout=True, *
         sigmas.append(sigma)
         amps.append(amp)
         nbins.append(np.float(len(in_envbin[0])))
+
+    # calculate jack knife error estimates for fpeak and sigma by 
+    # dividing the combined dLOS list into n_mock parts and calucating
+    # fpeak(dNN) and env(dNN) for parts of combined dLOS not excluded
+
+    jumbled_indices = random.shuffle( range(len(comb_dlos)) ) 
+    
+    jackknife_fpeaks, jackknife_sigma = [], []
+
+    ######
+    ######
+    ######
+    ###### IMPLEMENT JACK KNIFE ERRORS
+    ######
+    ######
+    ######
+    ######
+
+    for i_jack in xrange(0, len(comb_dlos), n_mocks): 
+        
+        keep_indices = list(
+                set(range(len(comb_dlos))) - set(range(i_jack, i_jack + n_mocks))
+                ) 
+        keep_jumbled_indices = jumbled_indices[keep_indices]
+
+        keep_comb_dlos = comb_dlos[keep_jumbled_indices]
+        keep_comb_env  = comb_env[keep_jumbled_indices]
+    
+        jack_fpeaks, jack_sigmas = 0.0, 0.0 
+
+        for i_bin, env_bin in enumerate(envbins): 
+        
+            in_envbin = np.where(
+                    (keep_comb_env >= env_bin[0]) & 
+                    (keep_comb_env < env_bin[1])
+                    )
+            
+            try: 
+                fpeak, sigma, amp = dlospeak_fit(
+                        keep_comb_dlos[in_envbin], 
+                        fit = 'gauss', 
+                        peak_range = [-15.0, 15.0]
+                        )   
+            except ZeroDivisionError: 
+                fpeak, sigma, amp = -999, -999, -999
+            
+            jack_fpeaks += (fpeak - fpeaks[i_bin])**2
+            jack_sigma += (fpeak - fpeaks[i_bin])**2
+            jack_fpeaks.append(fpeak)
+            jack_sigmas.append(sigma)
+        
+        jackknife_fpeaks.append(jack_fpeaks)
+        jackknife_sigmas.append(jack_sigmas)
     
     # write out the bestfit parameters for each of the environment bins
     if writeout: 
