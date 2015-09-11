@@ -19,7 +19,9 @@ from dlos_plot import Plotdlos
 from dlos.fitting import catalog_dlospeak_fit
 from dlos.fitting import catalog_dlospeak_env_fit
 from dlos.fitting import peak_gauss 
-from dlos.dlos_env import dlos_env_bestfit
+from dlos.fitting import dlos_envbin_peakfit
+from dlos.fitting import dlos_peakfit_fpeak_env_fit
+from dlos.fitting import dlos_peakfit_sigma_env_fit
 
 
 def dlospeak_dlos_test(cat_corr):
@@ -199,7 +201,7 @@ def catalog_dlospeak_env_fit_test(catalog_name, n_NN=3, fit='gauss', **kwargs):
 
     return None
 
-def dlos_env_bestfit_test(cat_corr, n_NN=3, **kwargs): 
+def dlos_envbin_peakfit_test(cat_corr, n_NN=3, **kwargs): 
     """
     """
     catdict = cat_corr['catalog']
@@ -218,17 +220,50 @@ def dlos_env_bestfit_test(cat_corr, n_NN=3, **kwargs):
         
     for i_nNN, nNN in enumerate(n_NN_list): 
 
-        env_low, env_high, fpeaks, sigmas, amps =  dlos_env_bestfit(
+        env_low, env_high, fpeaks, sigmas, amps, nbins =  dlos_envbin_peakfit(
                 cat_corr, 
-                n_NN = nNN, 
+                n_NN = nNN,
                 **kwargs
                 )
 
         env_mid = 0.5 * ( env_low + env_high )
 
-        fpeak_sub.plot(env_mid, fpeaks, lw=4, c=prettycolors()[i_nNN], label=r"$\mathtt{d_{"+str(nNN)+"NN}}$")
+        fpeak_errs = np.sqrt( fpeaks / nbins )
+        sigma_errs = np.sqrt( sigmas / nbins ) 
 
-        sigma_sub.plot(env_mid, sigmas, lw=4, c=prettycolors()[i_nNN], label=r"$\mathtt{d_{"+str(nNN)+"NN}}$")
+        #fpeak_sub.plot(env_mid, fpeaks, lw = 4, c = prettycolors()[i_nNN], label = r"$\mathtt{d_{"+str(nNN)+"NN}}$")
+        fpeak_sub.errorbar(
+                env_mid, fpeaks, 
+                yerr = fpeak_errs, 
+                c = prettycolors()[i_nNN],
+                label = r"$\mathtt{d_{"+str(nNN)+"NN}}$"
+                )
+        # best fit line to fpeak(env)
+        fpeak_slope, fpeak_yint = dlos_peakfit_fpeak_env_fit(cat_corr, n_NN=nNN, fit='gauss', **kwargs)
+        print fpeak_slope, fpeak_yint
+        fpeak_sub.plot(
+                env_mid, fpeak_slope * env_mid + fpeak_yint,
+                lw = 4, 
+                ls = '--', 
+                c = prettycolors()[i_nNN]
+                )
+
+        #sigma_sub.plot(env_mid, sigmas, lw=4, c=prettycolors()[i_nNN], label=r"$\mathtt{d_{"+str(nNN)+"NN}}$")
+        sigma_sub.errorbar(
+                env_mid, sigmas, 
+                yerr = sigma_errs, 
+                c = prettycolors()[i_nNN], 
+                label = r"$\mathtt{d_{"+str(nNN)+"NN}}$"
+                )
+        # best fit line to sigma(env)
+        sigma_slope, sigma_yint = dlos_peakfit_sigma_env_fit(cat_corr, n_NN=nNN, fit='gauss', **kwargs)
+        print sigma_slope, sigma_yint
+        sigma_sub.plot(
+                env_mid, sigma_slope * env_mid + sigma_yint,
+                lw = 4, 
+                ls = '--', 
+                c = prettycolors()[i_nNN]
+                )
 
     fpeak_sub.set_xlabel(''.join([r"$\mathtt{d_{", str(n_NN), "NN}}$"]), fontsize = 20)
     fpeak_sub.set_ylabel(''.join([r"$\mathtt{f_{peak}}$"]), fontsize = 20)
@@ -273,7 +308,6 @@ if __name__=="__main__":
 
     #for nNN in [1,3,5,7,10]: 
     #    catalog_dlospeak_env_fit_test('nseries', n_NN=nNN, fit='gauss') 
-
-    dlos_env_bestfit_test(cat_corr, n_NN=[1,3,5,7,10])
+    dlos_envbin_peakfit_test(cat_corr, n_NN=[3,5,7,10])
     #catalog_dlospeak_fit_test('nseries', fit='gauss')
     #dlospeak_dlos_test(cat_corr)

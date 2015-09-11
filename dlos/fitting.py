@@ -5,6 +5,7 @@ Fitting the peak of the line-of-sight displacement distribution
 
 """
 import numpy as np
+import os 
 
 import mpfit
 from dlos import Dlos
@@ -206,7 +207,7 @@ def catalog_dlospeak_env_fit(catalog_name, n_NN=3, fit='gauss', writeout=True, *
             for i in np.arange(istart, iend) 
             ] 
 
-    fpeaks, sigmas, amps, envbins = [], [], [], []
+    fpeaks, sigmas, amps, envbins, nbins = [], [], [], [], [] 
 
     for i_bin, env_bin in enumerate(env_bins): 
         
@@ -231,6 +232,7 @@ def catalog_dlospeak_env_fit(catalog_name, n_NN=3, fit='gauss', writeout=True, *
         fpeaks.append(fpeak)
         sigmas.append(sigma)
         amps.append(amp)
+        nbins.append(np.float(len(in_envbin[0])))
     
     # write out the bestfit parameters for each of the environment bins
     if writeout: 
@@ -243,10 +245,11 @@ def catalog_dlospeak_env_fit(catalog_name, n_NN=3, fit='gauss', writeout=True, *
                 envbins_high, 
                 np.array(fpeaks), 
                 np.array(sigmas), 
-                np.array(amps)
+                np.array(amps), 
+                np.array(nbins)
                 ]
-        data_hdr = "Columns : dNN_low, dNN_high, fpeak, sigma, amplitude"
-        data_fmt = ['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f']
+        data_hdr = "Columns : dNN_low, dNN_high, fpeak, sigma, amplitude, nbin"
+        data_fmt = ['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f']
 
         output_file = ''.join([
             (dlosclass.dlos_file).rsplit('/', 1)[0], '/', 
@@ -261,7 +264,98 @@ def catalog_dlospeak_env_fit(catalog_name, n_NN=3, fit='gauss', writeout=True, *
                 header = data_hdr
                 ) 
 
-    return fpeaks, sigmas, amps, envbins
+    return fpeaks, sigmas, amps, envbins, nbins
+
+def dlos_envbin_peakfit(cat_corr, n_NN=3, fit='gauss', **kwargs): 
+    """ Best-fit parameters for the peak of the dLOS distribution
+    classified into bins of galaxy environment. This function is 
+    mostly a wrapper for the function catalog_dlospeak_env_fit.
+    """
+    catdict = cat_corr['catalog']
+
+    dlosclass = Dlos(cat_corr)
+    dlosclass.file_name
+       
+    # file that contains the bestfit parameters of the 
+    # dLOS distribution for dLOS in bins of galaxy 
+    # environment
+    dlos_envbin_fit_file = ''.join([
+        (dlosclass.file_name).rsplit('/', 1)[0], '/', 
+        'DLOS_env_d', str(n_NN), 'NN_bin_dist_bestfit.dat'
+        ])
+    
+    if not os.path.isfile(dlos_envbin_fit_file): 
+        bestfit_fpeaks, bestfit_sigmas, bestfit_amps, bestfit_envbins, n_bins= catalog_dlospeak_env_fit(
+                catdict['name'], 
+                n_NN = n_NN,
+                fit = fit,
+                writeout=True
+                )
+
+    env_low, env_high, fpeaks, sigmas, amps, nbins = np.loadtxt(
+            dlos_envbin_fit_file, 
+            skiprows = 1, 
+            unpack = True, 
+            usecols = [0,1,2,3,4,5]
+            )
+
+    return [env_low, env_high, fpeaks, sigmas, amps, nbins] 
+
+def dlos_peakfit_fpeak_env_fit(cat_corr, n_NN=3, fit='gauss', **kwargs): 
+    """ Linear fit of the best-fit fpeak as a function of environment. 
+    Bestfit fpeak values are computed for the dLOS distribution in bins of 
+    galaxy environment. Linear fit is done using MPFit.
+
+
+    """
+
+    env_low, env_high, fpeaks, sigmas, amps, nbins = dlos_envbin_peakfit(
+            cat_corr, 
+            n_NN = n_NN, 
+            fit = fit, 
+            **kwargs
+            )
+        
+    # estimate fpeak errors 
+    fpeak_errs = np.sqrt( fpeaks / nbins ) 
+
+    p0 = [ -0.01, 0.8 ] # guess
+    fa = {'x': np.array( 0.5 * (env_low + env_high) ), 'y': fpeaks, 'err': fpeak_errs}
+    
+    fit_param = mpfit.mpfit(mpfit_linear, p0, functkw=fa)
+        
+    best_slope = fit_param.params[0]
+    best_yint = fit_param.params[1]
+
+    return best_slope, best_yint
+
+def dlos_peakfit_sigma_env_fit(cat_corr, n_NN=3, fit='gauss', **kwargs): 
+    """ Linear fit of the best-fit sigma as a function of environment. 
+    Bestfit sigma values are computed for the dLOS distribution in bins of 
+    galaxy environment. Linear fit is done using MPFit.
+
+
+    """
+
+    env_low, env_high, fpeaks, sigmas, amps, nbins = dlos_envbin_peakfit(
+            cat_corr, 
+            n_NN = n_NN, 
+            fit = fit, 
+            **kwargs
+            )
+        
+    # estimate sigma errors 
+    sigma_errs = np.sqrt( sigmas / nbins ) 
+
+    p0 = [ -0.01, 0.8 ] # guess
+    fa = {'x': np.array( 0.5 * (env_low + env_high) ), 'y': sigmas, 'err': sigma_errs}
+    
+    fit_param = mpfit.mpfit(mpfit_linear, p0, functkw=fa)
+        
+    best_slope = fit_param.params[0]
+    best_yint = fit_param.params[1]
+
+    return best_slope, best_yint
 
 #---- fit functions -----
 def fit_linear(x, p): 
