@@ -5,7 +5,7 @@ Fitting the peak of the line-of-sight displacement distribution
 
 """
 import numpy as np
-import random 
+import math 
 import os 
 
 import mpfit
@@ -200,6 +200,8 @@ def catalog_dlospeak_env_fit(catalog_name, n_NN=3, fit='gauss', writeout=True, *
 
     print 'd'+str(n_NN)+'NN, Minimum ', comb_env.min(), ' Maximum ', comb_env.max()
     
+    # Calculate fpeak and sigma for dLOS distribution in bins of 
+    # galaxy environment. 
     istart = np.int( np.floor( comb_env.min()/np.float(dNN_stepsize) ) )
     iend = np.int( np.ceil( comb_env.max()/np.float(dNN_stepsize) ) )
 
@@ -238,32 +240,30 @@ def catalog_dlospeak_env_fit(catalog_name, n_NN=3, fit='gauss', writeout=True, *
     # calculate jack knife error estimates for fpeak and sigma by 
     # dividing the combined dLOS list into n_mock parts and calucating
     # fpeak(dNN) and env(dNN) for parts of combined dLOS not excluded
-
-    jumbled_indices = random.shuffle( range(len(comb_dlos)) ) 
     
-    jackknife_fpeaks, jackknife_sigma = [], []
+    jumbled_indices = np.arange(len(comb_dlos))
+    random.shuffle( jumbled_indices ) 
+    
+    jackknife_fpeaks  = np.zeros(len(envbins))
+    jackknife_sigmas  = np.zeros(len(envbins))
+    n_jackknife_fpeak = np.zeros(len(envbins))
+    n_jackknife_sigma = np.zeros(len(envbins))
+    
+    omit_binsize = int(
+            np.floor( np.float(len(comb_dlos)) / np.float(n_mocks) )
+            )
 
-    ######
-    ######
-    ######
-    ###### IMPLEMENT JACK KNIFE ERRORS
-    ######
-    ######
-    ######
-    ######
+    for i_jack in range(n_mocks): 
 
-    for i_jack in xrange(0, len(comb_dlos), n_mocks): 
-        
-        keep_indices = list(
-                set(range(len(comb_dlos))) - set(range(i_jack, i_jack + n_mocks))
-                ) 
+        keep_indices = list( 
+                set( range(len(comb_dlos)) ) -  \
+                        set( range(i_jack * omit_binsize, (i_jack + 1) * omit_binsize) )
+                        ) 
         keep_jumbled_indices = jumbled_indices[keep_indices]
-
+        
         keep_comb_dlos = comb_dlos[keep_jumbled_indices]
         keep_comb_env  = comb_env[keep_jumbled_indices]
-    
-        jack_fpeaks, jack_sigmas = 0.0, 0.0 
-
+        
         for i_bin, env_bin in enumerate(envbins): 
         
             in_envbin = np.where(
@@ -277,16 +277,20 @@ def catalog_dlospeak_env_fit(catalog_name, n_NN=3, fit='gauss', writeout=True, *
                         fit = 'gauss', 
                         peak_range = [-15.0, 15.0]
                         )   
+
+                if not math.isnan((fpeak - fpeaks[i_bin])**2): 
+                    jackknife_fpeaks[i_bin] += (fpeak - fpeaks[i_bin])**2
+                    n_jackknife_fpeak[i_bin] += 1.
+
+                if not math.isnan((sigma - sigmas[i_bin])**2): 
+                    jackknife_sigmas[i_bin] += (sigma - sigmas[i_bin])**2
+                    n_jackknife_sigma[i_bin] += 1.
+
             except ZeroDivisionError: 
-                fpeak, sigma, amp = -999, -999, -999
-            
-            jack_fpeaks += (fpeak - fpeaks[i_bin])**2
-            jack_sigma += (fpeak - fpeaks[i_bin])**2
-            jack_fpeaks.append(fpeak)
-            jack_sigmas.append(sigma)
-        
-        jackknife_fpeaks.append(jack_fpeaks)
-        jackknife_sigmas.append(jack_sigmas)
+                pass 
+
+    jackknife_fpeaks = np.sqrt( (n_jackknife_fpeak - 1.0)/n_jackknife_fpeak * jackknife_fpeaks ) 
+    jackknife_sigmas = np.sqrt( (n_jackknife_sigma - 1.0)/n_jackknife_sigma * jackknife_sigmas ) 
     
     # write out the bestfit parameters for each of the environment bins
     if writeout: 
@@ -298,12 +302,14 @@ def catalog_dlospeak_env_fit(catalog_name, n_NN=3, fit='gauss', writeout=True, *
                 envbins_low, 
                 envbins_high, 
                 np.array(fpeaks), 
+                jackknife_fpeaks, 
                 np.array(sigmas), 
+                jackknife_sigmas, 
                 np.array(amps), 
                 np.array(nbins)
                 ]
-        data_hdr = "Columns : dNN_low, dNN_high, fpeak, sigma, amplitude, nbin"
-        data_fmt = ['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f']
+        data_hdr = "Columns : dNN_low, dNN_high, fpeak, fpeak_err, sigma, sigma_err, amplitude, nbin"
+        data_fmt = ['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f']
 
         output_file = ''.join([
             (dlosclass.dlos_file).rsplit('/', 1)[0], '/', 
@@ -317,8 +323,8 @@ def catalog_dlospeak_env_fit(catalog_name, n_NN=3, fit='gauss', writeout=True, *
                 delimiter = '\t', 
                 header = data_hdr
                 ) 
-
-    return fpeaks, sigmas, amps, envbins, nbins
+    
+    return data_list 
 
 def dlos_envbin_peakfit(cat_corr, n_NN=3, fit='gauss', **kwargs): 
     """ Best-fit parameters for the peak of the dLOS distribution
@@ -339,39 +345,37 @@ def dlos_envbin_peakfit(cat_corr, n_NN=3, fit='gauss', **kwargs):
         ])
     
     if not os.path.isfile(dlos_envbin_fit_file): 
-        bestfit_fpeaks, bestfit_sigmas, bestfit_amps, bestfit_envbins, n_bins= catalog_dlospeak_env_fit(
+
+        bestfit_list = catalog_dlospeak_env_fit(
                 catdict['name'], 
-                n_NN = n_NN,
-                fit = fit,
+                n_NN=n_NN,
+                fit=fit, 
                 writeout=True
                 )
 
-    env_low, env_high, fpeaks, sigmas, amps, nbins = np.loadtxt(
+    env_low, env_high, fpeaks, fpeak_err, sigmas, sigma_err, amps, nbins = np.loadtxt(
             dlos_envbin_fit_file, 
             skiprows = 1, 
             unpack = True, 
-            usecols = [0,1,2,3,4,5]
+            usecols = [0,1,2,3,4,5,6,7]
             )
 
-    return [env_low, env_high, fpeaks, sigmas, amps, nbins] 
+    return [env_low, env_high, fpeaks, fpeak_err, sigmas, sigma_err, amps, nbins] 
 
 def dlos_peakfit_fpeak_env_fit(cat_corr, n_NN=3, fit='gauss', **kwargs): 
     """ Linear fit of the best-fit fpeak as a function of environment. 
     Bestfit fpeak values are computed for the dLOS distribution in bins of 
     galaxy environment. Linear fit is done using MPFit.
 
-
     """
 
-    env_low, env_high, fpeaks, sigmas, amps, nbins = dlos_envbin_peakfit(
-            cat_corr, 
-            n_NN = n_NN, 
-            fit = fit, 
-            **kwargs
-            )
-        
-    # estimate fpeak errors 
-    fpeak_errs = np.sqrt( fpeaks / nbins ) 
+    env_low, env_high, fpeaks, fpeak_errs, sigmas, sigma_errs, amps, nbins =  \
+            dlos_envbin_peakfit(
+                    cat_corr, 
+                    n_NN = n_NN,
+                    fit = fit, 
+                    **kwargs
+                    )
 
     p0 = [ -0.01, 0.8 ] # guess
     fa = {'x': np.array( 0.5 * (env_low + env_high) ), 'y': fpeaks, 'err': fpeak_errs}
@@ -388,19 +392,16 @@ def dlos_peakfit_sigma_env_fit(cat_corr, n_NN=3, fit='gauss', **kwargs):
     Bestfit sigma values are computed for the dLOS distribution in bins of 
     galaxy environment. Linear fit is done using MPFit.
 
-
     """
 
-    env_low, env_high, fpeaks, sigmas, amps, nbins = dlos_envbin_peakfit(
-            cat_corr, 
-            n_NN = n_NN, 
-            fit = fit, 
-            **kwargs
-            )
+    env_low, env_high, fpeaks, fpeak_errs, sigmas, sigma_errs, amps, nbins =  \
+            dlos_envbin_peakfit(
+                    cat_corr, 
+                    n_NN = n_NN,
+                    fit = fit, 
+                    **kwargs
+                    )
         
-    # estimate sigma errors 
-    sigma_errs = np.sqrt( sigmas / nbins ) 
-
     p0 = [ -0.01, 0.8 ] # guess
     fa = {'x': np.array( 0.5 * (env_low + env_high) ), 'y': sigmas, 'err': sigma_errs}
     

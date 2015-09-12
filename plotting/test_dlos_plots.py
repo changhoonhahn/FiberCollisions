@@ -129,31 +129,40 @@ def catalog_dlospeak_env_fit_test(catalog_name, n_NN=3, fit='gauss', **kwargs):
     """
 
     combined_dlos, combined_env = [], [] 
-    bestfit_fpeaks, bestfit_sigmas, bestfit_amps, bestfit_envbins = catalog_dlospeak_env_fit(
+    bestfit_list = catalog_dlospeak_env_fit(
             catalog_name, 
             n_NN=n_NN,
             fit='gauss', 
             combined_dlos=combined_dlos, 
             combined_env=combined_env
             )
+    
+    env_low           = bestfit_list[0]
+    env_high          = bestfit_list[1]
+    bestfit_fpeaks    = bestfit_list[2]
+    bestfit_fpeak_err = bestfit_list[3]
+    bestfit_sigmas    = bestfit_list[4]
+    bestfit_sigma_err = bestfit_list[5]
+    bestfit_amps      = bestfit_list[6]
+    bestfit_nbins     = bestfit_list[7]
 
     combined_dlos = np.array(combined_dlos)
     combined_env = np.array(combined_env)
         
     dlos_fig = Plotdlos()
     
-    for i_env, envbin in enumerate(bestfit_envbins): 
+    for i_env in xrange(len(env_low)): 
 
         in_envbin = np.where(
-                (combined_env >= envbin[0]) & 
-                (combined_env < envbin[1])
+                (combined_env >= env_low[i_env]) & 
+                (combined_env < env_high[i_env])
                 )
 
         envbin_label = ''.join([
             r'$\mathtt{d_{LOS}}$ Distribution $', 
-            str(envbin[0]), 
+            str(env_low[i_env]), 
             ' < d_{', str(n_NN), 'NN} < ', 
-            str(envbin[1]), '$'
+            str(env_high[i_env]), '$'
             ])
         
         dlos_fig.plotfrom_dlos(
@@ -220,16 +229,14 @@ def dlos_envbin_peakfit_test(cat_corr, n_NN=3, **kwargs):
         
     for i_nNN, nNN in enumerate(n_NN_list): 
 
-        env_low, env_high, fpeaks, sigmas, amps, nbins =  dlos_envbin_peakfit(
-                cat_corr, 
-                n_NN = nNN,
-                **kwargs
-                )
+        env_low, env_high, fpeaks, fpeak_errs, sigmas, sigma_errs, amps, nbins =  \
+                dlos_envbin_peakfit(
+                        cat_corr, 
+                        n_NN = nNN,
+                        **kwargs
+                        )
 
         env_mid = 0.5 * ( env_low + env_high )
-
-        fpeak_errs = np.sqrt( fpeaks / nbins )
-        sigma_errs = np.sqrt( sigmas / nbins ) 
 
         #fpeak_sub.plot(env_mid, fpeaks, lw = 4, c = prettycolors()[i_nNN], label = r"$\mathtt{d_{"+str(nNN)+"NN}}$")
         fpeak_sub.errorbar(
@@ -306,8 +313,8 @@ if __name__=="__main__":
             'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 4.0, 'fpeak':0.69}
             }
 
-    #for nNN in [1,3,5,7,10]: 
-    #    catalog_dlospeak_env_fit_test('nseries', n_NN=nNN, fit='gauss') 
-    dlos_envbin_peakfit_test(cat_corr, n_NN=[3,5,7,10])
+    for nNN in [1,3,5,7,10]: 
+        catalog_dlospeak_env_fit_test('nseries', n_NN=nNN, fit='gauss') 
+    dlos_envbin_peakfit_test(cat_corr, n_NN=[1,3,5,7,10])
     #catalog_dlospeak_fit_test('nseries', fit='gauss')
     #dlospeak_dlos_test(cat_corr)
