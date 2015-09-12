@@ -219,6 +219,7 @@ def dlos_envbin_peakfit_test(cat_corr, n_NN=3, **kwargs):
 
     fpeak_fig = plt.figure(1)
     fpeak_sub = fpeak_fig.add_subplot(111)
+
     sigma_fig = plt.figure(2)
     sigma_sub = sigma_fig.add_subplot(111)
 
@@ -235,40 +236,54 @@ def dlos_envbin_peakfit_test(cat_corr, n_NN=3, **kwargs):
                         n_NN = nNN,
                         **kwargs
                         )
-
         env_mid = 0.5 * ( env_low + env_high )
 
-        #fpeak_sub.plot(env_mid, fpeaks, lw = 4, c = prettycolors()[i_nNN], label = r"$\mathtt{d_{"+str(nNN)+"NN}}$")
-        fpeak_sub.errorbar(
-                env_mid, fpeaks, 
-                yerr = fpeak_errs, 
-                c = prettycolors()[i_nNN],
-                label = r"$\mathtt{d_{"+str(nNN)+"NN}}$"
+        # best fit line to fpeak values for bins of 
+        # galaxy environment.
+        fpeak_slope, fpeak_yint = dlos_peakfit_fpeak_env_fit(
+                cat_corr, 
+                n_NN=nNN, 
+                fit='gauss', 
+                **kwargs
                 )
-        # best fit line to fpeak(env)
-        fpeak_slope, fpeak_yint = dlos_peakfit_fpeak_env_fit(cat_corr, n_NN=nNN, fit='gauss', **kwargs)
-        print fpeak_slope, fpeak_yint
         fpeak_sub.plot(
                 env_mid, fpeak_slope * env_mid + fpeak_yint,
                 lw = 4, 
                 ls = '--', 
+                c = prettycolors()[i_nNN], 
+                label = ''.join([
+                    r"$\mathtt{d_{"+str(nNN)+"NN}}$ : ", 
+                    str(round(fpeak_slope, 3)), ", ", str(round(fpeak_yint, 2)) 
+                    ])
+                )
+        fpeak_sub.errorbar(
+                env_mid, fpeaks, 
+                yerr = fpeak_errs, 
+                fmt='o', 
                 c = prettycolors()[i_nNN]
                 )
 
-        #sigma_sub.plot(env_mid, sigmas, lw=4, c=prettycolors()[i_nNN], label=r"$\mathtt{d_{"+str(nNN)+"NN}}$")
-        sigma_sub.errorbar(
-                env_mid, sigmas, 
-                yerr = sigma_errs, 
-                c = prettycolors()[i_nNN], 
-                label = r"$\mathtt{d_{"+str(nNN)+"NN}}$"
-                )
         # best fit line to sigma(env)
-        sigma_slope, sigma_yint = dlos_peakfit_sigma_env_fit(cat_corr, n_NN=nNN, fit='gauss', **kwargs)
-        print sigma_slope, sigma_yint
+        sigma_slope, sigma_yint = dlos_peakfit_sigma_env_fit(
+                cat_corr, 
+                n_NN=nNN, 
+                fit='gauss', 
+                **kwargs
+                )
         sigma_sub.plot(
                 env_mid, sigma_slope * env_mid + sigma_yint,
                 lw = 4, 
                 ls = '--', 
+                c = prettycolors()[i_nNN],
+                label = ''.join([
+                    r"$\mathtt{d_{"+str(nNN)+"NN}}$ : ", 
+                    str(round(sigma_slope, 3)), ", ", str(round(sigma_yint, 2)) 
+                    ])
+                )
+        sigma_sub.errorbar(
+                env_mid, sigmas, 
+                yerr = sigma_errs, 
+                fmt='o', 
                 c = prettycolors()[i_nNN]
                 )
 
@@ -276,13 +291,13 @@ def dlos_envbin_peakfit_test(cat_corr, n_NN=3, **kwargs):
     fpeak_sub.set_ylabel(''.join([r"$\mathtt{f_{peak}}$"]), fontsize = 20)
     fpeak_sub.set_xlim([0.0, env_high[-1]])
     fpeak_sub.set_ylim([0.0, 1.0]) 
-    fpeak_sub.legend()
+    fpeak_sub.legend(loc='lower left')
 
     sigma_sub.set_xlabel(''.join([r"$\mathtt{d_{", str(n_NN), "NN}}$"]), fontsize = 20)
     sigma_sub.set_ylabel(''.join([r"$\mathtt{\sigma}$"]), fontsize = 20)
     sigma_sub.set_xlim([0.0, env_high[-1]])
     sigma_sub.set_ylim([0.0, 5.0])
-    sigma_sub.legend()
+    sigma_sub.legend(loc='lower left')
     
     fpeak_fig_file = ''.join([
         '/home/users/hahn/powercode/FiberCollisions/figure/' , 
@@ -292,6 +307,7 @@ def dlos_envbin_peakfit_test(cat_corr, n_NN=3, **kwargs):
         '.png'
         ])
     fpeak_fig.savefig(fpeak_fig_file, bbox_inches="tight")
+    fpeak_fig.clear()
 
     sigma_fig_file = ''.join([
         '/home/users/hahn/powercode/FiberCollisions/figure/' , 
@@ -301,7 +317,7 @@ def dlos_envbin_peakfit_test(cat_corr, n_NN=3, **kwargs):
         '.png'
         ])
     sigma_fig.savefig(sigma_fig_file, bbox_inches="tight")
-
+    sigma_fig.clear()
     plt.close()
 
     return None
@@ -314,7 +330,7 @@ if __name__=="__main__":
             }
 
     for nNN in [1,3,5,7,10]: 
-        catalog_dlospeak_env_fit_test('nseries', n_NN=nNN, fit='gauss') 
-    dlos_envbin_peakfit_test(cat_corr, n_NN=[1,3,5,7,10])
+        #catalog_dlospeak_env_fit_test('nseries', n_NN=nNN, fit='gauss') 
+        dlos_envbin_peakfit_test(cat_corr, n_NN=[nNN])
     #catalog_dlospeak_fit_test('nseries', fit='gauss')
     #dlospeak_dlos_test(cat_corr)

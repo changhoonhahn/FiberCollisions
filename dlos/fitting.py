@@ -242,7 +242,7 @@ def catalog_dlospeak_env_fit(catalog_name, n_NN=3, fit='gauss', writeout=True, *
     # fpeak(dNN) and env(dNN) for parts of combined dLOS not excluded
     
     jumbled_indices = np.arange(len(comb_dlos))
-    random.shuffle( jumbled_indices ) 
+    np.random.shuffle( jumbled_indices ) 
     
     jackknife_fpeaks  = np.zeros(len(envbins))
     jackknife_sigmas  = np.zeros(len(envbins))
@@ -402,7 +402,7 @@ def dlos_peakfit_sigma_env_fit(cat_corr, n_NN=3, fit='gauss', **kwargs):
                     **kwargs
                     )
         
-    p0 = [ -0.01, 0.8 ] # guess
+    p0 = [ -0.03, 4.0 ] # guess
     fa = {'x': np.array( 0.5 * (env_low + env_high) ), 'y': sigmas, 'err': sigma_errs}
     
     fit_param = mpfit.mpfit(mpfit_linear, p0, functkw=fa)
