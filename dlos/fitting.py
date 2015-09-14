@@ -412,6 +412,10 @@ def dlos_peakfit_sigma_env_fit(cat_corr, n_NN=3, fit='gauss', **kwargs):
 
     return best_slope, best_yint
 
+def dlos_peakfit_fpeak_hist(): 
+    """
+    """
+
 #---- fit functions -----
 def fit_linear(x, p): 
     ''' Linear function y = a * x + b 
