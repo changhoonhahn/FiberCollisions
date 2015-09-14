@@ -20,8 +20,8 @@ from dlos.fitting import catalog_dlospeak_fit
 from dlos.fitting import catalog_dlospeak_env_fit
 from dlos.fitting import peak_gauss 
 from dlos.fitting import dlos_envbin_peakfit
-from dlos.fitting import dlos_peakfit_fpeak_env_fit
-from dlos.fitting import dlos_peakfit_sigma_env_fit
+from dlos.fitting import dlosenv_peakfit_fpeak_env_fit
+from dlos.fitting import dlosenv_peakfit_sigma_env_fit
 
 
 def dlospeak_dlos_test(cat_corr):
@@ -240,7 +240,7 @@ def dlos_envbin_peakfit_test(cat_corr, n_NN=3, **kwargs):
 
         # best fit line to fpeak values for bins of 
         # galaxy environment.
-        fpeak_slope, fpeak_yint = dlos_peakfit_fpeak_env_fit(
+        fpeak_slope, fpeak_yint = dlosenv_peakfit_fpeak_env_fit(
                 cat_corr, 
                 n_NN=nNN, 
                 fit='gauss', 
@@ -264,7 +264,7 @@ def dlos_envbin_peakfit_test(cat_corr, n_NN=3, **kwargs):
                 )
 
         # best fit line to sigma(env)
-        sigma_slope, sigma_yint = dlos_peakfit_sigma_env_fit(
+        sigma_slope, sigma_yint = dlosenv_peakfit_sigma_env_fit(
                 cat_corr, 
                 n_NN=nNN, 
                 fit='gauss', 

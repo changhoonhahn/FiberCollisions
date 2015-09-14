@@ -20,6 +20,7 @@ from corrections.true import TrueCorr
 from corrections.dlospeak import DlospeakCorr
 from corrections.fibcollided import UpweightCorr
 from corrections.rand import Rand
+from corrections.dlospeak_env import DlospeakEnvCorr
 
 # Classes ------------------------------------------------------------
 class Data(object): 
@@ -45,7 +46,8 @@ class Data(object):
             corrclass_dict = { 
                     'true': TrueCorr,
                     'upweight': UpweightCorr, 
-                    'dlospeak': DlospeakCorr 
+                    'dlospeak': DlospeakCorr, 
+                    'dlospeakenv': DlospeakEnvCorr
                     }
 
             corr_name = ((self.cat_corr)['correction'])['name']
@@ -135,12 +137,9 @@ class Data(object):
         return self.cosmos
 
 if __name__ == '__main__':
-    for zbin_str in ['_low', '_high']:
-        for specifier_str in ['', 'e2', 'e3']: 
-            cat_corr = {
-                    'catalog': {'name': 'cmasslowz'+specifier_str+zbin_str}, 
-                    'correction': {'name': 'upweight'} 
-                    }
-            corrdata = Data('data', cat_corr)
-            print corrdata.file_name
-            print corrdata.build()
+    cat_corr = {
+            'catalog': {'name': 'nseries', 'n_mock': 1}, 
+            'correction': {'name': 'dlospeakenv', 'fit': 'gauss', 'n_NN': 5, 'sigma': 3.9, 'fpeak': 0.68}
+            }
+    corrclass = Data('data', cat_corr)
+    corrclass.build()

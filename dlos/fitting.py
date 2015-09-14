@@ -362,7 +362,7 @@ def dlos_envbin_peakfit(cat_corr, n_NN=3, fit='gauss', **kwargs):
 
     return [env_low, env_high, fpeaks, fpeak_err, sigmas, sigma_err, amps, nbins] 
 
-def dlos_peakfit_fpeak_env_fit(cat_corr, n_NN=3, fit='gauss', **kwargs): 
+def dlosenv_peakfit_fpeak_env_fit(cat_corr, n_NN=3, fit='gauss', **kwargs): 
     """ Linear fit of the best-fit fpeak as a function of environment. 
     Bestfit fpeak values are computed for the dLOS distribution in bins of 
     galaxy environment. Linear fit is done using MPFit.
@@ -384,10 +384,33 @@ def dlos_peakfit_fpeak_env_fit(cat_corr, n_NN=3, fit='gauss', **kwargs):
         
     best_slope = fit_param.params[0]
     best_yint = fit_param.params[1]
+    
+    try: 
+        if kwargs['writeout']: 
+            dlosclass = Dlos(cat_corr)
+
+            dlos_fpeak_envbin_fit_file = ''.join([
+                (dlosclass.file_name).rsplit('/', 1)[0], '/', 
+                'DLOS_fpeak_env_d', str(n_NN), 'NN_bin_bestfit.dat'
+                ])
+        
+            data_hdr = "Columns : bestfit_slope, bestfit_yint"
+            data_fmt = ['%10.5f', '%10.5f']
+
+            np.savetxt(
+                    dlos_fpeak_envbin_fit_file, 
+                    np.c_[best_slope, best_yint],
+                    fmt = data_fmt, 
+                    delimiter = '\t', 
+                    header = data_hdr
+                    ) 
+
+    except KeyError: 
+        pass
 
     return best_slope, best_yint
 
-def dlos_peakfit_sigma_env_fit(cat_corr, n_NN=3, fit='gauss', **kwargs): 
+def dlosenv_peakfit_sigma_env_fit(cat_corr, n_NN=3, fit='gauss', **kwargs): 
     """ Linear fit of the best-fit sigma as a function of environment. 
     Bestfit sigma values are computed for the dLOS distribution in bins of 
     galaxy environment. Linear fit is done using MPFit.
@@ -409,12 +432,31 @@ def dlos_peakfit_sigma_env_fit(cat_corr, n_NN=3, fit='gauss', **kwargs):
         
     best_slope = fit_param.params[0]
     best_yint = fit_param.params[1]
+    
+    try: 
+        if kwargs['writeout']: 
+            dlosclass = Dlos(cat_corr)
+
+            dlos_fpeak_envbin_fit_file = ''.join([
+                (dlosclass.file_name).rsplit('/', 1)[0], '/', 
+                'DLOS_sigma_env_d', str(n_NN), 'NN_bin_bestfit.dat'
+                ])
+        
+            data_hdr = "Columns : bestfit_slope, bestfit_yint"
+            data_fmt = ['%10.5f', '%10.5f']
+
+            np.savetxt(
+                    dlos_fpeak_envbin_fit_file, 
+                    np.c_[best_slope, best_yint],
+                    fmt = data_fmt, 
+                    delimiter = '\t', 
+                    header = data_hdr
+                    ) 
+
+    except KeyError: 
+        pass
 
     return best_slope, best_yint
-
-def dlos_peakfit_fpeak_hist(): 
-    """
-    """
 
 #---- fit functions -----
 def fit_linear(x, p): 
@@ -450,3 +492,23 @@ def mpfit_peak_gauss(p, fjac=None, x=None, y=None):
     model = peak_gauss(x, p) 
     status = 0 
     return([status, (y-model)]) 
+
+if __name__=="__main__":
+    cat_corr = {
+            'catalog': {'name': 'nseries', 'n_mock':1}, 
+            'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 4.0, 'fpeak':0.69}
+            }
+    
+    for nNN in [1,3,5,7,10]: 
+        fpeak_slope, fpeak_yint = dlos_peakfit_fpeak_env_fit(
+                cat_corr, 
+                n_NN=nNN, 
+                fit='gauss', 
+                writeout=True
+                )
+        sigma_slope, sigma_yint = dlos_peakfit_sigma_env_fit(
+                cat_corr, 
+                n_NN=nNN, 
+                fit='gauss', 
+                writeout=True
+                )

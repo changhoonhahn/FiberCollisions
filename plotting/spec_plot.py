@@ -586,9 +586,8 @@ if __name__=='__main__':
 
         else: 
             raise NameError('not yet coded!')
-"""
-
-"""
+    
+    
     elif type == 'residual':        # |P_corr(k) - P_true(k)|/Delta P(k) 
 
         if correction['name'].lower() == 'true': # P_true(k) 

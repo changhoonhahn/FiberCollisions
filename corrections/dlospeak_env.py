@@ -15,6 +15,7 @@ from util.direc import direc
 from util.catalog import Catalog
 from corrections import Corrections
 from fibcollided import UpweightCorr 
+from galenv.galenv import d_NN_dataclass
 
 class DlospeakEnvCorr(Corrections): 
 
@@ -25,15 +26,17 @@ class DlospeakEnvCorr(Corrections):
         upweighted galaxy of the fiber collided pair, we sample dLOS from different
         gaussians
 
+        --------------------------------------------------------------------------
         Notes
-        -----
+        --------------------------------------------------------------------------
         * Currently supported peak correction methods: peakshot 
         * nbar(z) interpolation implemented for CMASS like samples; however this can easily 
         be extended to other mocks
         * dLOS within peak is sampled +/- 3-sigmas
+
         """
 
-        super(DlospeakCorr, self).__init__(cat_corr, **kwargs)
+        super(DlospeakEnvCorr, self).__init__(cat_corr, **kwargs)
         
         self.corrstr() 
     
@@ -42,18 +45,22 @@ class DlospeakEnvCorr(Corrections):
         """
         corr = (self.cat_corr)['correction']
 
-        if not all(x in corr.keys() for x in ['fpeak', 'sigma', 'fit']): 
-            raise KeyError("Specify fpeak, sigma, and fit in correction dictionary")
+        if not all(x in corr.keys() for x in ['fit', 'n_NN', 'fpeak', 'sigma']): 
+            raise KeyError("Specify fpeak, sigma, fit, and n_NN in correction dictionary")
 
         self.corr_str = ''.join([
-            '.', corr['fit'].lower(), '.', corr['name'].lower(), 
+            '.', corr['fit'].lower(), 
+            '.', str(corr['n_NN']), 'NN',
+            '.', corr['name'].lower(),
             '.sigma', str(corr['sigma']), '.fpeak', str(corr['fpeak'])
             ])
         return self.corr_str
 
     def build(self): 
-        """ Build peak corrected fibercollided mock catalogs (using cosmolopy). 
-        dLOS peak corrected mock catalogs are constructed from fibercollided mock catalogs
+        """ Build fiber collision corrected mock catalogs. Using the modeled dLOS peak 
+        and galaxy environment of upweighted galaxies. Note that this method reads in 
+        upweight corrected mock catalogs and if care is not given, may result in circular
+        dependencies. 
         """
 
         catdict = (self.cat_corr)['catalog']
@@ -61,8 +68,8 @@ class DlospeakEnvCorr(Corrections):
 
         cosmo = self.cosmo()      # cosmoslogy 
 
-        f_peak = corrdict['fpeak']    # peak fraction 
-        
+        f_peak = corrdict['fpeak']
+
         # survey redshift limits  
         survey_zmin, survey_zmax = self.survey_zlimits()  
 
@@ -75,7 +82,11 @@ class DlospeakEnvCorr(Corrections):
         dm_arr = cosmos.distance.comoving_distance(z_arr, **cosmo) * cosmo['h']
         comdis2z = sp.interpolate.interp1d(dm_arr, z_arr, kind='cubic') 
 
-        # upweight corrected galaxy catalog 
+        # upweight corrected galaxy catalog is used to 
+        # in the correction. This is out of convenience and 
+        # also due to the fact that the BOSS observed
+        # galaxy catalog outputs an upweigh corrected galaxy 
+        # catalog. 
         fc_cat_corr = {
                 'catalog': (self.cat_corr)['catalog'], 
                 'correction': {'name': 'upweight'}
@@ -98,6 +109,15 @@ class DlospeakEnvCorr(Corrections):
 
         notcoll = np.where(fc_mock.wfc > 0)  # not collided
         
+        # expected number of galaxies to be placed in the peak 
+        # of the dLOS distribution calculated based on the peak 
+        # fraction. 
+        ngal_peak_exp = int( 
+                np.floor(
+                    f_peak * (np.sum(fc_data.wfc[upw]) - np.float(len(upw[0])))
+                    ) 
+                )
+        
         # nbar(z) cubic spline interpolation, which is currently hardcoded
         # in the function temp_nbarz(). However, this should 
         # ultimately be edited so that it works for any catalog 
@@ -108,13 +128,25 @@ class DlospeakEnvCorr(Corrections):
 
             nbarofz = sp.interpolate.interp1d(nb_z, nb_nbar, kind='cubic')       
 
+        # calculate galaxy environment for upweighted galaxies
+        # in fiber collided pairs using d_NN_dataclass function in 
+        # galenv module 
+        start_time = time.time()
+        dNNs = d_NN_dataclass(
+                fc_data.ra[upw],
+                fc_data.dec[upw],
+                fc_data.z[upw], 
+                fc_data
+                )
+        print 'd_NN calculation takes ', (time.time()-start_time)/60.0, ' minutes'
+
+        # fpeak and sigma values for dNN values 
+        fpeak_envs = dlosenv_fpeak_env(dNNs, n_NN = corrdict['n_NN'])
+        sigma_envs = dlosenv_sigma_env(dNNs, n_NN = corrdict['n_NN'])
+
         append_i, append_z, append_nbar, sampled_dlos = [], [], [], [] 
         
-        start_time = time.time() 
-        d_samp = sample_dlos_peak(corrdict['fit'], corrdict['sigma'])
-        print 'sample_dlos_peak takes', time.time()-start_time
-        
-        for i_gal in upw[0]:    # for every upweighted galaxy 
+        for ii_gal, i_gal in enumerate(upw[0]):    # for each upweighted galaxy 
             
             # fiber collision weight is in place because
             # we need to make sure that the dLOS peak is 
@@ -122,12 +154,15 @@ class DlospeakEnvCorr(Corrections):
             wfc_counter = fc_mock.wfc[i_gal]
 
             while wfc_counter > 1:
-
+            
                 wfc_counter -= 1.0 
 
-                rand_fpeak = np.random.random(1) 
+                fpeak_env = fpeak_envs[ii_gal]
+                sigma_env = sigma_envs[ii_gal]
 
-                if rand_fpeak <= f_peak:        # in the peak 
+                rand_fpeak = np.random.random(1) 
+                
+                if rand_fpeak <= fpeak_env:        # in the peak 
                 
                     # downweight upweighted galaxy 
                     fc_mock.wfc[i_gal] -= 1.0
@@ -137,7 +172,7 @@ class DlospeakEnvCorr(Corrections):
                     comdis_igal = cosmos.distance.comoving_distance(fc_mock.z[i_gal], **cosmo) * cosmo['h']
                 
                     # sampled dLOS from dLOS peak distribution best-fit function 
-                    d_samp = sample_dlos_peak(corrdict['fit'], corrdict['sigma'])
+                    d_samp = sample_dlos_peak(corrdict['fit'], sigma_env)
 
                     # in case the displacement falls out of bounds
                     # of the survey redshift limits. This crude treatment
@@ -155,10 +190,14 @@ class DlospeakEnvCorr(Corrections):
                         append_nbar.append(nbarofz(collided_z[0]))
 
                     sampled_dlos.append(d_samp) 
-    
+
+                    ngal_peak_exp -= 1.0 
+         
         n_append = len(append_i)
         print n_append, ' Galaxies were peak corrected'
-
+        print ngal_peak_exp, ' extra galaxies need to be in the peak' 
+        
+        """
         data_cols = self.datacolumns()
         data_fmts = self.datacols_fmt()
         data_hdrs = self.datacols_header()
@@ -202,6 +241,7 @@ class DlospeakEnvCorr(Corrections):
                 fmt=['%10.5f'], 
                 delimiter='\t'
                 ) 
+        """
 
 def temp_nbarz(cat_corr):
     """ nbar(z) data for given catalog and correction. Temporary function. 
@@ -286,7 +326,49 @@ def peak_fit_expon(x, sig):
     """ Exponential function 
     """
     return np.exp(-1.0*np.abs(x)/sig)
-       
+
+def dlosenv_fpeak_env(dNN, n_NN=3): 
+    """ Calculate fpeak(dNN) using the best-fit function from the 
+    dlosenv_peakfit_fpeak_env_fit function in dlos/fitting.py moduel.
+    """
+    
+    # read in bestfit slope and y-int from file 
+    dlosclass = Dlos(cat_corr)
+    dlos_fpeak_envbin_fit_file = ''.join([
+        (dlosclass.file_name).rsplit('/', 1)[0], '/', 
+        'DLOS_fpeak_env_d', str(n_NN), 'NN_bin_bestfit.dat'
+        ])
+
+    bestfit_slope, bestfit_yint = np.loadtxt(
+            dlos_fpeak_envbin_fit_file, 
+            skiprows = 1, 
+            unpack = True,
+            usecols = [0, 1]
+            ) 
+
+    return bestfit_slope * dNN + bestfit_yint 
+
+def dlosenv_sigma_env(dNN, n_NN=3): 
+    """ Calculate fpeak(dNN) using the best-fit function from the 
+    dlosenv_peakfit_fpeak_env_fit function in dlos/fitting.py moduel.
+    """
+    
+    # read in bestfit slope and y-int from file 
+    dlosclass = Dlos(cat_corr)
+    dlos_fpeak_envbin_fit_file = ''.join([
+        (dlosclass.file_name).rsplit('/', 1)[0], '/', 
+        'DLOS_sigma_env_d', str(n_NN), 'NN_bin_bestfit.dat'
+        ])
+
+    bestfit_slope, bestfit_yint = np.loadtxt(
+            dlos_fpeak_envbin_fit_file, 
+            skiprows = 1, 
+            unpack = True,
+            usecols = [0, 1]
+            ) 
+
+    return bestfit_slope * dNN + bestfit_yint 
+
 """
                     elif corrdict['fit'].lower() == 'true': 
                         raise NotImplementedError("Need to revive")

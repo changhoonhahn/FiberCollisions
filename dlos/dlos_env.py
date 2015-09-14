@@ -14,6 +14,7 @@ import cosmolopy as cosmos
 
 # --- Local ---
 from dlos import Dlos
+from spec.data import Data
 from galenv.galenv import d_NN
 
 class DlosEnv(Dlos): 
@@ -64,11 +65,13 @@ class DlosEnv(Dlos):
         # dNN for upweighted galaxy in fiber collided 
         # pairs. Each fiber collided pair corresponds to 
         # a value of dLOS 
-        NN_dist = d_NN( 
+        dataclass = Data('data', self.cat_corr) 
+        dataclass.read() 
+        NN_dist = d_NN_dataclass( 
                 self.upw_ra, 
                 self.upw_dec, 
                 self.upw_z, 
-                self.cat_corr, 
+                dataclass, 
                 n_NN = self.n_NN 
                 ) 
     
