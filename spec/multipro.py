@@ -46,8 +46,8 @@ def build_spec_wrapper(params):
 
 # --- Multiprocessing --- 
 def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8): 
-    """ Calculate dLOS for catalogs in parallel using 
-    multiprocessing pool
+    """ Calculate dLOS for catalogs in parallel using interruptible
+    pool, which is multiprocessing pool that allows for interrputions
 
     Parameters
     ----------
@@ -74,6 +74,11 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8):
             corrdict['fit'] = 'gauss'
             corrdict['sigma'] = 3.9
             corrdict['fpeak'] = 0.68 
+
+        if 'env' in corr_name: 
+            # hardcoded values for galaxy environment
+            # parameters
+            corrdict['n_NN'] = 5
     
     pool = Pewl(processes=Nthreads)
     mapfn = pool.map
@@ -98,5 +103,6 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8):
 if __name__=="__main__":
     #build_multipro('data', 'nseries', 'upweight', 84, Nthreads=10)
     #build_multipro('data', 'nseries', 'dlospeak', 84, Nthreads=10)
-    build_multipro('spec', 'nseries', 'true', 84, Nthreads=10)
-    build_multipro('spec', 'nseries', 'upweight', 84, Nthreads=10)
+    #build_multipro('spec', 'nseries', 'true', 84, Nthreads=10)
+    #build_multipro('spec', 'nseries', 'upweight', 84, Nthreads=10)
+    build_multipro('spec', 'nseries', 'dlospeakenv', 84, Nthreads=10)

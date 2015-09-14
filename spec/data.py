@@ -16,10 +16,10 @@ import cosmolopy as cosmos
 
 # --- Local ----
 from util.catalog import Catalog 
+from corrections.rand import Rand
 from corrections.true import TrueCorr
 from corrections.dlospeak import DlospeakCorr
 from corrections.fibcollided import UpweightCorr
-from corrections.rand import Rand
 from corrections.dlospeak_env import DlospeakEnvCorr
 
 # Classes ------------------------------------------------------------

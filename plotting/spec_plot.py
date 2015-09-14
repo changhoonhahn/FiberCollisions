@@ -150,9 +150,9 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
                         color = pretty_colors[i_corr+1], 
                         label = plot_label(cat_corr)
                         )
-                #print avg_Pk[-5:-1]
-                #print avg_Pk_true[-5:-1]
-                #print resid_label 
+            
+                print plot_label(cat_corr)
+                print avg_pk/avg_pk_denom
         
         del avg_pk
         
@@ -487,6 +487,10 @@ if __name__=='__main__':
             {
                 'catalog': {'name': 'nseries'}, 
                 'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68}
+                }, 
+            {
+                'catalog': {'name': 'nseries'}, 
+                'correction': {'name': 'dlospeakenv', 'n_NN': 5, 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68}
                 } 
             ] 
 

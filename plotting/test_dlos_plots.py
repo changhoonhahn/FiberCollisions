@@ -49,6 +49,7 @@ def dlospeak_dlos_test(cat_corr):
     # read in sampled peak dLOS values 
     dataclass = Data('data', cat_corr)
     datafile = dataclass.file_name
+    print datafile + '.dlos'
 
     sampled_dlos = np.loadtxt(
             datafile + '.dlos', 
@@ -324,12 +325,12 @@ def dlos_envbin_peakfit_test(cat_corr, n_NN=3, **kwargs):
 
 if __name__=="__main__": 
     cat_corr = {
-            'catalog': {'name': 'nseries', 'n_mock':1}, 
-            'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 4.0, 'fpeak':0.69}
+            'catalog': {'name': 'nseries', 'n_mock': 24}, 
+            'correction': {'name': 'dlospeakenv', 'n_NN': 5, 'fit': 'gauss', 'sigma': 3.9, 'fpeak':0.68}
             }
+    dlospeak_dlos_test(cat_corr)
 
-    for nNN in [1,3,5,7,10]: 
-        #catalog_dlospeak_env_fit_test('nseries', n_NN=nNN, fit='gauss') 
-        dlos_envbin_peakfit_test(cat_corr, n_NN=[nNN])
+    #for nNN in [1,3,5,7,10]: 
+    #    catalog_dlospeak_env_fit_test('nseries', n_NN=nNN, fit='gauss') 
+    #    dlos_envbin_peakfit_test(cat_corr, n_NN=[nNN])
     #catalog_dlospeak_fit_test('nseries', fit='gauss')
-    #dlospeak_dlos_test(cat_corr)

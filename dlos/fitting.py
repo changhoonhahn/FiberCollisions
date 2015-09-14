@@ -497,13 +497,13 @@ if __name__=="__main__":
             }
     
     for nNN in [1,3,5,7,10]: 
-        fpeak_slope, fpeak_yint = dlos_peakfit_fpeak_env_fit(
+        fpeak_slope, fpeak_yint = dlosenv_peakfit_fpeak_env_fit(
                 cat_corr, 
                 n_NN=nNN, 
                 fit='gauss', 
                 writeout=True
                 )
-        sigma_slope, sigma_yint = dlos_peakfit_sigma_env_fit(
+        sigma_slope, sigma_yint = dlosenv_peakfit_sigma_env_fit(
                 cat_corr, 
                 n_NN=nNN, 
                 fit='gauss', 
