@@ -38,6 +38,8 @@ class DlospeakEnvCorr(Corrections):
         * nbar(z) interpolation implemented for CMASS like samples; however this can easily 
         be extended to other mocks
         * dLOS within peak is sampled +/- 3-sigmas
+        * Somehow NOT correcting for extra peak corrected galaxies improves the overal 
+        power spectrum. (This has been tested)
 
         """
 
@@ -200,7 +202,7 @@ class DlospeakEnvCorr(Corrections):
         
         n_append = len(append_i)
         print abs(ngal_peak_exp), ' extra galaxies were peak corrected' 
-        
+        """ 
         # Using fpeak(dNN) and sigma(dNN) places too many galaxies 
         # in the peak. The following lines of code is to correct for 
         # this by removing some of the appended indices and redshift
@@ -218,6 +220,7 @@ class DlospeakEnvCorr(Corrections):
         
         n_append = len(append_i)
         print n_append, ' Galaxies were finally peak corrected'
+        """
 
         data_cols = self.datacolumns()
         data_fmts = self.datacols_fmt()

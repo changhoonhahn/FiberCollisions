@@ -152,7 +152,8 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
                         )
             
                 print plot_label(cat_corr)
-                print avg_pk/avg_pk_denom
+                print (avg_pk/avg_pk_denom)[-10:]
+                print np.sum( (avg_pk/avg_pk_denom) - 1.0 ) 
         
         del avg_pk
         
@@ -494,8 +495,8 @@ if __name__=='__main__':
                 } 
             ] 
 
-    plot_pk_comp(cat_corrs, 84, quad=False, type='Pk')
-    plot_pk_comp(cat_corrs, 84, quad=False, type='ratio')
+    plot_pk_comp(cat_corrs, 10, quad=False, type='Pk')
+    plot_pk_comp(cat_corrs, 10, quad=False, type='ratio')
 
 
 """

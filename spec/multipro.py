@@ -105,4 +105,4 @@ if __name__=="__main__":
     #build_multipro('data', 'nseries', 'dlospeak', 84, Nthreads=10)
     #build_multipro('spec', 'nseries', 'true', 84, Nthreads=10)
     #build_multipro('spec', 'nseries', 'upweight', 84, Nthreads=10)
-    build_multipro('spec', 'nseries', 'dlospeakenv', 84, Nthreads=10)
+    build_multipro('spec', 'nseries', 'dlospeakenv', 10, Nthreads=10)

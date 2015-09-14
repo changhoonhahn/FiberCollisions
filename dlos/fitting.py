@@ -377,11 +377,19 @@ def dlosenv_peakfit_fpeak_env_fit(cat_corr, n_NN=3, fit='gauss', **kwargs):
                     fit = fit, 
                     **kwargs
                     )
+    env_mid = np.array( 0.5 * (env_low + env_high) )
+        
+    if n_NN == 5: 
+        fit_range = np.where(
+                env_mid < 40.0
+                )
+    else: 
+        raise NotImplementedError()
 
     p0 = [ -0.01, 0.8 ] # guess
-    fa = {'x': np.array( 0.5 * (env_low + env_high) ), 'y': fpeaks, 'err': fpeak_errs}
+    fa = {'x': env_mid[fit_range], 'y': fpeaks[fit_range], 'err': fpeak_errs[fit_range]}
     
-    fit_param = mpfit.mpfit(mpfit_linear, p0, functkw=fa)
+    fit_param = mpfit.mpfit(mpfit_linear, p0, functkw=fa, quiet=1)
         
     best_slope = fit_param.params[0]
     best_yint = fit_param.params[1]
@@ -423,11 +431,20 @@ def dlosenv_peakfit_sigma_env_fit(cat_corr, n_NN=3, fit='gauss', **kwargs):
                     fit = fit, 
                     **kwargs
                     )
+
+    env_mid = np.array( 0.5 * (env_low + env_high) )
+
+    if n_NN == 5: 
+        fit_range = np.where(
+                env_mid < 40.0
+                )
+    else: 
+        raise NotImplementedError()
         
     p0 = [ -0.03, 4.0 ] # guess
-    fa = {'x': np.array( 0.5 * (env_low + env_high) ), 'y': sigmas, 'err': sigma_errs}
+    fa = {'x': env_mid[fit_range], 'y': sigmas[fit_range], 'err': sigma_errs[fit_range]}
     
-    fit_param = mpfit.mpfit(mpfit_linear, p0, functkw=fa)
+    fit_param = mpfit.mpfit(mpfit_linear, p0, functkw=fa, quiet=1)
         
     best_slope = fit_param.params[0]
     best_yint = fit_param.params[1]
@@ -496,16 +513,16 @@ if __name__=="__main__":
             'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 4.0, 'fpeak':0.69}
             }
     
-    for nNN in [1,3,5,7,10]: 
+    for nNN in [5]: 
         fpeak_slope, fpeak_yint = dlosenv_peakfit_fpeak_env_fit(
                 cat_corr, 
                 n_NN=nNN, 
                 fit='gauss', 
                 writeout=True
                 )
+
         sigma_slope, sigma_yint = dlosenv_peakfit_sigma_env_fit(
-                cat_corr, 
-                n_NN=nNN, 
+                cat_corr, n_NN=nNN, 
                 fit='gauss', 
                 writeout=True
                 )
