@@ -95,7 +95,6 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8):
 
     return None 
 
-
 if __name__=="__main__":
     #build_multipro('data', 'nseries', 'upweight', 84, Nthreads=10)
     #build_multipro('data', 'nseries', 'dlospeak', 84, Nthreads=10)

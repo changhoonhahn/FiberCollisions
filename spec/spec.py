@@ -59,7 +59,7 @@ class Spec(object):
         if self.type == 'pk': 
                 
             if not spec_dict['quad']: 
-                cols_index = [0, 1]
+                col_index = [0, 1]
                 data_cols = ['k', 'p0k']
             else: 
                 raise NotImplementedError()

@@ -322,7 +322,6 @@ def dlos_envbin_peakfit_test(cat_corr, n_NN=3, **kwargs):
 
     return None
 
-
 if __name__=="__main__": 
     cat_corr = {
             'catalog': {'name': 'nseries', 'n_mock':1}, 
