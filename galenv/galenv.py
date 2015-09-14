@@ -99,7 +99,7 @@ def d_NN_dataclass(ra, dec, redshift, dataclass, n_NN = 3):
     # cosmology of data class
     data_cosmos = dataclass.cosmo()
     
-    if 'weight' in dataclass.datacolumns:    
+    if 'weight' in dataclass.datacolumns():    
         # accounts for poorly planned column names 
         fc_weights = dataclass.weight
     else: 

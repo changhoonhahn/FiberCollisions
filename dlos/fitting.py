@@ -10,6 +10,7 @@ import os
 
 import mpfit
 from dlos import Dlos
+from util.direc import direc
 from dlos_env import DlosEnv
 
 def dlospeak_fit(dlos, fit = 'gauss', peak_range = [-15.0, 15.0], **kwargs): 
@@ -387,10 +388,8 @@ def dlosenv_peakfit_fpeak_env_fit(cat_corr, n_NN=3, fit='gauss', **kwargs):
     
     try: 
         if kwargs['writeout']: 
-            dlosclass = Dlos(cat_corr)
-
             dlos_fpeak_envbin_fit_file = ''.join([
-                (dlosclass.file_name).rsplit('/', 1)[0], '/', 
+                direc('data', cat_corr), 
                 'DLOS_fpeak_env_d', str(n_NN), 'NN_bin_bestfit.dat'
                 ])
         
@@ -435,10 +434,8 @@ def dlosenv_peakfit_sigma_env_fit(cat_corr, n_NN=3, fit='gauss', **kwargs):
     
     try: 
         if kwargs['writeout']: 
-            dlosclass = Dlos(cat_corr)
-
             dlos_fpeak_envbin_fit_file = ''.join([
-                (dlosclass.file_name).rsplit('/', 1)[0], '/', 
+                direc('data', cat_corr), 
                 'DLOS_sigma_env_d', str(n_NN), 'NN_bin_bestfit.dat'
                 ])
         
