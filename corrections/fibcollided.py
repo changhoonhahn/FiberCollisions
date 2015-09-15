@@ -57,14 +57,21 @@ class UpweightCorr(Corrections):
         if catalog_name == 'nseries':          # N-series 
 
             # original file 
-            orig_file = ''.join([data_dir, 'CutskyN', str(catdict['n_mock']), '.rdzwc']) 
-            orig_ra, orig_dec, orig_z, orig_wfc = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,4])
+            orig_file = ''.join([
+                data_dir, 
+                'CutskyN', str(catdict['n_mock']), '.rdzwc'
+                ]) 
+            orig_ra, orig_dec, orig_z, orig_wfc, orig_zupw, orig_upw_index = np.loadtxt(
+                    orig_file, 
+                    unpack = True, 
+                    usecols = [0,1,2,4,5,6]
+                    )
         
             # file with mask completeness
             mask_file = ''.join([data_dir, 'CutskyN', str(catdict['n_mock']), '.mask_info']) 
             orig_wcomp = np.loadtxt(mask_file, unpack=True, usecols=[0]) 
 
-            data_list = [orig_ra, orig_dec, orig_z, orig_wfc, orig_wcomp]   # data column list 
+            data_list = [orig_ra, orig_dec, orig_z, orig_wfc, orig_wcomp, orig_zupw, orig_upw_index]   # data column list 
 
         elif 'cmass' in catalog_name: 
 

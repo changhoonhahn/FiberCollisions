@@ -47,23 +47,38 @@ class TrueCorr(Corrections):
         output_file = self.file()
         
         if catalog['name'].lower() == 'nseries':       # N Series
-
+            
+            # read in original files from Jeremy and adjust them to make them
+            # easier to use for fiber collisions
             # read rdzw file 
             data_dir = '/mount/riachuelo1/hahn/data/Nseries/'
-            orig_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.rdzwc']) 
-            orig_ra, orig_dec, orig_z, orig_wfc = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,4])
+            orig_file = ''.join([
+                data_dir, 
+                'CutskyN', str(catalog['n_mock']), '.rdzwc'
+                ]) 
+            orig_ra, orig_dec, orig_z, orig_wfc, orig_zupw, orig_upw_index = np.loadtxt(
+                    orig_file, 
+                    unpack = True, 
+                    usecols=[0,1,2,4,5,6]
+                    )
         
             # file with completeness
-            mask_file = ''.join([data_dir, 'CutskyN', str(catalog['n_mock']), '.mask_info']) 
-            orig_wcomp = np.loadtxt(mask_file, unpack=True, usecols=[0]) 
+            mask_file = ''.join([
+                data_dir, 
+                'CutskyN', str(catalog['n_mock']), '.mask_info'
+                ]) 
+
+            orig_wcomp = np.loadtxt(
+                    mask_file, 
+                    unpack = True, 
+                    usecols = [0]
+                    ) 
 
             # true wfc 
             true_wfc = np.array([ 1.0 for i in range(len(orig_wfc)) ]) 
             
             # write to file 
-            header_str = "Columns : ra, dec, z, wfc, comp"
-            data_list = [orig_ra, orig_dec, orig_z, true_wfc, orig_wcomp]
-            data_fmt = ['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f']
+            data_list = [orig_ra, orig_dec, orig_z, true_wfc, orig_wcomp, orig_zupw, orig_upw_index]
 
         elif catalog['name'].lower() == 'lasdamasgeo':          
             
@@ -135,13 +150,23 @@ class TrueCorr(Corrections):
 
         else: 
             raise NameError('not yet coded') 
+            
+        # data columns, format and header are predetermined. Consult
+        # corrections.corrections and util.catalog for specifics
+        data_fmt = self.datacols_fmt()
+        header_str = self.datacols_header()
         
         # write to file 
-        output_file = self.file()
-        np.savetxt(output_file, (np.vstack(np.array(data_list))).T, 
-                fmt=data_fmt, delimiter='\t', header=header_str) 
-        
+        np.savetxt(
+                self.file(), 
+                (np.vstack(np.array(data_list))).T, 
+                fmt=data_fmt, 
+                delimiter='\t', 
+                header=header_str
+                ) 
+
         return None 
+
 """
         if catalog['name'].lower() == 'tilingmock': 
             # Tiling Mock ------------------------------------------------

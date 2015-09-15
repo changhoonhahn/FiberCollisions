@@ -22,9 +22,9 @@ class Catalog(object):
         # dictionary of catlaog columsn 
         self.cat_col_dict = {
                 'nseries': {
-                    'cols': ['ra', 'dec', 'z', 'wfc', 'comp'], 
-                    'fmts': ['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
-                    'hdrs': "Column : ra, dec, z, wfc, comp"
+                    'cols': ['ra', 'dec', 'z', 'wfc', 'comp', 'zupw', 'upw_index'], 
+                    'fmts': ['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%i'], 
+                    'hdrs': "Column : ra, dec, z, wfc, comp, z_upw, upw_index"
                     }, 
                 'cmass': {
                     'cols': ['ra', 'dec', 'z', 'nbar', 'wsys', 'wnoz', 'wfc', 'comp'], 

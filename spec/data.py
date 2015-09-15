@@ -21,6 +21,7 @@ from corrections.true import TrueCorr
 from corrections.dlospeak import DlospeakCorr
 from corrections.fibcollided import UpweightCorr
 from corrections.dlospeak_env import DlospeakEnvCorr
+from corrections.photoz_corr import PhotozCorr
 
 # Classes ------------------------------------------------------------
 class Data(object): 
@@ -47,7 +48,8 @@ class Data(object):
                     'true': TrueCorr,
                     'upweight': UpweightCorr, 
                     'dlospeak': DlospeakCorr, 
-                    'dlospeakenv': DlospeakEnvCorr
+                    'dlospeakenv': DlospeakEnvCorr, 
+                    'photoz': PhotozCorr
                     }
 
             corr_name = ((self.cat_corr)['correction'])['name']
@@ -78,10 +80,8 @@ class Data(object):
         """ Read galaxy/random catalog data 
         """
 
-        cat = Catalog(self.cat_corr)
-
-        data_cols = cat.datacolumns()
-        self.datacolumns = cat.datacolumns()
+        data_cols = self.corrclass.datacolumns()
+        self.datacolumns = self.corrclass.datacolumns()
     
         datah = np.loadtxt(
                 self.file_name, 
@@ -139,7 +139,9 @@ class Data(object):
 if __name__ == '__main__':
     cat_corr = {
             'catalog': {'name': 'nseries', 'n_mock': 1}, 
-            'correction': {'name': 'dlospeakenv', 'fit': 'gauss', 'n_NN': 5, 'sigma': 3.9, 'fpeak': 0.68}
+            'correction': {'name': 'photoz'}
             }
-    corrclass = Data('data', cat_corr)
+    corrclass = Data('data', cat_corr, clobber=True)
     corrclass.build()
+
+

@@ -76,7 +76,7 @@ def cmass_zspec_zphoto():
             ) 
     return None 
 
-def cmass_deltaz_zspec_zphoto_test(): 
+def cmass_deltaz_zspec_zphoto_test(overplot=True): 
     ''' Spherematch photometric and spectroscopic catalogs to 
     determine standard deviation redshift errors of photmetric redshifts 
     wrt spectroscopic redshifts
@@ -99,18 +99,21 @@ def cmass_deltaz_zspec_zphoto_test():
     
     delta_z = (z_spec - z_photo) / (1.0 + z_spec)
     
-    bovy.scatterplot(
-            z_spec, 
-            delta_z, 
-            scatter=True, 
-            levels=[0.68, 0.95, 0.997],
-            color=pretty_colors[1], 
-            s=3,
-            xrange=[0.43, 0.7], 
-            yrange=[-0.3, 0.3], 
-            xlabel='\mathtt{z_{spec}}', 
-            ylabel=r'\mathtt{\frac{|z_{spec} - z_{photo}|}{1\;+\;z_{spec}}}'
-            )
+    if overplot: 
+        bovy.scatterplot(
+                z_spec, 
+                delta_z, 
+                scatter=True, 
+                levels=[0.68, 0.95, 0.997],
+                color=pretty_colors[1], 
+                s=3,
+                xrange=[0.43, 0.7], 
+                yrange=[-0.3, 0.3], 
+                xlabel='\mathtt{z_{spec}}', 
+                ylabel=r'\mathtt{\frac{|z_{spec} - z_{photo}|}{1\;+\;z_{spec}}}'
+                )
+
+    # summary statistics (mu and sigma) of delta z / (1+z)
     z_mid, z_low, z_high, mu_deltaz, sigma_deltaz = cmass_deltaz_zspec_zphoto()
 
     plt.errorbar(

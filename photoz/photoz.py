@@ -13,6 +13,7 @@ import os.path
 
 # --- Local ----
 import pyspherematch as pysph
+from spec.data import Data
 from defutility.fitstables import mrdfits
 
 
@@ -109,7 +110,7 @@ def cmass_deltaz_zspec_zphoto():
 
     deltaz_file = ''.join([
         '/mount/riachuelo1/hahn/photoz/',
-        'cmass_photoz_error_gauss_table.dat'
+        'cmass_deltaz_zspec_zphotoz_gauss_stat.dat'
         ]) 
 
     if not os.path.isfile(deltaz_file):  
@@ -123,7 +124,6 @@ def cmass_deltaz_zspec_zphoto():
             ) 
 
     return [z_mid, z_low, z_high, mu_deltaz, sigma_deltaz]
-
 
 def build_cmass_deltaz_zspec_zphoto():
     ''' Calculate summary statistics of delta z/(1+z) as a function of z.  
@@ -155,18 +155,17 @@ def build_cmass_deltaz_zspec_zphoto():
     for i_z in xrange(len(z_low)): 
 
         zbin = np.where(
-                (zspec >= z_low[i_z]) & 
-                (zspec < z_high[i_z])
+                (z_spec >= z_low[i_z]) & 
+                (z_spec < z_high[i_z])
                 ) 
         
         mu_deltaz.append(np.mean(delta_z[zbin]))
         sigma_deltaz.append(np.std(delta_z[zbin]))
-        print np.mean(delta_z[zbin]), np.std(delta_z[zbin])
     
     # save (zmid, zlow, zhigh, mu_deltaz, sigma_deltaz) to file 
     output_name = ''.join([
         '/mount/riachuelo1/hahn/photoz/',
-        'cmass_photoz_error_gauss_table.dat'
+        'cmass_deltaz_zspec_zphotoz_gauss_stat.dat'
         ]) 
     output_header = 'Columns: zmid, zlow, zhigh, mean(delta z/(1+z)), stddev(delta z/(1+z))'
     np.savetxt(
@@ -180,94 +179,5 @@ def build_cmass_deltaz_zspec_zphoto():
             )
     return None 
 
-def build_fibcol_assign_photoz(qaplot=False, **cat_corr): 
-    ''' Assign photometric redshifts to fiber collided galaxies in mock catalog based on their
-    actual redshifts in order to reproduce Delta z / z relation
-    
-    Parameters
-    ----------
-    * cat_corr : catalog and correction dictionary for mock catalog 
-
-
-    Notes
-    -----
-    * Implemented for Nseries 
-    * Appends photo zs at the last column  
-
-    '''
-    catalog = cat_corr['catalog']
-    correction = cat_corr['correction']
-
-    if catalog['name'] == 'cmass': 
-        raise NameError("Only available for mock catalogs NOT CMASS") 
-    
-    # read data of mock catalog 
-    if catalog['name'].lower() == 'nseries': 
-        correction['name'] = 'original'
-        data_file = fc_data.get_galaxy_data_file('data', **cat_corr) 
-        ra, dec, redshift, wfc, zupw, upw_index = np.loadtxt(data_file,  
-                unpack=True, usecols=[0, 1, 2, 4, 5, 6]) 
-        
-        correction['name'] = 'wcompfile'
-        wcomp_file = fc_data.get_galaxy_data_file('data', **cat_corr) 
-        wcomp = np.loadtxt(wcomp_file, unpack=True, usecols=[0])
-    else: 
-        raise NotImplementedError('Not yet implemented') 
-
-    fced = np.where(wfc == 0)   # fiber collided galaxies
-    #fced = [range(len(redshift))]
-    
-    # read delta z/(1+z) Gaussian values from table
-    photo_dir = '/mount/riachuelo1/hahn/photoz/'
-    output_name = ''.join([photo_dir, 
-        'cmass_photoz_error_gauss_table.dat']) 
-    Dz_zmid, Dz_zlow, Dz_zhigh, mean_Dz, sigma_Dz = np.loadtxt(output_name, 
-            skiprows=1, unpack=True, usecols=[0,1,2,3,4])
-    
-    photoz = np.array([-999. for i in range(len(redshift))])
-    for i_fc in fced[0]: 
-        closest_zbin = min(range(len(Dz_zmid)), key=lambda i: abs(Dz_zmid[i] - redshift[i_fc])) 
-        photoz[i_fc] = redshift[i_fc] - \
-                np.random.normal(mean_Dz[closest_zbin], sigma_Dz[closest_zbin]) * \
-                (1. + redshift[i_fc])
-    
-    deltaz_z = (redshift[fced] - photoz[fced]) / (1. + redshift[fced])
-    
-    if qaplot: 
-        prettyplot()                         # set up plot 
-        pretty_colors = prettycolors()
-
-        plt.figure(figsize=(8,8))
-        
-        bovy.scatterplot(redshift[fced], deltaz_z, 
-                scatter=True, levels=[0.68, 0.95, 0.997], color=pretty_colors[1], s=3,
-                xrange=[0.43, 0.7], yrange=[-0.3, 0.3], 
-                xlabel='\mathtt{z_{spec}}', 
-                ylabel=r'\mathtt{\frac{|z_{spec} - z_{photo}|}{z_{spec}}}')
-        
-        fig_file = ''.join(['figure/', 'match_deltaphotoz_specz_', catalog['name'], '.png']) 
-        plt.savefig(fig_file, bbox_inches='tight') 
-    
-    correction['name'] = 'photoz'
-    photo_cat_corr = {
-            'catalog': catalog, 
-            'correction': correction
-            }
-    photoz_file = fc_data.get_galaxy_data_file('data', **photo_cat_corr)
-    print photoz_file 
-    
-    if catalog['name'].lower() == 'nseries': 
-        np.savetxt(photoz_file, 
-                np.c_[ra, dec, redshift, wfc, wcomp, zupw, upw_index, photoz], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%i', '%10.5f'], 
-                delimiter='\t') 
-
 if __name__=='__main__': 
-    #match_photoz_specz_cmass()
-    #delta_photoz_specz_cmass()
-    for i in range(1, 2): 
-        cat_corr = { 
-                'catalog': {'name': 'nseries', 'n_mock': i}, 
-                'correction': {'name': 'upweight'}
-                }
-        build_fibcol_assign_photoz(qaplot=True, **cat_corr)
+    pass
