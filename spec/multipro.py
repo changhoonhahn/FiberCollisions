@@ -105,6 +105,7 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, **kwargs)
     return None 
 
 if __name__=="__main__":
+    build_multipro('data', 'nseries', 'dlospeakphotoz', 20, Nthreads=10, clobber=True)
     build_multipro('spec', 'nseries', 'dlospeakphotoz', 20, Nthreads=10, clobber=True)
     #build_multipro('spec', 'nseries', 'true', 20, Nthreads=10, clobber=True)
     #build_multipro('spec', 'nseries', 'upweight', 20, Nthreads=10, clobber=True)

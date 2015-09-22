@@ -492,6 +492,10 @@ if __name__=='__main__':
             {
                 'catalog': {'name': 'nseries'}, 
                 'correction': {'name': 'dlospeakenv', 'n_NN': 5, 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68}
+                }, 
+            {
+                'catalog': {'name': 'nseries'}, 
+                'correction': {'name': 'dlospeakphotoz', 'd_photoz_tail_cut': 200, 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68}
                 } 
             ] 
 

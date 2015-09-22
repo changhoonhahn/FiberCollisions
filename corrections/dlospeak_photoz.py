@@ -153,7 +153,7 @@ class DlospeakPhotozCorr(Corrections):
         print 'fpeak ', f_peak 
         print 'Revised fpeak after photoz tail cut ', fpeak_tailcut 
 
-        append_i, append_z, append_nbar, sampled_dlos = [], [], [], [] 
+        sampled_dlos = []
         
         for ii_gal, i_gal in enumerate(notin_tail_photoz):    # for each fibercollided galaxy 
                 
@@ -163,6 +163,9 @@ class DlospeakPhotozCorr(Corrections):
 
                 fc_mock.wfc[i_gal] += 1.0
                 fc_mock.wfc[fc_mock.upw_index[i_gal]] -= 1.0
+
+                fc_mock.ra[i_gal] = fc_mock.ra[fc_mock.upw_index[i_gal]]
+                fc_mock.dec[i_gal] = fc_mock.dec[fc_mock.upw_index[i_gal]]
 
                 if fc_mock.wfc[i_gal] > 1.0: 
                     raise ValueError()
