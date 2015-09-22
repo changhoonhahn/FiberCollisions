@@ -45,7 +45,7 @@ def build_spec_wrapper(params):
     return None 
 
 # --- Multiprocessing --- 
-def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8): 
+def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, **kwargs): 
     """ Calculate dLOS for catalogs in parallel using interruptible
     pool, which is multiprocessing pool that allows for interrputions
 
@@ -79,6 +79,10 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8):
             # hardcoded values for galaxy environment
             # parameters
             corrdict['n_NN'] = 5
+
+        if 'photoz' in corr_name: 
+
+            corrdict['d_photoz_tail_cut'] = 200 
     
     pool = Pewl(processes=Nthreads)
     mapfn = pool.map
@@ -86,7 +90,7 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8):
     arglist = [ [{
                 'catalog': {'name': catalog_name, 'n_mock': i_mock}, 
                 'correction': corrdict
-                }]
+                }, kwargs]
             for i_mock in n_mock_list]
     
     if type == 'data': 
@@ -101,9 +105,10 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8):
     return None 
 
 if __name__=="__main__":
-    build_multipro('data', 'nseries', 'true', 84, Nthreads=10)
-    build_multipro('data', 'nseries', 'upweight', 84, Nthreads=10)
-    build_multipro('data', 'nseries', 'photoz', 84, Nthreads=10)
+    build_multipro('spec', 'nseries', 'dlospeakphotoz', 20, Nthreads=10, clobber=True)
+    #build_multipro('spec', 'nseries', 'true', 20, Nthreads=10, clobber=True)
+    #build_multipro('spec', 'nseries', 'upweight', 20, Nthreads=10, clobber=True)
+    #build_multipro('spec', 'nseries', 'dlospeakenv', 20, Nthreads=10, clobber=True)
+    #build_multipro('data', 'nseries', 'photoz', 84, Nthreads=10)
     #build_multipro('spec', 'nseries', 'true', 84, Nthreads=10)
     #build_multipro('spec', 'nseries', 'upweight', 84, Nthreads=10)
-    #build_multipro('spec', 'nseries', 'dlospeakenv', 10, Nthreads=10)

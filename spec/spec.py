@@ -142,6 +142,11 @@ class Spec(object):
         """ Calculate power/bispectrum of simulated/observed data catalog 
         """
         
+        if 'clobber' not in (self.kwargs).keys(): 
+            bool_clobber = False
+        else: 
+            bool_clobber = self.kwargs['clobber']
+        
         catdict = (self.cat_corr)['catalog']
         corrdict = (self.cat_corr)['correction']
         specdict = (self.cat_corr)['spec'] 
@@ -167,7 +172,7 @@ class Spec(object):
 
         # fft files 
         datafft = Fft('data', self.cat_corr, **self.kwargs)
-        if not os.path.isfile(datafft.file_name): 
+        if not os.path.isfile(datafft.file_name) or bool_clobber:
             datafft.build()
 
         randfft = Fft('random', self.cat_corr, **self.kwargs)
@@ -179,9 +184,6 @@ class Spec(object):
                 randfft = randfft.file_name, 
                 powerfile = self.file_name
                 )
-
-        if 'clobber' not in (self.kwargs).keys(): 
-            bool_clobber = False
 
         if any([not os.path.isfile(self.file_name), bool_clobber]):
             print ''
@@ -208,9 +210,11 @@ if __name__=='__main__':
 
     cat_corr = {
             'catalog': {'name': 'nseries', 'n_mock': 1}, 
-            'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68} 
+            'correction': {'name': 'true'}
             }
-    spectrum = Spec('pk', cat_corr)
+            #'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68} 
+            #}
+    spectrum = Spec('pk', cat_corr, clobber=True)
     print spectrum.file()
     print spectrum.build()
 

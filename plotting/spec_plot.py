@@ -495,8 +495,8 @@ if __name__=='__main__':
                 } 
             ] 
 
-    plot_pk_comp(cat_corrs, 10, quad=False, type='Pk')
-    plot_pk_comp(cat_corrs, 10, quad=False, type='ratio')
+    plot_pk_comp(cat_corrs, 20, quad=False, type='Pk')
+    plot_pk_comp(cat_corrs, 20, quad=False, type='ratio')
 
 
 """

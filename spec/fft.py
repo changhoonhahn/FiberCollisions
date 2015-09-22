@@ -112,6 +112,8 @@ class Fft(object):
 
             if 'clobber' not in (self.kwargs).keys(): 
                 bool_clobber = False
+            else: 
+                bool_clobber = self.kwargs['clobber']
 
             if any([not os.path.isfile(self.file_name), bool_clobber]):
                 print ''

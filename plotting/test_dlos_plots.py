@@ -328,6 +328,10 @@ if __name__=="__main__":
             'catalog': {'name': 'nseries', 'n_mock': 24}, 
             'correction': {'name': 'dlospeakenv', 'n_NN': 5, 'fit': 'gauss', 'sigma': 3.9, 'fpeak':0.68}
             }
+    cat_corr = {
+            'catalog': {'name': 'nseries', 'n_mock': 11}, 
+            'correction': {'name': 'dlospeakphotoz', 'fit': 'gauss', 'sigma': 3.9, 'fpeak':0.68, 'd_photoz_tail_cut': 200}
+            }
     dlospeak_dlos_test(cat_corr)
 
     #for nNN in [1,3,5,7,10]: 

@@ -59,6 +59,7 @@ class DlospeakPhotozCorr(Corrections):
         self.corr_str = ''.join([
             '.', corr['fit'].lower(), 
             '.', corr['name'].lower(),
+            '.dphotozcut', str(corr['d_photoz_tail_cut']), 
             '.sigma', str(corr['sigma']), '.fpeak', str(corr['fpeak'])
             ])
         return self.corr_str
@@ -146,10 +147,7 @@ class DlospeakPhotozCorr(Corrections):
                     f_peak * (np.sum(fc_mock.wfc[upw]) - np.float(len(upw[0])))
                     ) 
                 )
-        print (np.sum(fc_mock.wfc[upw]) - np.float(len(upw[0])))
-        print len(collided[0])
-        print len(notin_tail_photoz)
-        
+
         fpeak_tailcut = np.float(ngal_peak_exp)/np.float(len(notin_tail_photoz))
     
         print 'fpeak ', f_peak 
