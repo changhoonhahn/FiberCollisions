@@ -137,11 +137,12 @@ class Data(object):
         return self.cosmos
 
 if __name__ == '__main__':
-    cat_corr = {
-            'catalog': {'name': 'nseries', 'n_mock': 1}, 
-            'correction': {'name': 'photoz'}
-            }
-    corrclass = Data('data', cat_corr, clobber=True)
-    corrclass.build()
 
-
+    for i_mock in xrange(1,85): 
+        for corr in ['true', 'upweight', 'photoz']:
+            cat_corr = {
+                    'catalog': {'name': 'nseries', 'n_mock': i_mock}, 
+                    'correction': {'name': 'photoz'}
+                    }
+            corrclass = Data('data', cat_corr, clobber=True)
+            corrclass.build()
