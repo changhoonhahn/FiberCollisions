@@ -12,6 +12,7 @@ import mpfit
 from dlos import Dlos
 from util.direc import direc
 from dlos_env import DlosEnv
+from dlos_photoz import DlosPhotoz
 
 def dlospeak_fit(dlos, fit = 'gauss', peak_range = [-15.0, 15.0], **kwargs): 
     """ Fit the peak of the dLOS distribution to specified 
@@ -472,6 +473,74 @@ def dlosenv_peakfit_sigma_env_fit(cat_corr, n_NN=3, fit='gauss', **kwargs):
 
     return best_slope, best_yint
 
+def catalog_dlospeak_photoz_fit(catalog_name, fit='gauss', dlos_photoz_tailcut = 200, **kwargs): 
+    """ Fit peak of the dLOS distribution with dLOSphotoz cut off  
+    for various catalogs. 
+
+    Parameters
+    ----------
+    catalog_name : 'nseries'
+    fit : 'gauss' best fit function type 
+
+    Returns 
+    ------- 
+    sigma : sigma value of gaussian/exponential function  
+    fpeak : peak fraction of the dLOS distribution 
+
+    """
+    
+    # this is to pass combined_dlos and combined_env as a 
+    # global variable when this function is called
+    if 'combined_dlos' in kwargs.keys(): 
+        combined_dlos = kwargs['combined_dlos'] 
+    
+    # for each catalog set list of catalog correction 
+    # dictionaries which are used to read in dLOS files
+    if catalog_name in ('nseries'): 
+        n_mocks = 84 
+        catdict_list = [ 
+                {'name': catalog_name, 'n_mock': i_mock} 
+                for i_mock in range(1, n_mocks+1)
+                ]
+        corrdict = {'name': 'upweight'}
+    
+    for catdict in catdict_list: 
+
+        i_cat_corr = { 
+                'catalog': catdict, 
+                'correction': corrdict
+                }
+
+        dlosclass = DlosPhotoz(i_cat_corr)
+        dlosclass.read() 
+
+        dlos_i = dlosclass.dlos
+        dlos_photoz_i = dlosclass.dlos_photoz
+
+        # Combine dLOS and env values 
+        try: 
+            combined_dlos += list(dlos_i)
+            combined_dlos_photoz += list(dlos_photoz_i)
+        except NameError: 
+            combined_dlos = list(dlos_i)
+            combined_dlos_photoz = list(dlos_photoz_i)
+
+    comb_dlos = np.array(combined_dlos)
+    comb_dlos_photoz = np.array(combined_dlos_photoz)
+
+    # Calculate fpeak and sigma for dLOS distribution with dLOS photoz 
+    # tail cut offs
+
+    notin_photoz_tailcut = np.where(np.abs(combined_dlos_photoz) < dlos_photoz_tailcut)
+
+    fpeak, sigma, amp = dlospeak_fit(
+            comb_dlos[notin_photoz_tailcut], 
+            fit = 'gauss', 
+            peak_range = [-15.0, 15.0]
+            )   
+
+    return fpeak, sigma, amp 
+
 #---- fit functions -----
 def fit_linear(x, p): 
     ''' Linear function y = a * x + b 
@@ -508,6 +577,10 @@ def mpfit_peak_gauss(p, fjac=None, x=None, y=None):
     return([status, (y-model)]) 
 
 if __name__=="__main__":
+    print catalog_dlospeak_fit('nseries', fit='gauss')
+    print catalog_dlospeak_photoz_fit('nseries', fit='gauss', dlos_photoz_tailcut = 200)
+    
+    """
     cat_corr = {
             'catalog': {'name': 'nseries', 'n_mock':1}, 
             'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 4.0, 'fpeak':0.69}
@@ -526,3 +599,4 @@ if __name__=="__main__":
                 fit='gauss', 
                 writeout=True
                 )
+    """

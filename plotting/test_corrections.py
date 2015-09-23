@@ -21,7 +21,7 @@ def test_photoz(catalog_name):
     method reproduce the CMASS photometric redshifts. 
     """
 
-    catdict = {'name': catalog_name, 'n_mock': 1}
+    catdict = {'name': catalog_name, 'n_mock': 20}
     corrdict = {'name': 'photoz'}
     cat_corr = {'catalog': catdict, 'correction': corrdict}
 
@@ -52,6 +52,8 @@ def test_photoz(catalog_name):
             xlabel = '\mathtt{z_{spec}}', 
             ylabel = r'\mathtt{\frac{|z_{spec} - z_{photo}|}{1 + z_{spec}}}' 
             )
+
+    plt.show()
             
     # save figure to file  
     fig_dir = '/home/users/hahn/powercode/FiberCollisions/figure/'

@@ -67,7 +67,7 @@ class DlosEnv(Dlos):
         # a value of dLOS 
         dataclass = Data('data', self.cat_corr) 
         dataclass.read() 
-        NN_dist = d_NN_dataclass( 
+        NN_dist = d_NN( 
                 self.upw_ra, 
                 self.upw_dec, 
                 self.upw_z, 

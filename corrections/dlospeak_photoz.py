@@ -125,72 +125,70 @@ class DlospeakPhotozCorr(Corrections):
             nbarofz = sp.interpolate.interp1d(nb_z, nb_nbar, kind='cubic')       
 
         upw = np.where(fc_mock.wfc > 1)  # upweighted
-        notcoll = np.where(fc_mock.wfc > 0)  # not collided
-        collided = np.where(fc_mock.wfc == 0 ) # collided
-    
+        collided = np.where(fc_mock.wfc == 0) # collided 
+
         # Difference in comoving distance of upweight galaxy redshift and the 
         # comoving distance of the photometric redshift. The main idea is that
         # this distance roughly traces the actual dLOS 
         # dLOS_photo = Dc(z_upw) - Dc(z_photo)
-        dlos_photoz = np.abs( 
-                cosmos.distance.comoving_distance(fc_mock.zupw[collided], **cosmo) - \
-                        cosmos.distance.comoving_distance(fc_mock.photoz[collided], **cosmo)
-                        ) * cosmo['h']
-    
-        notin_tail_photoz = (collided[0])[np.where(dlos_photoz < dc_photoz_tailcut)]
+        comdis_upw = cosmos.distance.comoving_distance(
+                fc_mock.zupw[collided], **cosmo) * cosmo['h']
+        comdis_coll = cosmos.distance.comoving_distance(
+                fc_mock.z[collided], **cosmo) * cosmo['h']
+        comdis_zphoto = cosmos.distance.comoving_distance(
+                fc_mock.photoz[collided], **cosmo) * cosmo['h']
+
+        dlos_photoz = np.abs( comdis_zphoto - comdis_upw ) 
+        dlos_actual = np.abs( comdis_coll - comdis_upw) 
+
+        notin_tail_photoz = (collided[0])[np.where(dlos_photoz <= dc_photoz_tailcut)]
+        in_tail_photoz = np.where(dlos_photoz > dc_photoz_tailcut)
+
+        dlos_in_tail_photoz = dlos_actual[in_tail_photoz]
+        print 'Contamination rate ', np.float(len(np.where(dlos_in_tail_photoz < 50)[0]))/\
+                np.float(len(dlos_in_tail_photoz))*100
          
         # expected number of galaxies to be placed in the peak 
         # of the dLOS distribution calculated based on the peak 
         # fraction. 
-        ngal_peak_exp = int( 
-                np.floor(
-                    f_peak * (np.sum(fc_mock.wfc[upw]) - np.float(len(upw[0])))
-                    ) 
-                )
-
-        fpeak_tailcut = np.float(ngal_peak_exp)/np.float(len(notin_tail_photoz))
-    
-        print 'fpeak ', f_peak 
-        print 'Revised fpeak after photoz tail cut ', fpeak_tailcut 
+        ngal_peak_exp = int(np.ceil(f_peak * np.float(len(collided[0]))))
 
         sampled_dlos = []
         
-        for ii_gal, i_gal in enumerate(notin_tail_photoz):    # for each fibercollided galaxy 
+        np.random.shuffle(notin_tail_photoz)
+
+        for i_peak in xrange(ngal_peak_exp): 
+
+            i_gal = notin_tail_photoz[i_peak]
+
+            fc_mock.wfc[i_gal] += 1.0
+            fc_mock.wfc[fc_mock.upw_index[i_gal]] -= 1.0
+
+            fc_mock.ra[i_gal] = fc_mock.ra[fc_mock.upw_index[i_gal]]
+            fc_mock.dec[i_gal] = fc_mock.dec[fc_mock.upw_index[i_gal]]
+
+            # Comoving distance of upweight galaxy 
+            comdis_upw = cosmos.distance.comoving_distance(
+                    fc_mock.zupw[i_gal], **cosmo) * cosmo['h']
                 
-            rand_fpeak = np.random.random(1)
+            # sampled dLOS from dLOS peak distribution best-fit function 
+            d_samp = sample_dlos_peak(corrdict['fit'], corrdict['sigma'])
 
-            if rand_fpeak <= fpeak_tailcut:        # in the peak 
-
-                fc_mock.wfc[i_gal] += 1.0
-                fc_mock.wfc[fc_mock.upw_index[i_gal]] -= 1.0
-
-                fc_mock.ra[i_gal] = fc_mock.ra[fc_mock.upw_index[i_gal]]
-                fc_mock.dec[i_gal] = fc_mock.dec[fc_mock.upw_index[i_gal]]
-
-                if fc_mock.wfc[i_gal] > 1.0: 
-                    raise ValueError()
+            # in case the displacement falls out of bounds
+            # of the survey redshift limits. This crude treatment
+            # may generate large scale issues. But currently 
+            # ignoring this issue 
+            if (comdis_upw + d_samp > survey_comdis_max) or (comdis_upw + d_samp < survey_comdis_min): 
+                d_samp = -1.0 * d_samp 
                 
-                # Comoving distance of upweight galaxy 
-                comdis_upw = cosmos.distance.comoving_distance(fc_mock.zupw[i_gal], **cosmo) * cosmo['h']
-                    
-                # sampled dLOS from dLOS peak distribution best-fit function 
-                d_samp = sample_dlos_peak(corrdict['fit'], corrdict['sigma'])
+            # convert comoving distance to redshift 
+            collided_z = comdis2z(comdis_upw + d_samp)
+            
+            fc_mock.z[i_gal] = collided_z
+            if 'cmass' in catdict['name'].lower():
+                fc_mock.nbar[i_gal] = nbarofz(collided_z[0])
 
-                # in case the displacement falls out of bounds
-                # of the survey redshift limits. This crude treatment
-                # may generate large scale issues. But currently 
-                # ignoring this issue 
-                if (comdis_upw + d_samp > survey_comdis_max) or (comdis_upw + d_samp < survey_comdis_min): 
-                    d_samp = -1.0 * d_samp 
-                    
-                # convert comoving distance to redshift 
-                collided_z = comdis2z(comdis_upw + d_samp)
-                
-                fc_mock.z[i_gal] = collided_z
-                if 'cmass' in catdict['name'].lower():
-                    fc_mock.nbar[i_gal] = nbarofz(collided_z[0])
-
-                sampled_dlos.append(d_samp) 
+            sampled_dlos.append(d_samp) 
 
         data_cols = self.datacolumns()
         data_fmts = self.datacols_fmt()
@@ -247,6 +245,6 @@ if __name__=='__main__':
         
     fc_cat_corr = {
             'catalog': {'name': 'nseries', 'n_mock': 1}, 
-            'correction': {'name': 'dlospeak_photoz', 'fit': 'gauss', 'fpeak':0.68, 'sigma':3.9, 'd_photoz_tail_cut':200}}
+            'correction': {'name': 'dlospeak_photoz', 'fit': 'gauss', 'fpeak':0.68, 'sigma':3.9, 'd_photoz_tail_cut':150}}
     test = DlospeakPhotozCorr(fc_cat_corr)
     test.build()

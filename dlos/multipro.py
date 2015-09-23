@@ -6,7 +6,8 @@ in parallel
 '''
 from dlos import Dlos
 from dlos_env import DlosEnv
-from until.interruptible_pool import InterruptiblePool as Pewl
+from dlos_photoz import DlosPhotoz
+from util.interruptible_pool import InterruptiblePool as Pewl
 
 def build_dlos_wrapper(params): 
     ''' Wrapper for calculating dLOS values  
@@ -45,6 +46,25 @@ def build_dlosenv_wrapper(params):
     
     dlosclass = DlosEnv(cat_corr, n_NN=n_NN, **kwargs) 
     dlosclass.read()
+
+    return None
+
+def build_dlosphotoz_wrapper(params): 
+    ''' Wrapper for calculating dLOS dNN values  
+
+    Parameters
+    ----------
+    params : [ cat_corr, kwargs ] 
+
+    '''
+
+    cat_corr = params[0]
+    kwargs = {} 
+    if len(params) > 2: 
+        kwargs = params[1]
+    
+    dlosclass = DlosPhotoz(cat_corr, **kwargs) 
+    dlosclass.build()
 
     return None
 
@@ -109,6 +129,37 @@ def build_dlosenv_multipro(catalog_name, n_mocks, Nthreads=8):
 
     return None 
 
+def build_dlosphotoz_multipro(catalog_name, n_mocks, Nthreads=8): 
+    """ Calculate dLOS for catalogs in parallel using 
+    multiprocessing pool
+    """
+    
+    if isinstance(n_mocks, list): 
+        n_mock_list = n_mocks
+    else:
+        n_mock_list = range(1, n_mocks + 1)
+
+    pool = Pewl(processes=Nthreads)
+    mapfn = pool.map
+    
+    arglist = [] 
+    for i_mock in n_mock_list: 
+        arglist.append([
+            {
+            'catalog': {'name': 'nseries', 'n_mock': i_mock}, 
+            'correction': {'name': 'upweight'}
+            } 
+            ])
+    
+    mapfn( build_dlosphotoz_wrapper, [arg for arg in arglist])
+
+    pool.close()
+    pool.terminate()
+    pool.join() 
+
+    return None 
+
 if __name__=="__main__":
     #build_dlosenv_multipro('nseries', 1, Nthreads=1)
-    build_dlosenv_multipro('nseries', 84, Nthreads=10)
+    #build_dlosenv_multipro('nseries', 84, Nthreads=10)
+    build_dlosphotoz_multipro('nseries', 84, Nthreads=10)
