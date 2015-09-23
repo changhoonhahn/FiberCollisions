@@ -15,14 +15,14 @@ import random
 from util.direc import direc
 from util.catalog import Catalog
 from corrections import Corrections
-from photoz_corr import PhotozCorr 
+from fibcollided import UpweightCorr 
 from galenv.galenv import d_NN_dataclass
 from dlospeak import sample_dlos_peak
 from dlospeak import peak_fit_gauss 
 from dlospeak import peak_fit_expon 
 from dlospeak import temp_nbarz 
 
-class DlospeakPhotozCorr(Corrections): 
+class DlospeakKnownCorr(Corrections): 
 
     def __init__(self, cat_corr, **kwargs): 
         """ Child class of Correction class in corrections.py 
@@ -43,7 +43,7 @@ class DlospeakPhotozCorr(Corrections):
 
         """
 
-        super(DlospeakPhotozCorr, self).__init__(cat_corr, **kwargs)
+        super(DlospeakKnownCorr, self).__init__(cat_corr, **kwargs)
         
         self.corrstr() 
     
@@ -53,13 +53,12 @@ class DlospeakPhotozCorr(Corrections):
         """
         corr = (self.cat_corr)['correction']
 
-        if not all(x in corr.keys() for x in ['fit', 'fpeak', 'sigma', 'd_photoz_tail_cut']): 
+        if not all(x in corr.keys() for x in ['fit', 'fpeak', 'sigma']): 
             raise KeyError("Specify fpeak, sigma, and fit in correction dictionary")
 
         self.corr_str = ''.join([
             '.', corr['fit'].lower(), 
             '.', corr['name'].lower(),
-            '.dphotozcut', str(corr['d_photoz_tail_cut']), 
             '.sigma', str(corr['sigma']), '.fpeak', str(corr['fpeak'])
             ])
         return self.corr_str
@@ -77,7 +76,6 @@ class DlospeakPhotozCorr(Corrections):
         cosmo = self.cosmo()      # cosmoslogy 
 
         f_peak = corrdict['fpeak']
-        dc_photoz_tailcut = corrdict['d_photoz_tail_cut'] 
 
         # survey redshift limits  
         survey_zmin, survey_zmax = self.survey_zlimits()  
@@ -98,9 +96,9 @@ class DlospeakPhotozCorr(Corrections):
         # catalog. 
         fc_cat_corr = {
                 'catalog': (self.cat_corr)['catalog'], 
-                'correction': {'name': 'photoz'}
+                'correction': {'name': 'upweight'}
                 }
-        fc_mock = PhotozCorr(fc_cat_corr, **self.kwargs) 
+        fc_mock = UpweightCorr(fc_cat_corr, **self.kwargs) 
         fc_mock_file = fc_mock.file()
         fc_mock_cols = fc_mock.datacolumns()
         
@@ -149,30 +147,20 @@ class DlospeakPhotozCorr(Corrections):
                 fc_mock.zupw[collided], **cosmo) * cosmo['h']
         comdis_coll = cosmos.distance.comoving_distance(
                 fc_mock.z[collided], **cosmo) * cosmo['h']
-        comdis_zphoto = cosmos.distance.comoving_distance(
-                fc_mock.photoz[collided], **cosmo) * cosmo['h']
 
-        dlos_photoz = np.abs( comdis_zphoto - comdis_upw ) 
-        dlos_actual = np.abs( comdis_coll - comdis_upw) 
+        dlos = np.abs( comdis_coll - comdis_upw) 
 
-        notin_tail_photoz = (collided[0])[np.where(dlos_photoz <= dc_photoz_tailcut)]
-        in_tail_photoz = np.where(dlos_photoz > dc_photoz_tailcut)
-        #notin_tail_photoz = (collided[0])[np.where(dlos_actual <= dc_photoz_tailcut)]
-        #in_tail_photoz = np.where(dlos_actual> dc_photoz_tailcut)
+        notin_tail = (collided[0])[np.where(dlos <= 3.0*corrdict['sigma'])]
 
-        dlos_in_tail_photoz = dlos_actual[in_tail_photoz]
-        print 'Contamination rate ', np.float(len(np.where(dlos_in_tail_photoz < 3.0*corrdict['sigma'])[0]))/\
-                np.float(len(dlos_in_tail_photoz))*100
-         
         # expected number of galaxies to be placed in the peak 
         # of the dLOS distribution calculated based on the peak 
         # fraction. 
         n_peak_exp = int(f_peak * np.float(n_fcpair))
         
-        np.random.shuffle(notin_tail_photoz)
+        np.random.shuffle(notin_tail)
         
         # collided galaxies that will be peak corrected
-        i_peakcorr = notin_tail_photoz[:n_peak_exp]
+        i_peakcorr = notin_tail[:n_peak_exp]
 
         fc_mock.wfc[i_peakcorr] += 1.0
         fc_mock.wfc[fc_mock.upw_index[i_peakcorr]] -= 1.0
@@ -232,32 +220,10 @@ class DlospeakPhotozCorr(Corrections):
                 delimiter='\t'
                 ) 
 
-    def datacolumns(self): 
-        # Data columns
-        cols = super(DlospeakPhotozCorr, self).datacolumns()
-        if 'photoz' not in cols: 
-            cols += ['photoz']
-
-        return cols 
-
-    def datacols_fmt(self): 
-        # Data column formats
-        cols_fmt = super(DlospeakPhotozCorr, self).datacols_fmt()
-        cols_fmt += ['%10.5f']
-
-        return cols_fmt
-
-    def datacols_header(self): 
-        # Data column headers 
-        cols_header = super(DlospeakPhotozCorr, self).datacols_header()
-        cols_header += ", photoz"
-
-        return cols_header 
-
 if __name__=='__main__': 
         
     fc_cat_corr = {
             'catalog': {'name': 'nseries', 'n_mock': 1}, 
-            'correction': {'name': 'dlospeak_photoz', 'fit': 'gauss', 'fpeak':0.68, 'sigma':3.9, 'd_photoz_tail_cut':200}}
-    test = DlospeakPhotozCorr(fc_cat_corr)
+            'correction': {'name': 'dlospeak_known', 'fit': 'gauss', 'fpeak':0.68, 'sigma':3.9}}
+    test = DlospeakKnownCorr(fc_cat_corr)
     test.build()

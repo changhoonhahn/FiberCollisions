@@ -495,12 +495,16 @@ if __name__=='__main__':
                 }, 
             {
                 'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'dlospeakphotoz', 'd_photoz_tail_cut': 200, 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.69}
-                } 
+                'correction': {'name': 'dlospeakphotoz', 'd_photoz_tail_cut': 200, 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68}
+                }, 
+            {
+                'catalog': {'name': 'nseries'}, 
+                'correction': {'name': 'dlospeakknown', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.69}
+                }
             ] 
 
-    plot_pk_comp(cat_corrs, 20, quad=False, type='Pk')
-    plot_pk_comp(cat_corrs, 20, quad=False, type='ratio')
+    plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=False, type='Pk')
+    plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=False, type='ratio')
 
 
 """

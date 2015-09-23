@@ -73,7 +73,7 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, **kwargs)
             # parameters
             corrdict['fit'] = 'gauss'
             corrdict['sigma'] = 3.9
-            corrdict['fpeak'] = 0.68
+            corrdict['fpeak'] = 0.69
 
         if 'env' in corr_name: 
             # hardcoded values for galaxy environment
@@ -82,7 +82,7 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, **kwargs)
 
         if 'photoz' in corr_name: 
 
-            corrdict['d_photoz_tail_cut'] = 200 
+            corrdict['d_photoz_tail_cut'] = 15 
     
     pool = Pewl(processes=Nthreads)
     mapfn = pool.map
@@ -93,7 +93,7 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, **kwargs)
                 'spec': {
                     'P0': 20000, #P0 
                     'Lbox': 3600, 
-                    'Ngrid': 960, 
+                    'Ngrid': 360, 
                     'quad': False
                     }
 
@@ -112,11 +112,15 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, **kwargs)
     return None 
 
 if __name__=="__main__":
-    build_multipro('spec', 'nseries', 'true', 20, Nthreads=10, clobber=True)
-    build_multipro('spec', 'nseries', 'upweight', 20, Nthreads=10, clobber=True)
-    build_multipro('spec', 'nseries', 'dlospeak', 20, Nthreads=10, clobber=True)
-    build_multipro('spec', 'nseries', 'dlospeakenv', 20, Nthreads=10, clobber=True)
-    build_multipro('spec', 'nseries', 'dlospeakphotoz', 20, Nthreads=10, clobber=True)
+    #build_multipro('spec', 'nseries', 'true', 1, Nthreads=1, clobber=True)
+    #build_multipro('spec', 'nseries', 'true', 20, Nthreads=5, clobber=True)
+    #build_multipro('spec', 'nseries', 'upweight', 20, Nthreads=5, clobber=True)
+    #build_multipro('spec', 'nseries', 'dlospeak', 20, Nthreads=5, clobber=True)
+    #build_multipro('spec', 'nseries', 'dlospeakenv', 20, Nthreads=5, clobber=True)
+    #build_multipro('data', 'nseries', 'dlospeakphotoz', 20, Nthreads=10, clobber=True)
+    #build_multipro('spec', 'nseries', 'dlospeakphotoz', 20, Nthreads=10, clobber=True)
+    build_multipro('data', 'nseries', 'dlospeakknown', 20, Nthreads=10, clobber=True)
+    build_multipro('spec', 'nseries', 'dlospeakknown', 20, Nthreads=10, clobber=True)
     #build_multipro('data', 'nseries', 'photoz', 84, Nthreads=10)
     #build_multipro('spec', 'nseries', 'true', 84, Nthreads=10)
     #build_multipro('spec', 'nseries', 'upweight', 84, Nthreads=10)
