@@ -1,3 +1,9 @@
+"""
+
+Fast Fourier Transform data for galaxy catalogs. 
+
+"""
+
 import numpy as np 
 import os.path
 import time 
@@ -41,13 +47,9 @@ class Fft(object):
         self.data_file = galdata.file_name # galaxy data file
 
         # FFT label 
-        try: 
-            if specdict['quad']: 
-                fft_str = 'FFT_Q_'
-            else: 
-                fft_str = 'FFT_'
-        except KeyError: 
-            fft_str = 'FFT_'
+        fft_str = 'FFT_'
+        if specdict['quad']: 
+            fft_str += 'Q_'
     
         fft_corr_str = ''
         if (corrdict['name'].lower() in ('floriansn', 'hectorsn')) & (self.type != 'random'):
@@ -78,12 +80,12 @@ class Fft(object):
             galdata.build()
 
         if 'quad' not in specdict.keys(): 
-            specdict['quad'] = False
+            raise KeyError(" 'quad' must be specified ") 
 
         if not specdict['quad']:       # quadrupole or regular FFT code
             fft_type = 'fft'
         else:  
-            NotImplementedError()
+            fft_type = 'quad_fft'
 
         codeclass = Fcode(fft_type, self.cat_corr) 
         fftcode = codeclass.code
@@ -96,10 +98,6 @@ class Fft(object):
             codeclass.compile()
                 
         fft_file = self.file() 
-        if self.type == 'data': 
-            n_DorR = 0
-        elif self.type == 'random': 
-            n_DorR = 1
 
         if not specdict['quad']:       # NOT Quadrupole
             
@@ -134,8 +132,38 @@ class Fft(object):
                 print '-----------------------'
                 print ''
 
-        else:       
-            raise NotImplementedError()
+        else:                           # Yes Quadrupole
+            # command line call 
+            FFTcmd = codeclass.commandline_call(
+                    DorR = self.type, 
+                    datafile = self.data_file,
+                    fftfile = self.file_name
+                    ) 
+
+            if 'clobber' not in (self.kwargs).keys(): 
+                bool_clobber = False
+            else: 
+                bool_clobber = self.kwargs['clobber']
+
+            if any([not os.path.isfile(self.file_name), bool_clobber]):
+                print ''
+                print '-----------------------'
+                print 'Constructing '
+                print self.file_name  
+                print '-----------------------'
+                print ''
+                print FFTcmd
+                print '-----------------------'
+
+                subprocess.call(FFTcmd.split())
+            else: 
+                print ''
+                print '-----------------------'
+                print self.file_name  
+                print 'Already Exists'
+                print '-----------------------'
+                print ''
+
         return None 
 
 if __name__=='__main__': 

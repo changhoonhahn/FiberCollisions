@@ -765,11 +765,6 @@ c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       character*200 lssfile,lssinfofile,dummy  
       external nbar,chi
 
-      write(*,*)lssfile
-      write(*,*)lssfile
-      write(*,*)lssfile
-      write(*,*)lssfile
-      write(*,*)lssfile
       open(unit=4,file=lssfile,status='old',form='formatted')
       Ngal=0 !true Ngal (=Ng) will get determined later after survey is put into a box 
       Ngsys=0.d0

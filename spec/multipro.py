@@ -38,14 +38,19 @@ def build_spec_wrapper(params):
     if len(params) > 1: 
         kwargs = params[1]
 
-    spectrum = Spec('pk', cat_corr, **kwargs)
+    if cat_corr['spec']['quad']: 
+        spectype = 'p2k'
+    else: 
+        spectype = 'pk'
+
+    spectrum = Spec(spectype, cat_corr, **kwargs)
     print spectrum.file()
     spectrum.build()
 
     return None 
 
 # --- Multiprocessing --- 
-def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, **kwargs): 
+def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, quad=False, **kwargs): 
     """ Calculate dLOS for catalogs in parallel using interruptible
     pool, which is multiprocessing pool that allows for interrputions
 
@@ -84,9 +89,6 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, **kwargs)
 
             corrdict['d_photoz_tail_cut'] = 15 
     
-    pool = Pewl(processes=Nthreads)
-    mapfn = pool.map
-    
     arglist = [ [{
                 'catalog': {'name': catalog_name, 'n_mock': i_mock}, 
                 'correction': corrdict, 
@@ -94,33 +96,46 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, **kwargs)
                     'P0': 20000, #P0 
                     'Lbox': 3600, 
                     'Ngrid': 360, 
-                    'quad': False
+                    'quad': quad 
                     }
 
                 }, kwargs]
             for i_mock in n_mock_list]
     
-    if type == 'data': 
-        mapfn( build_corrdata_wrapper, [arg for arg in arglist])
-    elif type == 'spec': 
-        mapfn( build_spec_wrapper, [arg for arg in arglist])
+    if Nthreads > 1: 
+        pool = Pewl(processes=Nthreads)
+        mapfn = pool.map
+    
+        if type == 'data': 
+            mapfn( build_corrdata_wrapper, [arg for arg in arglist])
+        elif type == 'spec': 
+            mapfn( build_spec_wrapper, [arg for arg in arglist])
 
-    pool.close()
-    pool.terminate()
-    pool.join() 
+        pool.close()
+        pool.terminate()
+        pool.join() 
+    else: 
+        for arg in arglist: 
+            if type == 'data': 
+                build_corrdata_wrapper(arg)
+            elif type == 'spec': 
+                build_spec_wrapper(arg)
 
     return None 
 
 if __name__=="__main__":
-    #build_multipro('spec', 'nseries', 'true', 1, Nthreads=1, clobber=True)
+    build_multipro('spec', 'nseries', 'true', 1, Nthreads=1, clobber=True, quad=True)
+    build_multipro('spec', 'nseries', 'true', 20, Nthreads=10, clobber=True, quad=True)
+    build_multipro('spec', 'nseries', 'upweight', 20, Nthreads=10, clobber=True, quad=True)
+    build_multipro('spec', 'nseries', 'dlospeak', 20, Nthreads=10, clobber=True, quad=True)
     #build_multipro('spec', 'nseries', 'true', 20, Nthreads=5, clobber=True)
     #build_multipro('spec', 'nseries', 'upweight', 20, Nthreads=5, clobber=True)
     #build_multipro('spec', 'nseries', 'dlospeak', 20, Nthreads=5, clobber=True)
     #build_multipro('spec', 'nseries', 'dlospeakenv', 20, Nthreads=5, clobber=True)
     #build_multipro('data', 'nseries', 'dlospeakphotoz', 20, Nthreads=10, clobber=True)
     #build_multipro('spec', 'nseries', 'dlospeakphotoz', 20, Nthreads=10, clobber=True)
-    build_multipro('data', 'nseries', 'dlospeakknown', 20, Nthreads=10, clobber=True)
-    build_multipro('spec', 'nseries', 'dlospeakknown', 20, Nthreads=10, clobber=True)
+    #build_multipro('data', 'nseries', 'dlospeakknown', 20, Nthreads=10, clobber=True)
+    #build_multipro('spec', 'nseries', 'dlospeakknown', 20, Nthreads=10, clobber=True)
     #build_multipro('data', 'nseries', 'photoz', 84, Nthreads=10)
     #build_multipro('spec', 'nseries', 'true', 84, Nthreads=10)
     #build_multipro('spec', 'nseries', 'upweight', 84, Nthreads=10)

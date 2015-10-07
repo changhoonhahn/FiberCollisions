@@ -98,13 +98,20 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
         # calculate average P(k) (both monopole or quadrupole) 
         for catcorr_mock in catcorr_mocks: 
 
-            specclass = Spec('pk', catcorr_mock) 
+            if not quad: 
+                spec_type = 'pk'
+                spec_key = 'p0k'
+            else: 
+                spec_type = 'p2k'
+                spec_key = 'p2k'
+
+            specclass = Spec(spec_type, catcorr_mock) 
             specclass.read()
+            print specclass.file_name
             
             k_arr = specclass.k
 
-            if not quad: 
-                pk_arr = specclass.p0k
+            pk_arr = getattr(specclass, spec_key)
             
             try:
                 sum_pk += pk_arr
@@ -487,8 +494,10 @@ if __name__=='__main__':
                 },
             {
                 'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68}
-                }, 
+                'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.69}
+                }
+            ]
+    """
             {
                 'catalog': {'name': 'nseries'}, 
                 'correction': {'name': 'dlospeakenv', 'n_NN': 5, 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68}
@@ -502,10 +511,10 @@ if __name__=='__main__':
                 'correction': {'name': 'dlospeakknown', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68}
                 }
             ] 
+    """
 
-    plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=False, type='Pk')
-    plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=False, type='ratio')
-
+    plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='Pk')
+    plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='ratio')
 
 """
         if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz'):             # LasDamasGeo 

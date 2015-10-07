@@ -31,19 +31,28 @@ class Spec(object):
 
         """
 
-        if spectype not in ['pk', 'bk']: 
+        if spectype not in ['pk', 'p2k', 'bk']: 
             raise ValueError()
         else: 
             self.type = spectype
 
         if 'spec' not in cat_corr.keys(): 
             # default spectrum parameters
+            if spectype == 'pk': 
+                quad = False
+            elif spectype == 'p2k': 
+                quad = True
+
             cat_corr['spec'] = {
                     'P0': 20000, #P0 
                     'Lbox': 3600, 
                     'Ngrid':360, 
-                    'quad': False
+                    'quad': quad 
                     }
+        else: 
+            if spectype == 'pk': 
+                if cat_corr['spec']['quad']: 
+                    raise ValueError()
         
         self.cat_corr = cat_corr.copy()
         self.kwargs = kwargs
@@ -58,11 +67,13 @@ class Spec(object):
     
         if self.type == 'pk': 
                 
-            if not spec_dict['quad']: 
-                col_index = [0, 1]
-                data_cols = ['k', 'p0k']
-            else: 
-                raise NotImplementedError()
+            col_index = [0, 1]
+            data_cols = ['k', 'p0k']
+
+        elif self.type == 'p2k': 
+            
+            col_index = [0, 2, 1]
+            data_cols = ['k', 'p2k', 'p0k']
 
         else: 
             raise NotImplementedError()
@@ -93,7 +104,7 @@ class Spec(object):
             ]) 
         
         # powerspectrum or bispectrum 
-        if self.type == 'pk': 
+        if self.type in ('pk', 'p2k'): 
             spec_str = 'POWER_'
         elif self.type == 'bk':
             spec_str = 'BISP_'
@@ -113,7 +124,7 @@ class Spec(object):
 
         spec_dir = direc('spec', self.cat_corr)
 
-        if self.type == 'pk': 
+        if self.type in ('pk', 'p2k'): 
             specparam_str = ''.join([
                 '.grid', str(specdict['Ngrid']), 
                 '.P0', str(specdict['P0']), 
@@ -128,6 +139,9 @@ class Spec(object):
                 '.P0', str(specdict['P0']), 
                 '.box', str(specdict['Lbox'])
                 ])
+
+        else: 
+            raise NotImplementedError()
     
         file_name = ''.join([
             spec_dir, 
@@ -151,14 +165,7 @@ class Spec(object):
         corrdict = (self.cat_corr)['correction']
         specdict = (self.cat_corr)['spec'] 
        
-        if 'quad' not in specdict.keys():
-            specdict['quad'] = False
-
-        if not specdict['quad']:       # quadrupole/monopole
-            spec_type = self.type
-        else:  
-            # not sure what to do here yet 
-            NotImplementedError()
+        spec_type = self.type
 
         codeclass = Fcode(spec_type, self.cat_corr) 
         spec_code = codeclass.code
@@ -184,6 +191,7 @@ class Spec(object):
                 randfft = randfft.file_name, 
                 powerfile = self.file_name
                 )
+        print spec_cmd
 
         if any([not os.path.isfile(self.file_name), bool_clobber]):
             print ''
@@ -214,7 +222,7 @@ if __name__=='__main__':
             }
             #'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68} 
             #}
-    spectrum = Spec('pk', cat_corr, clobber=True)
+    spectrum = Spec('p2k', cat_corr, clobber=True)
     print spectrum.file()
     print spectrum.build()
 

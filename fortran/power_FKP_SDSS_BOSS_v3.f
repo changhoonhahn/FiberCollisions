@@ -19,8 +19,8 @@
       real kxh,kyh,kzh,Nrsyscomp,Nrsystot
       complex ct,ctQ,ctx
       
-      call getarg(1,filecoefr)          ! random fiel 
-      call getarg(2,filecoef)           ! mock file 
+      call getarg(1,filecoef)           ! mock file 
+      call getarg(2,filecoefr)          ! random fiel 
       call getarg(3,filepower)          ! powerspectrum file 
       call getarg(4,Rboxstr)            ! rbox
       read(Rboxstr,*)akfun

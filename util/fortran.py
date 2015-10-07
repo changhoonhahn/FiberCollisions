@@ -22,6 +22,10 @@ class Fcode:
             f_name = 'FFT_fkp.f'
         elif type == 'pk':      # P(k) code
             f_name = 'power-Igal-Irand.f' 
+        elif type == 'quad_fft':    # quadruple FFT code
+            f_name = 'FFT_fkp_quad.f'
+        elif type == 'p2k':         # P_2(k) code 
+            f_name = 'power_quad.f'
         else: 
             raise NotImplementedError()
         
@@ -46,15 +50,16 @@ class Fcode:
 
         fort_exe = self.fexe() 
 
-        # compile command
-        if 'FFT_FKP_BOSS_cic_il4_v3.f' in self.code:
+        # compile command for fortran code. Quadruple codes have more
+        # complex compile commands specified by Roman 
+        if self.type == 'fft_quad':
             compile_cmd = ' '.join([
                 'ifort -fast -o', 
                 fort_exe, 
                 self.code, 
                 '-L/usr/local/fftw_intel_s/lib -lsrfftw -lsfftw -lm'
                 ])
-        elif 'power_FKP_SDSS_BOSS_v3.f' in self.code: 
+        elif self.type == 'p2k': 
             compile_cmd = ' '.join([
                 'ifort -fast -o', 
                 fort_exe, 
@@ -144,6 +149,73 @@ class Fcode:
             specdict = (self.cat_corr)['spec']
 
             nbins = int(specdict['Ngrid']/2) # number of bins
+
+            cmdline_call = ' '.join([
+                self.exe, 
+                kwargs['datafft'], 
+                kwargs['randfft'],
+                kwargs['powerfile'], 
+                str(specdict['Lbox']), 
+                str(nbins),
+                ])
+        
+        elif self.type == 'quad_fft': 
+
+            if not all([kwarg in kwargs.keys() for kwarg in ['DorR', 'datafile', 'fftfile']]):
+
+                err_msg = ''.join([
+                    'For type = ', self.type, 
+                    " 'DorR', 'datafile', 'fftfile' must be specified in kwargs"
+                    ])
+                raise KeyError(err_msg)
+            
+            catname = ((self.cat_corr)['catalog'])['name']
+            specdict = (self.cat_corr)['spec']
+
+            if catname == 'nseries': 
+                n_cat = 7
+            else: 
+                raise NotImplementedError()
+            
+            try: 
+                if kwargs['cosmology'] == 'survey': 
+                    n_cosmo = 1
+                else: 
+                    n_cosmo = 0 
+            except KeyError: 
+                n_cosmo = 0 
+
+            if kwargs['DorR'] == 'data': 
+                n_DorR = 0 
+            elif kwargs['DorR'] == 'random': 
+                n_DorR = 1 
+
+            n_interp = 4    # 4th order interlaced CIC
+
+            cmdline_call = ' '.join([
+                self.exe, 
+                str(n_cat), 
+                str(n_cosmo), 
+                str(specdict['Lbox']), 
+                str(specdict['Ngrid']), 
+                str(n_interp), 
+                str(n_DorR),
+                str(specdict['P0']), 
+                kwargs['datafile'], 
+                kwargs['fftfile']
+                ])
+
+        elif self.type == 'p2k': 
+
+            if not all([kwarg in kwargs.keys() for kwarg in ['datafft', 'randfft', 'powerfile']]):
+                err_msg = ''.join([
+                    "For type = ", self.type, "datafft, randfft, and powerfile must be specified in kwargs"
+                    ])
+                raise KeyError(err_msg)
+            
+            specdict = (self.cat_corr)['spec']
+
+            nbins = int(specdict['Ngrid']/2) # number of bins hardcoded to be Ngrid/2
 
             cmdline_call = ' '.join([
                 self.exe, 
