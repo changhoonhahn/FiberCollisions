@@ -3,11 +3,11 @@
 ! use: FFT_FKP_BOSS_cic_il4_v5.exe idata Lbox Lm interpol idatran P0 ifc icomp inputfile {izbin} outputfile
       implicit none  
       integer Nran,i,iwr,Ngal,Nmax,n,kx,ky,kz,Lm,Ngrid,ix,iy,iz,Nsel
-      integer Ng,Nr,iflag,ic,Nbin,interpol,Nariel,idata,iveto,Nsel2
+      integer Ng,Nr,iflag,ic,Nbin,interpol,Nariel,idata,iveto,icosmo
       integer*8 planf,plan_real
       real pi,wfc,wrf,xmin,xmax,ymin,ymax,zmin,zmax,cspeed
 !      parameter(Nsel=181,Nmax=8*10**7,Nbin=201,Nsel2=10)
-      parameter(Nsel=181,Nmax=3*10**8,Nbin=201,Nsel2=10)
+      parameter(Nsel=181,Nmax=3*10**8,Nbin=201)
       parameter(cspeed=299800.0,pi=3.141592654)
       integer grid,ifc,icomp,j,k,l,izbin
       dimension grid(3)
@@ -18,7 +18,7 @@
       real, allocatable :: wg(:),wr(:)
       real selfun(Nsel),z(Nsel),sec(Nsel),az,ra,dec,rad,numden,zend
       real w, nbb, xcm, ycm, zcm, rcm, bias, wboss, veto
-      real thetaobs,phiobs, selfun2(Nsel2),z2(Nsel2),sec2(Nsel2)
+      real thetaobs,phiobs
       real alpha,P0,nb,weight,ar,akf,Fr,Fi,Gr,Gi,wsys,wred,comp
       real*8 I10,I12,I22,I13,I23,I33
       real*8 compavg,Nrsys,Nrsyscomp,Ngsys,Ngsyscomp,Ngsystot,Nrsystot
@@ -81,7 +81,6 @@
       character P0str*200,typestr*200,lssinfofile*200,cosmostr*200
       character*200 icompstr,ifcstr,izbinstr
       common /interpol/z,selfun,sec
-      common /interpol2/z2,selfun2,sec2
       common /interp3/dbin,zbin,sec3
       common /radint/Om0,OL0
       external nbar,chi,PutIntoBox,assign2,fcomb
@@ -132,9 +131,8 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       
          call getarg(8,lssfile) !Mock Survey File
          allocate(rg(3,Nmax),nbg(Nmax),ig(Nmax),wg(Nmax))
-         
-         call readmock(idata,ifc,icomp,lssfile,Nmax,nbg,wg,rg,P0,
-     $        Ngal,Ngsys,Ngsyscomp,Ngsystot,compavg,izbin,
+         call readmock(idata,lssfile,Nmax,nbg,wg,rg,P0,
+     $        Ngal,Ngsys,Ngsyscomp,Ngsystot,compavg,
      $        xmin,xmax,ymin,ymax,zmin,zmax)
          
          call PutIntoBox(Ngal,rg,Rbox,ig,Ng,Nmax)
@@ -728,7 +726,7 @@ c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       end
             
 c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      subroutine radialdist(idata,Nsel,Nsel2,z,z2,Nbin,zbin,dbin,sec3)
+      subroutine radialdist(idata,Nsel,z,Nbin,zbin,dbin,sec3)
 c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       implicit none
       integer idata,Nsel,ic,Nbin
@@ -754,19 +752,24 @@ c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       end
 c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       subroutine readmock(idata,lssfile,Nmax,nbg,wg,rg,P0,
-     $           Ngal,Ngsys,Ngsyscomp,Ngsystot,compavg,izbin,
+     $           Ngal,Ngsys,Ngsyscomp,Ngsystot,compavg,
      $           xmin,xmax,ymin,ymax,zmin,zmax) !for data mocks
 c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       implicit none
-      integer i,idata,Ngal,Nariel,Nmax,izbin
+      integer i,idata,Ngal,Nariel,Nmax
       real xmin,xmax,ymin,ymax,zmin,zmax,xcm,ycm,zcm,nbar,chi,pi
-      real ra,dec,az,comp,nbb,wsys,wred,cspeed,dum,az2,wnoz,wcp,bias
+      real ra,dec,az,comp,nbb,wsys,wred,cspeed,dum,az2,wnoz,bias,wfc
       real wboss,veto,rad,P0,nbg(Nmax),wg(Nmax),rg(3,Nmax)
       parameter(cspeed=299800.0,pi=3.141592654)
       real*8 Ngsys,Ngsyscomp,Ngsystot,compavg
       character*200 lssfile,lssinfofile,dummy  
       external nbar,chi
 
+      write(*,*)lssfile
+      write(*,*)lssfile
+      write(*,*)lssfile
+      write(*,*)lssfile
+      write(*,*)lssfile
       open(unit=4,file=lssfile,status='old',form='formatted')
       Ngal=0 !true Ngal (=Ng) will get determined later after survey is put into a box 
       Ngsys=0.d0
@@ -788,7 +791,7 @@ c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
          read(4,'(a)')dummy !skip comment line
       endif
       do i=1,Nmax
-         elseif (idata.eq.7) then !Nseries
+         if (idata.eq.7) then !Nseries
             read(4,*,end=13)ra,dec,az,wfc,comp
             wsys=1.0
             wred=wfc
@@ -879,7 +882,7 @@ c^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             read(4,'(a)')dum !skip comment line
          endif 
          do i=1,Nmax
-            elseif (idata.eq.7) then ! Nseries
+            if (idata.eq.7) then ! Nseries
                read(4,*,end=15)ra,dec,az,comp
                wsys=1.
                wred=1.
@@ -1799,8 +1802,9 @@ c
       return
       end
 c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      include 'dqage.f'
-      include 'd1mach.f'
-      include 'dqawfe.f'
-      include 'spline.f'
-      include 'splint.f'
+      include '/home/users/hahn/powercode/dqage.f'
+      include '/home/users/hahn/powercode/d1mach.f'
+      include '/home/users/hahn/powercode/dqawfe.f'
+      include '/home/users/hahn/powercode/spline.f'
+      include '/home/users/hahn/powercode/splint.f'
+      include '/home/users/hahn/powercode/gabqx.f'
