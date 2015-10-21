@@ -52,7 +52,9 @@ class DlospeakCorr(Corrections):
 
     def build(self): 
         """ Build peak corrected fibercollided mock catalogs (using cosmolopy). 
-        dLOS peak corrected mock catalogs are constructed from fibercollided mock catalogs
+        Note dLOS peak corrected mock catalogs are constructed from fibercollided 
+        mock catalogs. 
+
         """
 
         catdict = (self.cat_corr)['catalog']
@@ -73,6 +75,16 @@ class DlospeakCorr(Corrections):
         z_arr = np.arange(0.0, 1.01, 0.01)
         dm_arr = cosmos.distance.comoving_distance(z_arr, **cosmo) * cosmo['h']
         comdis2z = sp.interpolate.interp1d(dm_arr, z_arr, kind='cubic') 
+        
+        # nbar(z) cubic spline interpolation, which is currently hardcoded
+        # in the function temp_nbarz(). However, this should 
+        # ultimately be edited so that it works for any catalog 
+        # (currently only works for CMASS-like catalogs)
+        if 'cmass' in catdict['name'].lower(): 
+
+            nb_z, nb_nbar = temp_nbarz(self.cat_corr)
+
+            nbarofz = sp.interpolate.interp1d(nb_z, nb_nbar, kind='cubic')       
 
         # upweight corrected galaxy catalog 
         fc_cat_corr = {
@@ -89,106 +101,91 @@ class DlospeakCorr(Corrections):
                 unpack=True, 
                 usecols=range(len(fc_mock_cols))
                 )
+        fc_mock_col_fmts = [] 
+        for col in fc_mock_cols: 
+            if col == 'upw_index':
+                fc_mock_col_fmts.append(np.int)
+            else: 
+                fc_mock_col_fmts.append(np.float)
+
+        fc_data = np.loadtxt(
+                fc_mock_file, 
+                skiprows=1, 
+                unpack=True, 
+                usecols=range(len(fc_mock_cols)),
+                dtype = {
+                    'names': tuple(fc_mock_cols),
+                    'formats': tuple(fc_mock_col_fmts)
+                    }
+                )
         
         for i_col, fc_col in enumerate(fc_mock_cols): 
             setattr(fc_mock, fc_col, fc_data[i_col])
 
-        upw = np.where(fc_mock.wfc > 1)  # upweighted
+        fc_mock.upw_index = fc_mock.upw_index.astype(int)
 
-        notcoll = np.where(fc_mock.wfc > 0)  # not collided
+        upw = np.where(fc_mock.wfc > 1)         # upweighted
+        collided = np.where(fc_mock.wfc == 0)[0]   # collided
+        notcoll = np.where(fc_mock.wfc > 0)     # not collided
+
+        n_fcpair = len(collided)     # number of fiber collision pairs 
         
-        # nbar(z) cubic spline interpolation, which is currently hardcoded
-        # in the function temp_nbarz(). However, this should 
-        # ultimately be edited so that it works for any catalog 
-        # (currently only works for CMASS-like catalogs)
-        if 'cmass' in catdict['name'].lower(): 
+        # expected number of galaxies to be placed in the peak 
+        # of the dLOS distribution based on the peak fraction 
+        n_peak_exp = int(
+                np.rint(f_peak * np.float(n_fcpair))
+                )
+    
+        np.random.seed()
+        np.random.shuffle(collided)
 
-            nb_z, nb_nbar = temp_nbarz(self.cat_corr)
+        i_peakcorr = collided[:n_peak_exp]  # indices of peak corrected galaxies
 
-            nbarofz = sp.interpolate.interp1d(nb_z, nb_nbar, kind='cubic')       
-
-        append_i, append_z, append_nbar, sampled_dlos = [], [], [], [] 
+        fc_mock.wfc[i_peakcorr] += 1.0
+        fc_mock.wfc[fc_mock.upw_index[i_peakcorr]] -= 1.0
         
-        #start_time = time.time() 
-        #d_samp = sample_dlos_peak(corrdict['fit'], corrdict['sigma'])
-        #print 'sample_dlos_peak takes', time.time()-start_time
-
-        # initialize dLOS sampling assuming Gaussian
+        fc_mock.ra[i_peakcorr] = fc_mock.ra[fc_mock.upw_index[i_peakcorr]]
+        fc_mock.dec[i_peakcorr] = fc_mock.dec[fc_mock.upw_index[i_peakcorr]]
+        
+        # comoving distances of upweighted galaxies in fc pairs 
+        # that are going to be peakcorrected
+        comdis_upw_gal = cosmos.distance.comoving_distance(
+                fc_mock.zupw[i_peakcorr], **cosmo) * cosmo['h']
+        
+        # sampled dLOS values from best-fit functional form of 
+        # dLOS peak distribution
         if corrdict['fit'] == 'gauss': 
             dlos_pdf = norm(loc = 0.0, scale = corrdict['sigma'])
         else: 
             raise ValueError
+        d_samples = dlos_pdf.rvs(n_peak_exp)
         
-        for i_gal in upw[0]:    # for every upweighted galaxy 
-            
-            # fiber collision weight is in place because
-            # we need to make sure that the dLOS peak is 
-            # sampled for every upweight
-            wfc_counter = fc_mock.wfc[i_gal]
+        # account for peak correction that places galaxies out of bound. 
+        outofbounds = np.where( 
+                (comdis_upw_gal + d_samples > survey_comdis_max) |
+                (comdis_upw_gal + d_samples < survey_comdis_min)
+                )
 
-            while wfc_counter > 1:
-
-                wfc_counter -= 1.0 
-
-                np.random.seed()
-                rand_fpeak = np.random.random(1) 
-
-                if rand_fpeak <= f_peak:        # in the peak 
-                
-                    # downweight upweighted galaxy 
-                    fc_mock.wfc[i_gal] -= 1.0
-
-                    append_i.append(i_gal)
-
-                    comdis_igal = cosmos.distance.comoving_distance(fc_mock.z[i_gal], **cosmo) * cosmo['h']
-                
-                    # sampled dLOS from dLOS peak distribution best-fit function 
-                    #d_samp = sample_dlos_peak(corrdict['fit'], corrdict['sigma'])
-                    d_samp = dlos_pdf.rvs()
-
-                    # in case the displacement falls out of bounds
-                    # of the survey redshift limits. This crude treatment
-                    # may generate large scale issues. But currently 
-                    # ignoring this issue 
-                    if (comdis_igal + d_samp > survey_comdis_max) or (comdis_igal + d_samp < survey_comdis_min): 
-                        d_samp = -1.0 * d_samp 
+        if len(outofbounds[0]) > 0: 
+            d_samples[outofbounds] *= -1.0
                     
-                    # convert comoving distance to redshift 
-                    collided_z = comdis2z(comdis_igal + d_samp)
-                    
-                    append_z.append(collided_z) 
-                    
-                    if 'cmass' in catdict['name'].lower():
-                        append_nbar.append(nbarofz(collided_z))
+        collided_z = comdis2z(comdis_upw_gal + d_samples)
+        
+        fc_mock.z[i_peakcorr] = collided_z
 
-                    sampled_dlos.append(d_samp) 
-    
-        n_append = len(append_i)
-        print n_append, ' Galaxies were peak corrected'
+        if 'cmass' in catdict['name'].lower():
+            fc_mock.nbar[i_peakcorr] = nbarofz(collided_z)
+        
+        print n_peak_exp, ' Galaxies were peak corrected'
 
         data_cols = self.datacolumns()
         data_fmts = self.datacols_fmt()
         data_hdrs = self.datacols_header()
+
         data_list = []  
-
         for data_col in data_cols: 
-
-            if data_col not in ('wfc', 'wnoz', 'z', 'nbar'):
-                append_arr = getattr(fc_mock, data_col)[append_i]
-
-            elif data_col == 'z':
-                append_arr = append_z 
-
-            elif data_col == 'nbar': 
-                append_arr = append_nbar
-
-            else: # new galaxies have wfc and wnoz = 1.0 
-                append_arr = np.array([1.0 for i in range(n_append)])
-
-            new_col = np.concatenate([
-                getattr(fc_mock, data_col)[notcoll], 
-                append_arr
-                ])
+            
+            new_col = getattr(fc_mock, data_col)
 
             data_list.append(new_col)
 
@@ -205,7 +202,7 @@ class DlospeakCorr(Corrections):
         # write sampled dLOS value to match to actual dLOS peak 
         np.savetxt(
                 output_file+'.dlos', 
-                np.c_[sampled_dlos], 
+                np.c_[d_samples], 
                 fmt=['%10.5f'], 
                 delimiter='\t'
                 ) 

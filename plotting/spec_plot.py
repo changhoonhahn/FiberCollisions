@@ -350,6 +350,9 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
         sub.set_xlim([10**-3,10**0])
         yxtext = 1.5*10**-3
 
+    if type == 'ratio': 
+        sub.axhline(y = 1.0, lw=2, ls='--', c='k')
+
     sub.set_ylim(ylimit)
     sub.set_xlabel('k (h/Mpc)', fontsize=20)
     sub.set_ylabel(ylabel, fontsize=20)
@@ -388,11 +391,12 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
         '.png'
         ])     
 
-    fig_dir = '/home/users/hahn/powercode/FiberCollisions/figure/'
-    fig.savefig(
-            ''.join([fig_dir, fig_name]), 
-            bbox_inches="tight"
-            )
+    #fig_dir = '/home/users/hahn/powercode/FiberCollisions/figure/'
+    #fig.savefig(
+    #        ''.join([fig_dir, fig_name]), 
+    #        bbox_inches="tight"
+    #        )
+    plt.show()
     plt.close()
 
     return None 
@@ -574,12 +578,38 @@ if __name__=='__main__':
                 }
             ] 
     
-    #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=False, type='Pk')
-    #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=False, type='ratio')
-
-    plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='Pk')
+    cat_corrs = [ 
+            {
+                'catalog': {'name': 'nseries'}, 
+                'correction': {'name': 'true'}
+                },
+            {
+                'catalog': {'name': 'nseries'}, 
+                'correction': {'name': 'upweight'}
+                },
+            {
+                'catalog': {'name': 'nseries'}, 
+                'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68}
+                }
+            ]
+    #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='Pk')
+    #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='ratio')
+    
+    cat_corrs = [
+            {
+                'catalog': {'name': 'nseries'}, 
+                'correction': {'name': 'true'}
+                }
+                ] 
+    for fpeak in [0.68, 0.69, 0.7]: 
+        for sigma in [3.8, 3.9, 4.0]: 
+            cat_corrs.append({
+                        'catalog': {'name': 'nseries'}, 
+                        'correction': {'name':'dlospeak', 'fit': 'gauss', 'fpeak': fpeak, 'sigma': sigma}
+                        })
+    #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='Pk')
     plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='ratio')
-    plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='l1_norm')
+    #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='l1_norm')
 
 """
         if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz'):             # LasDamasGeo 
