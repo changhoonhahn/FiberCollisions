@@ -70,24 +70,27 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, quad=Fals
 
     corrdict = {} 
     if catalog_name == 'nseries':
+        
+        if isinstance(corr_name, dict): 
+            corrdict = corr_name
+        else:
+            corrdict['name'] = corr_name
 
-        corrdict['name'] = corr_name
+            if 'dlospeak' in corr_name: 
+                # hardcoded values for bestfit dlos peak
+                # parameters
+                corrdict['fit'] = 'gauss'
+                corrdict['sigma'] = 3.9
+                corrdict['fpeak'] = 0.68
 
-        if 'dlospeak' in corr_name: 
-            # hardcoded values for bestfit dlos peak
-            # parameters
-            corrdict['fit'] = 'gauss'
-            corrdict['sigma'] = 3.9
-            corrdict['fpeak'] = 0.69
+            if 'env' in corr_name: 
+                # hardcoded values for galaxy environment
+                # parameters
+                corrdict['n_NN'] = 5
 
-        if 'env' in corr_name: 
-            # hardcoded values for galaxy environment
-            # parameters
-            corrdict['n_NN'] = 5
+            if 'photoz' in corr_name: 
 
-        if 'photoz' in corr_name: 
-
-            corrdict['d_photoz_tail_cut'] = 15 
+                corrdict['d_photoz_tail_cut'] = 15 
     
     arglist = [ [{
                 'catalog': {'name': catalog_name, 'n_mock': i_mock}, 
@@ -124,16 +127,29 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, quad=Fals
     return None 
 
 if __name__=="__main__":
-    build_multipro('spec', 'nseries', 'true', 1, Nthreads=1, clobber=True, quad=True)
-    build_multipro('spec', 'nseries', 'true', 20, Nthreads=10, clobber=True, quad=True)
-    build_multipro('spec', 'nseries', 'upweight', 20, Nthreads=10, clobber=True, quad=True)
-    build_multipro('spec', 'nseries', 'dlospeak', 20, Nthreads=10, clobber=True, quad=True)
+    #build_multipro('spec', 'nseries', 'true', 1, Nthreads=1, clobber=True, quad=True)
+    #build_multipro('spec', 'nseries', 'true', 20, Nthreads=10, clobber=True, quad=True)
+    #build_multipro('spec', 'nseries', 'upweight', 20, Nthreads=10, clobber=True, quad=True)
+
+    for type in ['data', 'spec']:
+        for fpeak in [0.68, 0.69, 0.7]: 
+            for sigma in [3.8, 3.9, 4.0]: 
+                build_multipro(
+                        type, 
+                        'nseries', 
+                        {'name':'dlospeak', 'fit': 'gauss', 'fpeak': fpeak, 'sigma': sigma}, 
+                        20, 
+                        Nthreads=10, 
+                        clobber=True,
+                        quad=True
+                        )
+
+    #build_multipro('spec', 'nseries', 'dlospeakenv', 20, Nthreads=10, clobber=True, quad=True)
+    #build_multipro('spec', 'nseries', 'dlospeakphotoz', 20, Nthreads=10, clobber=True, quad=True)
     #build_multipro('spec', 'nseries', 'true', 20, Nthreads=5, clobber=True)
     #build_multipro('spec', 'nseries', 'upweight', 20, Nthreads=5, clobber=True)
     #build_multipro('spec', 'nseries', 'dlospeak', 20, Nthreads=5, clobber=True)
-    #build_multipro('spec', 'nseries', 'dlospeakenv', 20, Nthreads=5, clobber=True)
     #build_multipro('data', 'nseries', 'dlospeakphotoz', 20, Nthreads=10, clobber=True)
-    #build_multipro('spec', 'nseries', 'dlospeakphotoz', 20, Nthreads=10, clobber=True)
     #build_multipro('data', 'nseries', 'dlospeakknown', 20, Nthreads=10, clobber=True)
     #build_multipro('spec', 'nseries', 'dlospeakknown', 20, Nthreads=10, clobber=True)
     #build_multipro('data', 'nseries', 'photoz', 84, Nthreads=10)

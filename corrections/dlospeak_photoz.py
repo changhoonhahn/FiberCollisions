@@ -168,7 +168,8 @@ class DlospeakPhotozCorr(Corrections):
         # of the dLOS distribution calculated based on the peak 
         # fraction. 
         n_peak_exp = int(f_peak * np.float(n_fcpair))
-        
+
+        np.random.seed() 
         np.random.shuffle(notin_tail_photoz)
         
         # collided galaxies that will be peak corrected
@@ -176,6 +177,9 @@ class DlospeakPhotozCorr(Corrections):
 
         fc_mock.wfc[i_peakcorr] += 1.0
         fc_mock.wfc[fc_mock.upw_index[i_peakcorr]] -= 1.0
+
+        fc_mock.ra[i_peakcorr] = fc_mock.ra[fc_mock.upw_index[i_peakcorr]]
+        fc_mock.dec[i_peakcorr] = fc_mock.dec[fc_mock.upw_index[i_peakcorr]]
         
         # comoving distances of upweighted galaxies in fc pairs 
         # that are going to be peakcorrected

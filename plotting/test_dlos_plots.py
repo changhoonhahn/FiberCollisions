@@ -332,7 +332,12 @@ if __name__=="__main__":
             'catalog': {'name': 'nseries', 'n_mock': 11}, 
             'correction': {'name': 'dlospeakphotoz', 'fit': 'gauss', 'sigma': 3.9, 'fpeak':0.68, 'd_photoz_tail_cut': 200}
             }
-    dlospeak_dlos_test(cat_corr)
+    for i_mock in xrange(1, 2): 
+        cat_corr = {
+                'catalog': {'name': 'nseries', 'n_mock': i_mock}, 
+                'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 3.8, 'fpeak':0.68}
+                }
+        dlospeak_dlos_test(cat_corr)
 
     #for nNN in [1,3,5,7,10]: 
     #    catalog_dlospeak_env_fit_test('nseries', n_NN=nNN, fit='gauss') 

@@ -107,7 +107,7 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
 
             specclass = Spec(spec_type, catcorr_mock) 
             specclass.read()
-            print specclass.file_name
+            #print specclass.file_name
             
             k_arr = specclass.k
 
@@ -157,10 +157,30 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
                         color = pretty_colors[i_corr+1], 
                         label = plot_label(cat_corr)
                         )
-            
+                
                 print plot_label(cat_corr)
-                print (avg_pk/avg_pk_denom)[-10:]
-                print np.sum( (avg_pk/avg_pk_denom) - 1.0 ) 
+                if not quad:
+                    print (avg_pk/avg_pk_denom)[-10:]
+                else:
+                    print (avg_pk/avg_pk_denom) 
+                print np.sum( np.abs((avg_pk/avg_pk_denom) - 1.0 ) )
+
+        elif type == 'l1_norm':
+
+            if i_corr == 0 :        
+                avg_pk_denom = avg_pk
+                denom_cat = catdict['name']
+
+            else: 
+                sub.scatter(
+                        k_arr, 
+                        avg_pk - avg_pk_denom, 
+                        color = pretty_colors[i_corr+1], 
+                        label = plot_label(cat_corr)
+                        )
+                
+                print plot_label(cat_corr)
+                print (avg_pk-avg_pk_denom)[-10:]
         
         del avg_pk
         
@@ -290,6 +310,36 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
             pass
 
         resid_str = '_residual'
+
+    elif type == 'l1_norm': 
+
+        if 'yrange' in kwargs.keys(): 
+            ylimit = kwargs['yrange'] 
+            yytext = 0.05 + min(ylimit) 
+        else: 
+            ylimit = None 
+            yytext = 0.55
+
+        if quad: 
+            ylabel = ''.join([
+                r"$\mathtt{\overline{P_2(k)} - \overline{P_2(k)_{\rm{", denom_cat, "}}}}$"
+                ])
+        else: 
+            ylabel = ''.join([
+                r"$\mathtt{\overline{P_0(k)} - \overline{P_0(k)_{\rm{", denom_cat, "}}}}$"
+                ])
+        
+        if 'xscale' in kwargs.keys(): 
+            sub.set_xscale(kwargs['xscale']) 
+        else: 
+            sub.set_xscale('log')
+
+        if 'yscale' in kwargs.keys(): 
+            sub.set_yscale(kwargs['yscale'])
+        else: 
+            pass
+
+        resid_str = '_l1norm'
     else: 
         raise NotImplementedError('asdfasdfasdf') 
 
@@ -494,27 +544,42 @@ if __name__=='__main__':
                 },
             {
                 'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.69}
-                }
-            ]
-    """
+                'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68}
+                }, 
             {
                 'catalog': {'name': 'nseries'}, 
                 'correction': {'name': 'dlospeakenv', 'n_NN': 5, 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68}
                 }, 
             {
                 'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'dlospeakknown', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.69}
+                'correction': {'name': 'dlospeakphotoz', 'd_photoz_tail_cut': 15, 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68}
+                }
+            ] 
+    cat_corrs = [ 
+            {
+                'catalog': {'name': 'nseries'}, 
+                'correction': {'name': 'true'}
                 },
             {
                 'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'dlospeakknown', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68}
+                'correction': {'name': 'upweight'}
+                },
+            {
+                'catalog': {'name': 'nseries'}, 
+                'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68}
+                },
+            {
+                'catalog': {'name': 'nseries'}, 
+                'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.69}
                 }
             ] 
-    """
+    
+    #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=False, type='Pk')
+    #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=False, type='ratio')
 
     plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='Pk')
     plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='ratio')
+    plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='l1_norm')
 
 """
         if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz'):             # LasDamasGeo 
@@ -662,4 +727,3 @@ if __name__=='__main__':
     else: 
         raise NotImplementedError('asdfasdfasdfadf') 
 """
-    

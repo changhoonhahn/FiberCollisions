@@ -8,6 +8,7 @@ displacement distribution. Code could use overall editing
 import numpy as np
 import scipy as sp 
 import cosmolopy as cosmos
+from scipy.stats import norm
 import time 
 
 # --- Local ---
@@ -108,9 +109,15 @@ class DlospeakCorr(Corrections):
 
         append_i, append_z, append_nbar, sampled_dlos = [], [], [], [] 
         
-        start_time = time.time() 
-        d_samp = sample_dlos_peak(corrdict['fit'], corrdict['sigma'])
-        print 'sample_dlos_peak takes', time.time()-start_time
+        #start_time = time.time() 
+        #d_samp = sample_dlos_peak(corrdict['fit'], corrdict['sigma'])
+        #print 'sample_dlos_peak takes', time.time()-start_time
+
+        # initialize dLOS sampling assuming Gaussian
+        if corrdict['fit'] == 'gauss': 
+            dlos_pdf = norm(loc = 0.0, scale = corrdict['sigma'])
+        else: 
+            raise ValueError
         
         for i_gal in upw[0]:    # for every upweighted galaxy 
             
@@ -123,6 +130,7 @@ class DlospeakCorr(Corrections):
 
                 wfc_counter -= 1.0 
 
+                np.random.seed()
                 rand_fpeak = np.random.random(1) 
 
                 if rand_fpeak <= f_peak:        # in the peak 
@@ -135,7 +143,8 @@ class DlospeakCorr(Corrections):
                     comdis_igal = cosmos.distance.comoving_distance(fc_mock.z[i_gal], **cosmo) * cosmo['h']
                 
                     # sampled dLOS from dLOS peak distribution best-fit function 
-                    d_samp = sample_dlos_peak(corrdict['fit'], corrdict['sigma'])
+                    #d_samp = sample_dlos_peak(corrdict['fit'], corrdict['sigma'])
+                    d_samp = dlos_pdf.rvs()
 
                     # in case the displacement falls out of bounds
                     # of the survey redshift limits. This crude treatment
@@ -147,10 +156,10 @@ class DlospeakCorr(Corrections):
                     # convert comoving distance to redshift 
                     collided_z = comdis2z(comdis_igal + d_samp)
                     
-                    append_z.append(collided_z[0]) 
+                    append_z.append(collided_z) 
                     
                     if 'cmass' in catdict['name'].lower():
-                        append_nbar.append(nbarofz(collided_z[0]))
+                        append_nbar.append(nbarofz(collided_z))
 
                     sampled_dlos.append(d_samp) 
     
@@ -248,14 +257,15 @@ def sample_dlos_peak(fit, sigma):
     exponential, or the true distribution of the peak itself. 
     """
 
-    if fit in ('gauss', 'expon'):   
+    np.random.seed()
+    if fit in ('gauss'): 
         # sample dLOS from peak using best-fit
 
         if fit == 'gauss': 
             peak_fit_func = peak_fit_gauss
         elif fit == 'expon': 
             peak_fit_func = peak_fit_expon
-
+        
         rand1 = np.random.random(1) 
         rand2 = np.random.random(1) 
 

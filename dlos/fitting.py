@@ -577,7 +577,7 @@ def mpfit_peak_gauss(p, fjac=None, x=None, y=None):
     return([status, (y-model)]) 
 
 if __name__=="__main__":
-    print catalog_dlospeak_fit('nseries', fit='gauss')
+    #print catalog_dlospeak_fit('nseries', fit='gauss')
     print catalog_dlospeak_photoz_fit('nseries', fit='gauss', dlos_photoz_tailcut = 200)
     
     """
