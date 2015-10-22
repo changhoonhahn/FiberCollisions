@@ -7,6 +7,7 @@ Everything is hardcoded. Code can be improved but too lazy.
 
 '''
 import numpy as np
+import warnings 
 # --- Local ---
 from util.direc import direc
 from corrections import Corrections
@@ -71,7 +72,26 @@ class UpweightCorr(Corrections):
             mask_file = ''.join([data_dir, 'CutskyN', str(catdict['n_mock']), '.mask_info']) 
             orig_wcomp = np.loadtxt(mask_file, unpack=True, usecols=[0]) 
 
+            coll = np.where(orig_wfc == 0.0) 
             data_list = [orig_ra, orig_dec, orig_z, orig_wfc, orig_wcomp, orig_zupw, orig_upw_index]   # data column list 
+    
+            # handle upweighted redshift/index discrepancies by simply ignoring them. 
+            if not np.array(orig_z[orig_upw_index.astype(int)[coll]] == orig_zupw[coll]).all(): 
+                wrong_index = (coll[0])[np.where(orig_z[orig_upw_index.astype(int)[coll]] != orig_zupw[coll])[0]]
+
+                warn_message = ''.join([
+                    'upweighted galaxy redshift and index data discrepancies in ', 
+                    self.file(), 
+                    ' ', 
+                    str(len(wrong_index)), 
+                    ' galaxies affected'
+                    ])
+
+                warnings.warn(warn_message, Warning)
+
+                if len(wrong_index) > 0: 
+                    for i_data, datum in enumerate(data_list): 
+                        data_list[i_data] = np.delete(datum, wrong_index)
 
         elif 'cmass' in catalog_name: 
 
