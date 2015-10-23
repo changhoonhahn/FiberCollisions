@@ -601,12 +601,11 @@ if __name__=='__main__':
                 'correction': {'name': 'true'}
                 }
                 ] 
-    for fpeak in [0.68, 0.69, 0.7]: 
-        for sigma in [3.8, 3.9, 4.0]: 
-            cat_corrs.append({
-                        'catalog': {'name': 'nseries'}, 
-                        'correction': {'name':'dlospeak', 'fit': 'gauss', 'fpeak': fpeak, 'sigma': sigma}
-                        })
+    for fpeak in np.arange(0.0, 1.1, 0.1): 
+        cat_corrs.append({
+                    'catalog': {'name': 'nseries'}, 
+                    'correction': {'name':'dlospeak', 'fit': 'gauss', 'fpeak': fpeak, 'sigma': 3.8}
+                    })
     #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='Pk')
     plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='ratio')
     #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='l1_norm')

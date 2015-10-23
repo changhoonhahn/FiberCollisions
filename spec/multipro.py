@@ -132,17 +132,15 @@ if __name__=="__main__":
     #build_multipro('spec', 'nseries', 'upweight', 20, Nthreads=10, clobber=True, quad=True)
 
     for type in ['data', 'spec']:
-        for fpeak in [0.68, 0.69, 0.7]: 
-            for sigma in [3.8, 3.9, 4.0]: 
-                build_multipro(
-                        type, 
-                        'nseries', 
-                        {'name':'dlospeak', 'fit': 'gauss', 'fpeak': fpeak, 'sigma': sigma}, 
-                        20, 
-                        Nthreads=10, 
-                        clobber=True,
-                        quad=True
-                        )
+        build_multipro(
+                type, 
+                'nseries', 
+                {'name': 'dlospeakenv', 'n_NN': 5, 'fit': 'gauss', 'sigma': 3.8, 'fpeak': 0.68},
+                20, 
+                Nthreads=10, 
+                clobber=True,
+                quad=True
+                )
 
     #build_multipro('spec', 'nseries', 'dlospeakenv', 20, Nthreads=10, clobber=True, quad=True)
     #build_multipro('spec', 'nseries', 'dlospeakphotoz', 20, Nthreads=10, clobber=True, quad=True)

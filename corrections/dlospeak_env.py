@@ -7,6 +7,7 @@ displacement distribution and galaxy environment.
 '''
 import numpy as np
 import scipy as sp 
+from scipy.stats import norm
 import cosmolopy as cosmos
 import time 
 import random 
@@ -111,10 +112,14 @@ class DlospeakEnvCorr(Corrections):
         
         for i_col, fc_col in enumerate(fc_mock_cols): 
             setattr(fc_mock, fc_col, fc_data[i_col])
+        
+        fc_mock.upw_index = fc_mock.upw_index.astype(int)
 
         upw = np.where(fc_mock.wfc > 1)  # upweighted
-
+        collided = np.where(fc_mock.wfc == 0)[0] # collided 
         notcoll = np.where(fc_mock.wfc > 0)  # not collided
+
+        n_fcpair = len(collided)
 
         # expected number of galaxies to be placed in the peak 
         # of the dLOS distribution calculated based on the peak 
@@ -142,9 +147,9 @@ class DlospeakEnvCorr(Corrections):
         # galenv module 
         start_time = time.time()
         dNNs = d_NN_dataclass(
-                fc_mock.ra[upw],
-                fc_mock.dec[upw],
-                fc_mock.z[upw], 
+                fc_mock.ra[fc_mock.upw_index[collided]],
+                fc_mock.dec[fc_mock.upw_index[collided]],
+                fc_mock.z[fc_mock.upw_index[collided]], 
                 fc_mock
                 )
         print 'd_NN calculation takes ', (time.time()-start_time)/60.0, ' minutes'
@@ -152,99 +157,48 @@ class DlospeakEnvCorr(Corrections):
         # fpeak and sigma values for dNN values 
         fpeak_envs = dlosenv_fpeak_env(dNNs, fc_cat_corr, n_NN = corrdict['n_NN'])
         sigma_envs = dlosenv_sigma_env(dNNs, fc_cat_corr, n_NN = corrdict['n_NN'])
+   
+        np.random.seed()
+        rand = np.random.uniform(size=n_fcpair)
 
-        append_i, append_z, append_nbar, sampled_dlos = [], [], [], [] 
+        peakcorr = np.where(fpeak_envs > rand)
+        n_peakcorr = len(peakcorr[0]) 
+        print 'Ngal_(peak corr) = ', n_peakcorr 
         
-        for ii_gal, i_gal in enumerate(upw[0]):    # for each upweighted galaxy 
+        fc_mock.wfc[collided[peakcorr]] += 1.0
+        fc_mock.wfc[fc_mock.upw_index[collided[peakcorr]]] -= 1.0
+
+        fc_mock.ra[collided[peakcorr]] = fc_mock.ra[fc_mock.upw_index[collided[peakcorr]]]
+        fc_mock.dec[collided[peakcorr]] = fc_mock.dec[fc_mock.upw_index[collided[peakcorr]]]
             
-            # fiber collision weight is in place because
-            # we need to make sure that the dLOS peak is 
-            # sampled for every upweight
-            wfc_counter = fc_mock.wfc[i_gal]
+        # comoving distances of upweighted galaxies in fc pairs 
+        # that are going to be peakcorrected
+        comdis_upw_gal = cosmos.distance.comoving_distance(
+                fc_mock.zupw[collided[peakcorr]], **cosmo) * cosmo['h']
 
-            while wfc_counter > 1:
+        dlos_pdf = norm(loc = 0.0, scale = 1.0) 
+        d_samples = sigma_envs[peakcorr] * dlos_pdf.rvs(n_peakcorr)
             
-                wfc_counter -= 1.0 
-
-                fpeak_env = fpeak_envs[ii_gal]
-                sigma_env = sigma_envs[ii_gal]
-
-                rand_fpeak = np.random.random(1) 
-                
-                if rand_fpeak <= fpeak_env:        # in the peak 
-                
-                    # downweight upweighted galaxy 
-                    fc_mock.wfc[i_gal] -= 1.0
-
-                    comdis_igal = cosmos.distance.comoving_distance(fc_mock.z[i_gal], **cosmo) * cosmo['h']
-                
-                    # sampled dLOS from dLOS peak distribution best-fit function 
-                    d_samp = sample_dlos_peak(corrdict['fit'], sigma_env)
-
-                    # in case the displacement falls out of bounds
-                    # of the survey redshift limits. This crude treatment
-                    # may generate large scale issues. But currently 
-                    # ignoring this issue 
-                    if (comdis_igal + d_samp > survey_comdis_max) or (comdis_igal + d_samp < survey_comdis_min): 
-                        d_samp = -1.0 * d_samp 
-                    
-                    # convert comoving distance to redshift 
-                    collided_z = comdis2z(comdis_igal + d_samp)
-                    
-                    append_i.append(i_gal)
-                    append_z.append(collided_z[0]) 
-                    if 'cmass' in catdict['name'].lower():
-                        append_nbar.append(nbarofz(collided_z[0]))
-
-                    sampled_dlos.append(d_samp) 
-
-                    ngal_peak_exp -= 1.0 
-        
-        n_append = len(append_i)
-        print abs(ngal_peak_exp), ' extra galaxies were peak corrected' 
-        """ 
-        # Using fpeak(dNN) and sigma(dNN) places too many galaxies 
-        # in the peak. The following lines of code is to correct for 
-        # this by removing some of the appended indices and redshift
-        undo_peakcorr = random.sample(
-                xrange(n_append), 
-                int(abs(ngal_peak_exp))
+        # account for peak correction that places galaxies out of bound. 
+        outofbounds = np.where( 
+                (comdis_upw_gal + d_samples > survey_comdis_max) |
+                (comdis_upw_gal + d_samples < survey_comdis_min)
                 )
 
-        append_i = [ append_i[ii] for ii in xrange(n_append) if ii not in undo_peakcorr ]
-        append_z = [ append_z[ii] for ii in xrange(n_append) if ii not in undo_peakcorr ]
-        if 'cmass' in catdict['name'].lower():
-            append_nbar = [ append_nbar[ii] for ii in xrange(n_append) if ii not in undo_peakcorr ]
-
-        sampled_dlos = [ sampled_dlos[ii] for ii in xrange(n_append) if ii not in undo_peakcorr ]
+        if len(outofbounds[0]) > 0: 
+            d_samples[outofbounds] *= -1.0
+                    
+        collided_z = comdis2z(comdis_upw_gal + d_samples)
         
-        n_append = len(append_i)
-        print n_append, ' Galaxies were finally peak corrected'
-        """
+        fc_mock.z[collided[peakcorr]] = collided_z
 
         data_cols = self.datacolumns()
         data_fmts = self.datacols_fmt()
         data_hdrs = self.datacols_header()
         data_list = []  
-
         for data_col in data_cols: 
-
-            if data_col not in ('wfc', 'wnoz', 'z', 'nbar'):
-                append_arr = getattr(fc_mock, data_col)[append_i]
-
-            elif data_col == 'z':
-                append_arr = append_z 
-
-            elif data_col == 'nbar': 
-                append_arr = append_nbar
-
-            else: # new galaxies have wfc and wnoz = 1.0 
-                append_arr = np.array([1.0 for i in range(n_append)])
-
-            new_col = np.concatenate([
-                getattr(fc_mock, data_col)[notcoll], 
-                append_arr
-                ])
+            
+            new_col = getattr(fc_mock, data_col)
 
             data_list.append(new_col)
 
@@ -261,7 +215,7 @@ class DlospeakEnvCorr(Corrections):
         # write sampled dLOS value to match to actual dLOS peak 
         np.savetxt(
                 output_file+'.dlos', 
-                np.c_[sampled_dlos], 
+                np.c_[d_samples], 
                 fmt=['%10.5f'], 
                 delimiter='\t'
                 ) 
