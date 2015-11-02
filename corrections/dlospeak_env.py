@@ -124,13 +124,7 @@ class DlospeakEnvCorr(Corrections):
         # expected number of galaxies to be placed in the peak 
         # of the dLOS distribution calculated based on the peak 
         # fraction. 
-        ngal_peak_exp = int( 
-                np.floor(
-                    f_peak * (np.sum(fc_mock.wfc[upw]) - np.float(len(upw[0])))
-                    ) 
-                )
-        print 'Ngal_(no fc) = ', (np.sum(fc_mock.wfc[upw]) - np.float(len(upw[0])))
-        print 'Ngal_(expected in peak) = ', ngal_peak_exp
+        ngal_peak_exp = int(np.rint(np.float(n_fcpair) * f_peak))
         
         # nbar(z) cubic spline interpolation, which is currently hardcoded
         # in the function temp_nbarz(). However, this should 
@@ -157,13 +151,18 @@ class DlospeakEnvCorr(Corrections):
         # fpeak and sigma values for dNN values 
         fpeak_envs = dlosenv_fpeak_env(dNNs, fc_cat_corr, n_NN = corrdict['n_NN'])
         sigma_envs = dlosenv_sigma_env(dNNs, fc_cat_corr, n_NN = corrdict['n_NN'])
+        print fpeak_envs
+        print sigma_envs
    
         np.random.seed()
-        rand = np.random.uniform(size=n_fcpair)
+        rand = np.random.uniform(size = n_fcpair)
 
         peakcorr = np.where(fpeak_envs > rand)
         n_peakcorr = len(peakcorr[0]) 
-        print 'Ngal_(peak corr) = ', n_peakcorr 
+        print '' 
+        print 'Ngal_(expected in peak) = ', ngal_peak_exp
+        print 'Ngal_(actually peak corrected) = ', n_peakcorr 
+        print np.abs(np.float(ngal_peak_exp) - np.float(n_peakcorr))/np.float(ngal_peak_exp) 
         
         fc_mock.wfc[collided[peakcorr]] += 1.0
         fc_mock.wfc[fc_mock.upw_index[collided[peakcorr]]] -= 1.0

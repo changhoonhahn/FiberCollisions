@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 
 # --- Local --- 
-from defutility.plotting import prettyplot
+
 from defutility.plotting import prettycolors 
 from spec.spec import Spec
 
@@ -163,7 +163,14 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
                     print (avg_pk/avg_pk_denom)[-10:]
                 else:
                     print (avg_pk/avg_pk_denom) 
+                
+                largescale = np.where(k_arr < 0.2)
+                smallscale = np.where(k_arr > 0.2)
                 print np.sum( np.abs((avg_pk/avg_pk_denom) - 1.0 ) )
+                print 'Large scale k < 0.2'
+                print np.sum( np.abs((avg_pk[largescale]/avg_pk_denom[largescale]) - 1.0 ) )
+                print 'Small scale k > 0.2'
+                print np.sum( np.abs((avg_pk[smallscale]/avg_pk_denom[smallscale]) - 1.0 ) )
 
         elif type == 'l1_norm':
 
@@ -186,13 +193,20 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
         
         # Specify corrections for figure file name  
         if 'dlospeak' in corrdict['name']: 
-            corr_str += ''.join([
-                catdict['name'], '_', 
-                corrdict['name'], '_', 
-                corrdict['fit'], '_',
-                '_sigma', str(corrdict['sigma']), 
-                'fpeak', str(corrdict['fpeak'])
-                ]) 
+            try:
+                corr_str += ''.join([
+                    catdict['name'], '_', 
+                    corrdict['name'], '_', 
+                    corrdict['fit'], '_',
+                    '_sigma', str(corrdict['sigma']), 
+                    'fpeak', str(corrdict['fpeak'])
+                    ]) 
+            except KeyError: 
+                corr_str += ''.join([
+                    catdict['name'], '_', 
+                    corrdict['name'], '_', 
+                    '_sigma', str(corrdict['sigma'])
+                    ]) 
         else: 
             corr_str += ''.join([ 
                 catdict['name'], '_', 
@@ -410,14 +424,23 @@ def plot_label(cat_corr):
     corrdict = cat_corr['correction']
 
     if 'dlospeak' in corrdict['name']: 
-
-        label = ' '.join([
-            catdict['name'].upper(), 
-            ''.join([
-                corrdict['name'].upper(), ':', 
-                str(corrdict['sigma']), ',', str(corrdict['fpeak'])
+        
+        try:
+            label = ' '.join([
+                catdict['name'].upper(), 
+                ''.join([
+                    corrdict['name'].upper(), ':', 
+                    str(corrdict['sigma']), ',', str(corrdict['fpeak'])
+                    ])
                 ])
-            ])
+        except KeyError: 
+            label = ' '.join([
+                catdict['name'].upper(), 
+                ''.join([
+                    corrdict['name'].upper(), ':', 
+                    str(corrdict['sigma'])
+                    ])
+                ])
 
     elif corrdict['name'] in ('true', 'upweight'): 
 
@@ -578,6 +601,8 @@ if __name__=='__main__':
                 }
             ] 
     
+
+
     cat_corrs = [ 
             {
                 'catalog': {'name': 'nseries'}, 
@@ -599,17 +624,37 @@ if __name__=='__main__':
             {
                 'catalog': {'name': 'nseries'}, 
                 'correction': {'name': 'true'}
-                }
-                ] 
-    for fpeak in np.arange(0.0, 1.1, 0.1): 
+                },
+            {
+                'catalog': {'name': 'nseries'}, 
+                'correction': {'name': 'upweight'}
+                }] 
+
+    for f_peakcorr in np.arange(0.0, 1.1, 0.1): 
         cat_corrs.append({
                     'catalog': {'name': 'nseries'}, 
-                    'correction': {'name':'dlospeak', 'fit': 'gauss', 'fpeak': fpeak, 'sigma': 3.8}
+                    'correction': {'name': 'dlospeak.tailonly', 'sigma': 3.8, 'f_peakcorr': f_peakcorr}
                     })
-    #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='Pk')
+    plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='Pk')
     plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='ratio')
     #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='l1_norm')
 
+    cat_corrs = [
+            {
+                'catalog': {'name': 'nseries'}, 
+                'correction': {'name': 'true'}
+                },
+            {
+                'catalog': {'name': 'nseries'}, 
+                'correction': {'name': 'upweight'}
+                }] 
+    for f_peakcorr in np.arange(0.0, 1.1, 0.1): 
+        cat_corrs.append({
+                    'catalog': {'name': 'nseries'}, 
+                    'correction': {'name': 'dlospeak.peakonly', 'sigma': 3.8, 'f_peakcorr': f_peakcorr}
+                    })
+    plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='Pk')
+    plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='ratio')
 """
         if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz'):             # LasDamasGeo 
             # compute average[P(k)] for each correction method

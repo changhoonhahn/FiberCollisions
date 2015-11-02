@@ -19,6 +19,7 @@ from dlos_plot import Plotdlos
 from dlos.fitting import catalog_dlospeak_fit
 from dlos.fitting import catalog_dlospeak_env_fit
 from dlos.fitting import peak_gauss 
+from dlos.fitting import peak_expon
 from dlos.fitting import dlos_envbin_peakfit
 from dlos.fitting import dlosenv_peakfit_fpeak_env_fit
 from dlos.fitting import dlosenv_peakfit_sigma_env_fit
@@ -78,7 +79,7 @@ def catalog_dlospeak_fit_test(catalog_name, fit='gauss', **kwargs):
     dlos_hist = []
     bestfit_fpeak, bestfit_sigma, bestfit_amp = catalog_dlospeak_fit(
             catalog_name, 
-            fit='gauss', 
+            fit=fit, 
             combined_dlos=combined_dlos, 
             dlos_hist=dlos_hist
             )
@@ -94,21 +95,32 @@ def catalog_dlospeak_fit_test(catalog_name, fit='gauss', **kwargs):
             )
 
     fit_label = ''.join([
-        "Gauss ", 
+        fit.upper(), " ", 
         r"$(f_{peak} = ", str(round(bestfit_fpeak,2)), 
         ", \sigma = ", str(round(bestfit_sigma,2)), 
         ", A=", str(round(bestfit_amp)),
         ")$"
         ]) 
+    
+    if fit == 'gauss':
+        dlos_fig.sub.plot(
+                np.arange(-100.0, 100.0, 0.1), 
+                peak_gauss(np.arange(-100.0, 100.0, 0.1), [bestfit_amp, bestfit_sigma]), 
+                ls = '--', 
+                lw = 4, 
+                color = 'k',
+                label = fit_label
+                )
+    elif fit == 'expon': 
+        dlos_fig.sub.plot(
+                np.arange(-100.0, 100.0, 0.1), 
+                peak_expon(np.arange(-100.0, 100.0, 0.1), [bestfit_amp, bestfit_sigma]), 
+                ls = '--', 
+                lw = 4, 
+                color = 'k',
+                label = fit_label
+                )
 
-    dlos_fig.sub.plot(
-            np.arange(-100.0, 100.0, 0.1), 
-            peak_gauss(np.arange(-100.0, 100.0, 0.1), [bestfit_amp, bestfit_sigma]), 
-            ls = '--', 
-            lw = 4, 
-            color = 'k',
-            label = fit_label
-            )
 
     dlos_fig.set_range(xrange=[-20.0, 20.0])
     dlos_fig.set_legend()
@@ -123,7 +135,7 @@ def catalog_dlospeak_fit_test(catalog_name, fit='gauss', **kwargs):
 
     dlos_fig.save_fig(fig_file)
 
-    return [sigma, fpeak]
+    return [bestfit_sigma, bestfit_fpeak]
 
 def catalog_dlospeak_env_fit_test(catalog_name, n_NN=3, fit='gauss', **kwargs): 
     """ Test dLOS distribution as a function of environment peaking fitting 
@@ -332,13 +344,18 @@ if __name__=="__main__":
             'catalog': {'name': 'nseries', 'n_mock': 11}, 
             'correction': {'name': 'dlospeakphotoz', 'fit': 'gauss', 'sigma': 3.9, 'fpeak':0.68, 'd_photoz_tail_cut': 200}
             }
-    for i_mock in xrange(1, 2): 
+    #catalog_dlospeak_fit_test('nseries', fit='expon')
+    #catalog_dlospeak_fit_test('nseries', fit='gauss')
+
+    for i_mock in xrange(1, 21): 
         cat_corr = {
                 'catalog': {'name': 'nseries', 'n_mock': i_mock}, 
-                'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 3.8, 'fpeak':0.68}
+                'correction': {'name': 'dlospeak.shuffle', 'sigma': 3.8}
                 }
         dlospeak_dlos_test(cat_corr)
 
+    #'correction': {'name': 'dlospeak', 'fit': 'expon', 'sigma': 4.3, 'fpeak': 0.7}
+    #'correction': {'name': 'dlospeakenv', 'n_NN': 5, 'fit': 'gauss', 'sigma': 3.8, 'fpeak': 0.68}
     #for nNN in [1,3,5,7,10]: 
     #    catalog_dlospeak_env_fit_test('nseries', n_NN=nNN, fit='gauss') 
     #    dlos_envbin_peakfit_test(cat_corr, n_NN=[nNN])

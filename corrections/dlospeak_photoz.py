@@ -176,7 +176,8 @@ class DlospeakPhotozCorr(Corrections):
         i_peakcorr = notin_tail_photoz[:n_peak_exp]
 
         fc_mock.wfc[i_peakcorr] += 1.0
-        fc_mock.wfc[fc_mock.upw_index[i_peakcorr]] -= 1.0
+        for upw_index in fc_mock.upw_index[i_peakcorr]: 
+            fc_mock.wfc[upw_index] -= 1.0
 
         fc_mock.ra[i_peakcorr] = fc_mock.ra[fc_mock.upw_index[i_peakcorr]]
         fc_mock.dec[i_peakcorr] = fc_mock.dec[fc_mock.upw_index[i_peakcorr]]

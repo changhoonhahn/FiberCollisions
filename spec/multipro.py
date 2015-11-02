@@ -130,18 +130,29 @@ if __name__=="__main__":
     #build_multipro('spec', 'nseries', 'true', 1, Nthreads=1, clobber=True, quad=True)
     #build_multipro('spec', 'nseries', 'true', 20, Nthreads=10, clobber=True, quad=True)
     #build_multipro('spec', 'nseries', 'upweight', 20, Nthreads=10, clobber=True, quad=True)
+    
+    for f_peakcorr in np.arange(0.0, 1.1, 0.1): 
+        for type in ['data', 'spec']:
+            build_multipro(
+                    type, 
+                    'nseries', 
+                    {'name': 'dlospeak.tailonly', 'sigma': 3.8, 'f_peakcorr': f_peakcorr},
+                    20, 
+                    Nthreads=10, 
+                    clobber=True,
+                    quad=True
+                    )
 
-    for type in ['data', 'spec']:
-        build_multipro(
-                type, 
-                'nseries', 
-                {'name': 'dlospeakenv', 'n_NN': 5, 'fit': 'gauss', 'sigma': 3.8, 'fpeak': 0.68},
-                20, 
-                Nthreads=10, 
-                clobber=True,
-                quad=True
-                )
-
+            build_multipro(
+                    type, 
+                    'nseries', 
+                    {'name': 'dlospeak.peakonly', 'sigma': 3.8, 'f_peakcorr': f_peakcorr},
+                    20, 
+                    Nthreads=10, 
+                    clobber=True,
+                    quad=True
+                    )
+    
     #build_multipro('spec', 'nseries', 'dlospeakenv', 20, Nthreads=10, clobber=True, quad=True)
     #build_multipro('spec', 'nseries', 'dlospeakphotoz', 20, Nthreads=10, clobber=True, quad=True)
     #build_multipro('spec', 'nseries', 'true', 20, Nthreads=5, clobber=True)

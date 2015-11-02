@@ -19,7 +19,7 @@ from util.catalog import Catalog
 from corrections import Corrections
 from fibcollided import UpweightCorr 
 
-class DlospeakCorr(Corrections): 
+class FpeakweightCorr(Corrections): 
 
     def __init__(self, cat_corr, **kwargs): 
         """ Child class of Correction class in corrections.py 
@@ -103,7 +103,24 @@ class DlospeakCorr(Corrections):
                 unpack=True, 
                 usecols=range(len(fc_mock_cols))
                 )
+        fc_mock_col_fmts = [] 
+        for col in fc_mock_cols: 
+            if col == 'upw_index':
+                fc_mock_col_fmts.append(np.int)
+            else: 
+                fc_mock_col_fmts.append(np.float)
 
+        fc_data = np.loadtxt(
+                fc_mock_file, 
+                skiprows=1, 
+                unpack=True, 
+                usecols=range(len(fc_mock_cols)),
+                dtype = {
+                    'names': tuple(fc_mock_cols),
+                    'formats': tuple(fc_mock_col_fmts)
+                    }
+                )
+        
         for i_col, fc_col in enumerate(fc_mock_cols): 
             setattr(fc_mock, fc_col, fc_data[i_col])
 
@@ -128,11 +145,10 @@ class DlospeakCorr(Corrections):
             i_peakcorr = collided[:n_peak_exp]  # indices of peak corrected galaxies
 
             fc_mock.wfc[i_peakcorr] += 1.0
-            for upw_index in fc_mock.upw_index[i_peakcorr]: 
-                fc_mock.wfc[upw_index] -= 1.0
+            fc_mock.wfc[fc_mock.upw_index[i_peakcorr]] -= 1.0
             
-            #fc_mock.ra[i_peakcorr] = fc_mock.ra[fc_mock.upw_index[i_peakcorr]]
-            #fc_mock.dec[i_peakcorr] = fc_mock.dec[fc_mock.upw_index[i_peakcorr]]
+            fc_mock.ra[i_peakcorr] = fc_mock.ra[fc_mock.upw_index[i_peakcorr]]
+            fc_mock.dec[i_peakcorr] = fc_mock.dec[fc_mock.upw_index[i_peakcorr]]
             
             # comoving distances of upweighted galaxies in fc pairs 
             # that are going to be peakcorrected

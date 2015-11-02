@@ -23,8 +23,12 @@ from corrections.true import TrueCorr
 from corrections.dlospeak import DlospeakCorr
 from corrections.fibcollided import UpweightCorr
 from corrections.dlospeak_env import DlospeakEnvCorr
+from corrections.dlospeak_flex import DlospeakFlexCorr
 from corrections.dlospeak_known import DlospeakKnownCorr
 from corrections.dlospeak_photoz import DlospeakPhotozCorr
+from corrections.dlospeak_shuffle import DlospeakShuffleCorr
+from corrections.dlospeak_tailonly import DlospeakTailonlyCorr
+from corrections.dlospeak_peakonly import DlospeakPeakonlyCorr
 from corrections.photoz_corr import PhotozCorr
 
 # Classes ------------------------------------------------------------
@@ -55,7 +59,11 @@ class Data(object):
                     'dlospeak': DlospeakCorr, 
                     'dlospeakenv': DlospeakEnvCorr, 
                     'dlospeakphotoz': DlospeakPhotozCorr,
-                    'dlospeakknown': DlospeakKnownCorr
+                    'dlospeakknown': DlospeakKnownCorr,
+                    'dlospeak.flex': DlospeakFlexCorr,
+                    'dlospeak.shuffle': DlospeakShuffleCorr,
+                    'dlospeak.tailonly': DlospeakTailonlyCorr, 
+                    'dlospeak.peakonly': DlospeakPeakonlyCorr
                     }
 
             corr_name = ((self.cat_corr)['correction'])['name']

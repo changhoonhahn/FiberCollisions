@@ -1,0 +1,36 @@
+# input-output files and parameters
+data_filename= /mount/riachuelo1/hahn/data/Nseries/CutskyN1.fced.cute2pcf.dat
+random_filename= /mount/riachuelo1/hahn/data/Nseries/Nseries_cutsky_randoms_50x.2pcf.dat
+input_format= 2
+mask_filename= None 
+z_dist_filename= None 
+output_filename= /mount/riachuelo1/hahn/data/Nseries/corr_2pcf_CutskyN1.fced.cute2pcf.smallscale.dat
+num_lines= all
+
+# estimation parameters
+corr_type= 3D_ps 
+corr_estimator= LS
+np_rand_fact= 8
+
+# cosmological parameters
+omega_M= 0.31
+omega_L= 0.69
+w= -1
+
+# binning
+log_bin= 0
+n_logint= 10
+dim1_max= 10.
+dim1_nbin= 50 
+dim2_max= 10.
+dim2_nbin= 50 
+dim3_min= 0.4
+dim3_max= 0.7
+dim3_nbin= 1
+
+# pixels for radial correlation
+radial_aperture= 1
+
+# pm parameters
+use_pm= 1
+n_pix_sph= 2048

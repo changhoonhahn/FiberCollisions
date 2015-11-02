@@ -65,7 +65,8 @@ def dlospeak_fit(dlos, fit = 'gauss', peak_range = [-15.0, 15.0], **kwargs):
         # analytic integral of gaussian with bestfit amplitude and sigma 
         bestfit_func_integral = np.sqrt(2.0 * np.pi) * best_amp * best_sigma 
     else: 
-        raise NotImplementedError()
+        bestfit_func_integral = best_amp * 2.0 * best_sigma 
+        #raise NotImplementedError()
 
     dlos_dist_integral = np.sum(dlos_dist) * fd_binsize
     
@@ -86,7 +87,8 @@ def dlospeak_fit(dlos, fit = 'gauss', peak_range = [-15.0, 15.0], **kwargs):
     print 'fpeak from best-fit = ', fpeak_bestfit_func
     print 'fpeak from dlosdist = ', fpeak_dlos_dist  
 
-    return [fpeak_bestfit_func, best_sigma, best_amp]
+    #return [fpeak_bestfit_func, best_sigma, best_amp]
+    return [fpeak_dlos_dist, best_sigma, best_amp]
 
 def catalog_dlospeak_fit(catalog_name, fit='gauss', **kwargs): 
     """ Fit peak of the dLOS distribution for catalog
@@ -130,7 +132,7 @@ def catalog_dlospeak_fit(catalog_name, fit='gauss', **kwargs):
         except NameError: 
             combined_dlos = list(dlos_i)
 
-    fpeak, sigma, amp = dlospeak_fit(np.array(combined_dlos), fit = 'gauss', peak_range = [-15.0, 15.0])   
+    fpeak, sigma, amp = dlospeak_fit(np.array(combined_dlos), fit = fit, peak_range = [-15.0, 15.0])   
 
     return fpeak, sigma, amp
 
@@ -577,8 +579,8 @@ def mpfit_peak_gauss(p, fjac=None, x=None, y=None):
     return([status, (y-model)]) 
 
 if __name__=="__main__":
-    #print catalog_dlospeak_fit('nseries', fit='gauss')
-    print catalog_dlospeak_photoz_fit('nseries', fit='gauss', dlos_photoz_tailcut = 200)
+    print catalog_dlospeak_fit('nseries', fit='expon')
+    #print catalog_dlospeak_photoz_fit('nseries', fit='gauss', dlos_photoz_tailcut = 200)
     
     """
     cat_corr = {

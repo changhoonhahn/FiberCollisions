@@ -234,7 +234,7 @@
       write(4,1015) avgk(Ibin),avgPg0T(Ibin),avgPg2fast(Ibin),
      & avgPg4fast(Ibin),avgPg4fft15(Ibin),avgPg0(Ibin),avgPr0(Ibin),
      & avgPr2fast(Ibin),avgRWr0(Ibin),avgIWr0(Ibin),avgP00w(Ibin),
-     & avgP02w(Ibin),avgP20w(Ibin),co(Ibin)
+     & avgP02w(Ibin),avgP20w(Ibin),co(Ibin),I22
       end if
  110  continue
       close(4)
