@@ -72,8 +72,8 @@ class Spec(object):
 
         elif self.type == 'p2k': 
             
-            col_index = [0, 2, 1]
-            data_cols = ['k', 'p2k', 'p0k']
+            col_index = [0, 2, 1, 4]
+            data_cols = ['k', 'p2k', 'p0k', 'p4k']
 
         else: 
             raise NotImplementedError()

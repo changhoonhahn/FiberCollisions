@@ -9,23 +9,24 @@ Author(s) : ChangHoon Hahn
 
 '''
 
-import numpy as np
 import os.path
-import subprocess
+import numpy as np
 import cosmolopy as cosmos
 
-# --- Local --- 
-import fibcol_data as fc_data
-import fibcol_utility as fc_util
+# --- Local ---
+from spec.data import Data
+from util.direc import direc
 
-# Classes ------------------------------------------------------------
 class Nbar: 
+
     def __init__(self, cat_corr, **kwargs):
-        '''Object class to handle nbar(z) data 
+        '''
+        Class that decribes the nbar(z) of galaxy catalogs
 
         Parameters
         ----------
-        cat_corr : catalog and correction dictionary 
+        cat_corr : 
+            catalog and correction dictionary 
 
         Notes
         -----
@@ -34,106 +35,111 @@ class Nbar:
         * only coded for lasdamasgeo so far
 
         '''
-        self.cat_corr = cat_corr    # save catalog correction dictionary 
-        catalog = cat_corr['catalog'] 
-        correction  = cat_corr['correction'] 
+        self.cat_corr = cat_corr.copy()
+        self.kwargs = kwargs
 
         # set zlow, zmid, zhigh (consistent with CMASS nbar(z) files) 
         self.zlow = np.arange(0.0, 1.005, 0.005)
         self.zhigh = self.zlow+0.005 
         self.zmid = self.zlow+0.0025 
-        n_zbin = len(self.zlow) 
 
-    def File(self, **kwargs): 
+        self.file_name = self.file()
+
+    def file(self): 
         ''' Get file name of nbar(z) file 
         '''
-        cat = self.cat_corr['catalog']
-        corr = self.cat_corr['correction']
 
-        # get data file to construct nbar(z) file name 
-        data_file = fc_data.get_galaxy_data_file('data', **cat_corr)
-        data_dir = '/'.join(data_file.split('/')[:-1])+'/'      # directory
-        data_file_name = data_file.split('/')[-1]           # file name 
-
-        # correction specifier
-        if 'cmass' in catalog['name'].lower(): 
-            corr_str = '.'.join(data_file_name.split('.')[1:])
-        else: 
-            raise NameError('not yet coded!')
-
-        # combine to form filename  
-        file_name = ''.join([data_dir, 'NBAR-', catalog['name'].lower(), '.', corr_str])
-
-        return file_name
+        gal_data = Data('data', self.cat_corr, **self.kwargs)
+        self.data_file = gal_data.file_name
+        
+        data_dir = direc('data', self.cat_corr)     # data directory 
+        gal_file = (gal_data.file_name).split('/')[-1]
     
-    def calculate(self, **kwargs): 
-        ''' Calculate nbar(z)
+        nbar_file = ''.join([
+            data_dir, 
+            'nbar_', 
+            gal_file
+            ])
+
+        return nbar_file 
+    
+    def build(self): 
+        ''' 
+        Calculate nbar(z) for given galaxy catalog 
         '''
         pass
 
-class Ngal: 
-    def __init__(self, cat_corr, **kwargs): 
-        ''' Object to handle Ngal in redshift bins 
+class Ngal(object): 
+
+    def __init__(self, cat_corr, DorR='data', **kwargs): 
+        ''' 
+        Class that describes Ngal(z_bin)
+
+        Parameters
+        ----------
+        cat_corr : 
+            catalog + correction dictionary 
 
         Notes
         -----
         * Simple to handle nbar(z) ratios in a cosmology independent way 
 
         '''
-        self.cat_corr = cat_corr    # save catalog correction dictionary 
-        catalog = cat_corr['catalog'] 
-        correction  = cat_corr['correction'] 
+        self.cat_corr = cat_corr.copy()     # save catalog correction dictionary 
+        self.kwargs = kwargs
+        self.DorR = DorR
 
         # set zlow, zmid, zhigh (consistent with CMASS nbar(z) files) 
         self.zlow = np.arange(0.0, 1.005, 0.005)
         self.zhigh = self.zlow+0.005 
         self.zmid = self.zlow+0.0025 
-        n_zbin = len(self.zlow) 
 
-        self.ngal = None
-        if 'DorR' in kwargs.keys():  # in case random is specified
-            dorr_str = kwargs['DorR']
-            kwargs.pop('DorR', None)
-            self.file_name = self.File(DorR=dorr_str, **kwargs)
-        else: 
-            self.file_name = self.File(**kwargs)
+        self.ngal = np.zeros(len(self.zlow))
 
-    def File(self, DorR='data', **kwargs): 
-        ''' Get file name of nbar(z) file 
+        self.file_name = self.file()
+
+    def file(self): 
+        ''' 
+        Get file name of Ngal(z) file 
         '''
-        cat = self.cat_corr['catalog']
-        corr = self.cat_corr['correction']
 
-        # get data file to construct nbar(z) file name 
-        data_file = fc_data.get_galaxy_data_file(DorR, **self.cat_corr)
-        data_dir = '/'.join(data_file.split('/')[:-1])+'/'      # directory
-        data_file_name = data_file.split('/')[-1]           # file name 
+        gal_data = Data(self.DorR, self.cat_corr, **self.kwargs)
+        self.data_file = gal_data.file_name
+        
+        data_dir = direc(self.DorR, self.cat_corr)     # data directory 
 
-        # correction specifier
-        if 'cmass' in cat['name'].lower(): 
-            corr_str = '.'.join(data_file_name.split('.')[1:])
-        else: 
-            raise NameError('not yet coded!')
-
-        # combine to form filename  
-        file_name = ''.join([data_dir, 'NGAL-', cat['name'].lower(), '.', corr_str])
-
-        return file_name
+        gal_file = (gal_data.file_name).split('/')[-1]
     
-    def calculate(self, DorR='data', **kwargs): 
+        ngal_file = ''.join([
+            data_dir, 
+            'ngal_', 
+            gal_file
+            ])
+
+        return ngal_file 
+    
+    def build(self): 
         ''' Calculate Ngal(z) from the data file specified by the dictionary   
         '''
-        cat = self.cat_corr['catalog'] 
+        cat_dict = self.cat_corr['catalog']
 
-        # read data from cat_corr dictionary 
-        data = fc_data.galaxy_data(DorR, **self.cat_corr)
+        gal_data = Data(self.DorR, self.cat_corr, **self.kwargs) 
+        gal_data.read()
 
-        redshifts = data.z  # redshifts 
-        
-        if 'noweights' in kwargs.keys(): 
-            if kwargs['noweights']: 
-                weights = np.array([1.0 for i in range(len(redshifts))])
+        redshifts = gal_data.z  # redshifts 
+       
+        if 'noweights' in self.kwargs.keys():   # do not use the weights
+            
+            if self.kwargs['noweights']: 
+                weights = np.zeros(len(redshifts))
+                weights = weights + 1.0 
+
         else:
+            if cat_dict['name'] == 'nseries': 
+                weights = gal_data.wfc * (1. / gal_data.comp)
+            else: 
+                raise NotImplementedError
+            """
             if 'cmass' in cat['name'].lower(): 
                 # weights and completeness accounted for CMASS like catalogs 
                 if DorR == 'data': 
@@ -142,53 +148,38 @@ class Ngal:
                     weights = 1./data.comp
             else: 
                 raise NotImplementedError("Only CMASS implemented so far") 
+            """
     
         ngal = [] 
-        # for each redshift bin calculate the weighted Ngal values
         for zlow, zhigh in zip(self.zlow, self.zhigh): 
-            zbin = np.where((redshifts >= zlow) & (redshifts < zhigh))
+
+            # for each redshift bin calculate the weighted Ngal values
+            zbin = np.where(
+                    (redshifts >= zlow) & 
+                    (redshifts < zhigh)
+                    )
             
-            ngal.append( np.sum(weights[zbin]) ) 
+            ngal.append( 
+                    np.sum(weights[zbin]) 
+                    ) 
 
             #print len(weights[zbin]), np.sum(weights[zbin])
 
         self.ngal = np.array(ngal)
+        data_hdrs = "Columns : zmid, zlow, zhigh, ngal"
+        data_list = [self.zmid, self.zlow, self.zhigh, self.ngal]  
+        data_fmts = ['%10.5f', '%10.5f', '%10.5f', '%10.5f']
+
+        output_file = self.file()
+        np.savetxt(
+                output_file, 
+                (np.vstack(np.array(data_list))).T, 
+                fmt=data_fmts, 
+                delimiter='\t', 
+                header=data_hdrs
+                ) 
 
         return self.ngal 
-
-    def Write(self, **kwargs): 
-        ''' Write Ngal to file  
-        '''
-        # check that there are ngal files 
-        if not isinstance(self.ngal, np.ndarray): 
-            raise ValueError("Ngal object does not have ngal values") 
-        
-        # header is hardcoded
-        head_str = "# columns : zmid, zlow, zhigh, Ngal "
-        # write file 
-        np.savetxt(self.file_name,            
-                np.c_[
-                    self.zmid, self.zlow, self.zhigh, self.ngal
-                    ],
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%10.5f'], 
-                delimiter='\t', header=head_str)
-
-        return self.file_name
-
-    def Read(self, **kwargs): 
-        ''' Read Ngal file (make sure columns are synchronized with Write function) 
-        '''
-        if not os.path.isfile(self.file_name): 
-            self.calculate(**kwargs)
-            self.Write(**kwargs)
-        if 'clobber' in kwargs.keys():
-            if kwargs['clobber']: 
-                self.calculate(**kwargs)
-                self.Write(**kwargs)
-
-        self.zmid, self.zlow, self.zhigh, self.ngal = np.loadtxt(self.file_name, 
-                skiprows=1, unpack=True, usecols=[0,1,2,3])
-        return self.file_name 
 
 # Plotting -----
 def plot_Ngal(cat_corrs, type='regular', DorR_list=None, **kwargs): 
@@ -300,6 +291,18 @@ def plot_Ngal(cat_corrs, type='regular', DorR_list=None, **kwargs):
     return None 
 
 if __name__=='__main__':
+    
+    for i_mock in xrange(1,11): 
+        for corr in ['true', 'upweight']:
+            cat_corr = {
+                    'catalog': {'name': 'nseries', 'n_mock': i_mock}, 
+                    'correction': {'name': corr} 
+                    }
+
+            nseries_ngal = Ngal(cat_corr)
+            nseries_ngal.build()
+
+    """
     cat_corrs = [
             {'catalog': {'name': 'cmasslowz_high'}, 
                 'correction': {'name': 'upweight'}}, 
@@ -321,3 +324,4 @@ if __name__=='__main__':
             ]
     plot_Ngal(cat_corrs, DorR_list=['data', 'random', 'data'])
     plot_Ngal(cat_corrs, type='ratio', DorR_list=['data', 'random', 'data'], ylimit=[0.994, 1.006])
+    """
