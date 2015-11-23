@@ -16,6 +16,9 @@ def direc(type, cat_corr, **kwargs):
 
     localdir = '/mount/riachuelo1/hahn/'    # riachuelo local directory
 
+    if type == 'fft': 
+        localdir = '/mount/chichipio2/hahn/'
+
     if type == 'data':
         typedir = 'data/'
     elif type == 'fft': 

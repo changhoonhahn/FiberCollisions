@@ -236,8 +236,10 @@ def plot_cute2pcf_residual(n_mocks, n_rp, n_pi, corrections=['true', 'upweighted
         contour_range = np.arange(-0.05, 0.05, 0.005)
     elif scale == 'small': 
         contour_range = np.arange(-0.1, 0.11, 0.01)
-    elif file_flag == 'smaller': 
+    elif scale == 'smaller': 
         contour_range = np.arange(-0.5, 0.5, 0.05)
+    elif scale == 'verysmall': 
+        contour_range = 20
 
     for corr in corrections:    # for each correction
 
@@ -271,14 +273,17 @@ def plot_cute2pcf_residual(n_mocks, n_rp, n_pi, corrections=['true', 'upweighted
         if corr == 'true': 
             true_corr = twop_corr.T
             continue
+        print (twop_corr.T).shape
 
         fig = plt.figure(figsize=(15,10))
         sub = fig.add_subplot(111)
 
         # contour of 1 - (1 + xi^fc)/(1+xi^true)
+        residual_2pcf = 1.0 - (1.0 + twop_corr.T)/(1.0 + true_corr)
+        print np.max(residual_2pcf)
         cont = sub.contourf(
                 r_p, pi, 
-                1.0 - (1.0 + twop_corr.T)/(1.0 + true_corr), 
+                residual_2pcf, 
                 contour_range, 
                 cmap=plt.cm.afmhot
                 )
@@ -302,9 +307,9 @@ def plot_cute2pcf_residual(n_mocks, n_rp, n_pi, corrections=['true', 'upweighted
         plt.close()
 
 if __name__=="__main__":
-    #plot_cute2pcf_residual(range(1,85), 40, 40, corrections=['true', 'upweighted', 'collrm'], scale='large')
+    plot_cute2pcf_residual(range(1,21), 20, 20, corrections=['true', 'upweighted'], scale='verysmall')
     #plot_bao_cute2pcf(range(1,45), 30, 30, xiform = 'none', corrections=['true'])
     #plot_bao_cute2pcf(range(1,85), 30, 30, xiform = 'log', corrections=['true'], cmap='hot')
-    plot_bao_cute2pcf(range(1,85), 30, 30, xiform = 'log', corrections=['true'], cmap='jet')
+    #plot_bao_cute2pcf(range(1,85), 30, 30, xiform = 'log', corrections=['true'], cmap='jet')
     #plot_bao_cute2pcf(range(1,85), 30, 30, xiform = 'asinh', corrections=['true'])
     #plot_bao_cute2pcf(range(1,85), 30, 30, xiform = 'asinh', corrections=['true'], cmap='jet')

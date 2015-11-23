@@ -13,69 +13,24 @@ import tophat_fibcoll_corr_test as tophat
 from defutility.plotting import prettyplot 
 from defutility.plotting import prettycolors 
 
-def plot_delP(l, fs=1.0, rc=0.4, n_mocks=84):
+import pk_extrap
+
+def plot_delP(l, fs=1.0, rc=0.4, n_mocks=84, Ngrid=360, **kwargs):
     '''
     Comparison of delP^corr, delP^uncorr, and P^upw_avg - P^true_avg
 
     '''
-    if l == 0: 
-        l_cols = [0, 1]
-    elif l == 2: 
-        l_cols = [0, 2]
-    elif l == 4: 
-        l_cols = [0, 4]
-    else: 
-        raise NotImplementedError()
-    
-    # Calculate average P(k) for upweight and true cases
-    for i_mock in xrange(1, n_mocks+1): 
-
-        # true P_l(k)
-        k, Pk_i = np.loadtxt(
-                ''.join([
-                    '/mount/riachuelo1/hahn/power/Nseries/', 
-                    'POWER_Q_CutskyN'+str(i_mock)+'.fidcosmo.dat.grid360.P020000.box3600'
-                    ]),
-                unpack = True, 
-                usecols = l_cols 
-                ) 
-        
-        # Upweighted P_l(k)
-        k, Pk_upw_i = np.loadtxt(
-                ''.join(['/mount/riachuelo1/hahn/power/Nseries/',
-                    'POWER_Q_CutskyN'+str(i_mock)+'.fidcosmo.fibcoll.dat.grid360.P020000.box3600'
-                    ]),
-                unpack = True, 
-                usecols = l_cols
-                ) 
-
-        if i_mock == 1: 
-            Pk_sum = Pk_i
-            Pk_upw_sum = Pk_upw_i
-        else: 
-            Pk_sum += Pk_i
-            Pk_upw_sum += Pk_upw_i
-
-    Pk = Pk_sum/np.float(n_mocks)
-    Pk_upw = Pk_upw_sum/np.float(n_mocks)
+    # average P_l(k) and P_l^upw(k)
+    k, Pk = pk_extrap.average_Pk(l, n_mocks, Ngrid=Ngrid)
+    k_upw, Pk_upw = pk_extrap.average_Pk_upw(l, n_mocks, Ngrid=Ngrid)
 
     prettyplot()
     pretty_colors = prettycolors()
 
     fig = plt.figure(figsize=(10,10))
     sub = fig.add_subplot(111)
-    
-    corrdelP = pickle.load(open('delP'+str(l)+'k_corr_estimated.p', 'rb'))
-    #corrdelP_diff = pickle.load(open('delP'+str(l)+'k_corr_different_integral.p', 'rb'))
-    #print corrdelP[np.where(corrdelP != 0.0)]
-    #print corrdelP_diff[np.where(corrdelP_diff != 0.0)]
 
-    corrdelP_lp = pickle.load(open('delP'+str(l)+'k_corr_estimated_lpcomponent.p', 'rb'))[0]
-    corrdelP_comp = pickle.load(open('delP'+str(l)+'k_corr_estimated_lpcomponent.p', 'rb'))[1]
-    corrdelP_noextrap = pickle.load(open('delP'+str(l)+'k_corr_estimated_noextrap.p', 'rb'))
-    corrdelP_noextrap_lp = pickle.load(open('delP'+str(l)+'k_corr_estimated_lpcomponent_noextrap.p', 'rb'))[0]
-    corrdelP_noextrap_comp = pickle.load(open('delP'+str(l)+'k_corr_estimated_lpcomponent_noextrap.p', 'rb'))[1]
-    #corrdelP_noextrap_firstorder = pickle.load(open('delP'+str(l)+'k_corr_noextrap_firstorder.p', 'rb'))
+    # uncorrelated delP
     uncorrdelP = tophat.delP_uncorr(k, l, fs=fs, rc=rc)
     
     sub.plot(
@@ -86,6 +41,13 @@ def plot_delP(l, fs=1.0, rc=0.4, n_mocks=84):
             label="Uncorrelated"
             )
 
+    # correlated delP 
+    pickle_file = ''.join([
+        'delP', str(l), 'k_', 
+        'corr_estimated_k_fixed0.6_Ngrid', str(Ngrid),'.p'
+        ])
+    corrdelP = pickle.load(open(pickle_file, 'rb'))
+
     sub.plot(
             k, 
             corrdelP, 
@@ -93,14 +55,73 @@ def plot_delP(l, fs=1.0, rc=0.4, n_mocks=84):
             lw = 4, 
             label = "Correlated"
             )
-    
-    sub.scatter(
+
+    # delP from data
+    sub.plot(
             k, 
-            corrdelP_noextrap, 
-            c = pretty_colors[2], 
-            label = "Correlated (No extrap.)"
+            Pk_upw - Pk, 
+            c = 'k', 
+            lw = 4,
+            ls = '--', 
+            label = r"$\mathtt{P^{upw}(k) - P^{true}(k)}$"
+            )
+    
+    if 'xrange' in kwargs.keys(): 
+        sub.set_xlim(kwargs['xrange'])
+    else:
+        sub.set_xlim([10**-3,10**0])
+
+    if 'yrange' in kwargs.keys(): 
+        sub.set_ylim(kwargs['yrange'])
+
+    sub.set_xscale("log") 
+    sub.set_xlabel(r"$\mathtt{k}\;\;(\mathtt{Mpc}/h)$", fontsize=30)
+    
+    sub.set_ylabel(r"$\mathtt{\Delta P_{"+str(l)+"}(k)}$", fontsize=30)
+    
+    if l == 0: 
+        sub.legend(loc='lower right', scatterpoints = 1)
+    elif l == 2: 
+        sub.legend(loc='upper right', scatterpoints = 1)
+    elif l == 4: 
+        sub.legend(loc='lower right', scatterpoints = 1)
+
+    fig_file = ''.join([
+        'qaplot_delP_', str(l), '_k_fixed0.6_Ngrid', str(Ngrid), '.png'
+        ])
+    fig.savefig(fig_file, bbox_inches="tight")
+    plt.show()
+    plt.close()
+
+def plot_delP_lp_component(l, n_mocks=84, Ngrid=360):
+    '''
+    Compare l' components of delP_l^corr
+    '''
+    # average P_l(k) and P_l^upw(k)
+    k, Pk = pk_extrap.average_Pk(l, n_mocks, Ngrid=Ngrid)
+    k_upw, Pk_upw = pk_extrap.average_Pk_upw(l, n_mocks, Ngrid=Ngrid)
+
+    prettyplot()
+    pretty_colors = prettycolors()
+
+    fig = plt.figure(figsize=(10,10))
+    sub = fig.add_subplot(111)
+    
+    corrdelP = pickle.load(open('delP'+str(l)+'k_corr_estimated_k_fixed0.6_Ngrid720.p', 'rb'))
+
+    corrdelP_lp, corrdelP_comp = \
+            pickle.load(open('delP'+str(l)+'k_corr_estimated_lpcomponent_k_fixed0.6_Ngrid720.p', 'rb'))
+    
+    # del P correlated
+    sub.plot(
+            k, 
+            corrdelP, 
+            c = pretty_colors[1], 
+            lw = 4, 
+            label = "Correlated"
             )
 
+    # del P correlated l' components
     for i_lp in xrange(len(corrdelP_comp)): 
     
         sub.plot(
@@ -110,104 +131,30 @@ def plot_delP(l, fs=1.0, rc=0.4, n_mocks=84):
                 ls = '--',
                 label = "Correlated: "+r"$l' ="+str(corrdelP_lp[i_lp])+"$"
                 )
-    
-    for i_lp in xrange(len(corrdelP_noextrap_comp)): 
-    
-        sub.scatter(
-                k, corrdelP_noextrap_comp[i_lp],
-                c = pretty_colors[7+i_lp],
-                label = "No extrapolation: "+r"$l' ="+str(corrdelP_noextrap_lp[i_lp])+"$"
-                )
-    #nonzero = np.where(corrdelP_noextrap_firstorder != 0.0)
-    #sub.scatter(
-    #        k[nonzero], 
-    #        corrdelP_noextrap_firstorder[nonzero]/(2.0 * np.pi)**0., 
-    #        c = pretty_colors[1], 
-    #        label = "Correlated (No extrap. First order)"
-    #        )
-
-    #sub.plot(
-    #        k, 
-    #        (uncorrdelP + corrdelP)/(2.0 * np.pi)**0., 
-    #        c = pretty_colors[5], 
-    #        lw = 4, 
-    #        ls = '-.',
-    #        label = "Uncorrelated + Correlated Combined "
-    #        )
-    sub.plot(
-            k, 
-            Pk_upw - Pk, 
-            c = 'k', 
-            lw = 4,
-            ls = '--', 
-            label = r"$\mathtt{P^{upw}(k) - P^{true}(k)}$"
-            )
 
     sub.set_xlim([10**-3,10**0])
     sub.set_xscale("log") 
     sub.set_xlabel(r"$\mathtt{k}\;\;(\mathtt{Mpc}/h)$", fontsize=30)
-    
-    #if l == 0: 
-    #    sub.set_ylim([-40000.0, 5000.0])
-    #elif l == 2:
-    #    sub.set_ylim([-100.0, 2000.0])
-    sub.set_ylabel(r"$\mathtt{\Delta P_{"+str(l)+"}(k)}$", fontsize=30)
+    sub.set_ylabel(r"$\mathtt{\Delta P_{"+str(l)+"}^{corr}(k)}$", fontsize=30)
     
     if l == 0: 
-        sub.legend(loc='lower right', scatterpoints = 1)
+        sub.legend(loc='lower left', scatterpoints = 1)
     elif l == 2: 
-        sub.legend(loc='upper right', scatterpoints = 1)
+        sub.legend(loc='upper left', scatterpoints = 1)
     elif l == 4: 
-        sub.legend(loc='lower right', scatterpoints = 1)
-    fig.savefig('qaplot_delP_'+str(l)+'.png', bbox_inches="tight")
+        sub.legend(loc='lower left', scatterpoints = 1)
+     
+    fig.savefig('qaplot_delPcorr_'+str(l)+'_lp_components_k_fixed0.6_Ngrid720.png', bbox_inches="tight")
     plt.show()
     plt.close()
 
-def plot_delP_extrapolation_test(l, type='normal', fs=1.0, rc=0.4, n_mocks=84):
+def plot_delP_extrapolation_test(l, type='normal', fs=1.0, rc=0.4, n_mocks=84, Ngrid=360):
     '''
     Comparison of delP^corr, delP^uncorr, and P^upw_avg - P^true_avg
 
     '''
-    if l == 0: 
-        l_cols = [0, 1]
-    elif l == 2: 
-        l_cols = [0, 2]
-    elif l == 4: 
-        l_cols = [0, 4]
-    else: 
-        raise NotImplementedError()
-    
-    # Calculate average P(k) for upweight and true cases
-    for i_mock in xrange(1, n_mocks+1): 
-
-        # true P_l(k)
-        k, Pk_i = np.loadtxt(
-                ''.join([
-                    '/mount/riachuelo1/hahn/power/Nseries/', 
-                    'POWER_Q_CutskyN'+str(i_mock)+'.fidcosmo.dat.grid360.P020000.box3600'
-                    ]),
-                unpack = True, 
-                usecols = l_cols 
-                ) 
-        
-        # Upweighted P_l(k)
-        k, Pk_upw_i = np.loadtxt(
-                ''.join(['/mount/riachuelo1/hahn/power/Nseries/',
-                    'POWER_Q_CutskyN'+str(i_mock)+'.fidcosmo.fibcoll.dat.grid360.P020000.box3600'
-                    ]),
-                unpack = True, 
-                usecols = l_cols
-                ) 
-
-        if i_mock == 1: 
-            Pk_sum = Pk_i
-            Pk_upw_sum = Pk_upw_i
-        else: 
-            Pk_sum += Pk_i
-            Pk_upw_sum += Pk_upw_i
-
-    Pk = Pk_sum/np.float(n_mocks)
-    Pk_upw = Pk_upw_sum/np.float(n_mocks)
+    k, Pk = pk_extrap.average_Pk(l, n_mocks, Ngrid=Ngrid)
+    k_upw, Pk_upw = pk_extrap.average_Pk_upw(l, n_mocks, Ngrid=Ngrid)
 
     prettyplot()
     pretty_colors = prettycolors()
@@ -215,15 +162,9 @@ def plot_delP_extrapolation_test(l, type='normal', fs=1.0, rc=0.4, n_mocks=84):
     fig = plt.figure(figsize=(10,10))
     sub = fig.add_subplot(111)
     
-    corrdelP = pickle.load(open('delP'+str(l)+'k_corr_estimated.p', 'rb'))
-    corrdelP_noextrap = pickle.load(open('delP'+str(l)+'k_corr_estimated_noextrap.p', 'rb'))
-    corrdelP_lp = pickle.load(open('delP'+str(l)+'k_corr_estimated_lpcomponent.p', 'rb'))[0]
-    corrdelP_comp = pickle.load(open('delP'+str(l)+'k_corr_estimated_lpcomponent.p', 'rb'))[1]
-    corrdelP_noextrap_lp = pickle.load(open('delP'+str(l)+'k_corr_estimated_lpcomponent_noextrap.p', 'rb'))[0]
-    corrdelP_noextrap_comp = pickle.load(open('delP'+str(l)+'k_corr_estimated_lpcomponent_noextrap.p', 'rb'))[1]
-    #corrdelP_noextrap_firstorder = pickle.load(open('delP'+str(l)+'k_corr_noextrap_firstorder.p', 'rb'))
-    uncorrdelP = tophat.delP_uncorr(k, l, fs=fs, rc=rc)
-    
+    corrdelP = pickle.load(open('delP'+str(l)+'k_corr_estimated_k_fixed0.6_Ngrid'+str(Ngrid)+'.p', 'rb'))
+    corrdelP_noextrap = pickle.load(open('delP'+str(l)+'k_corr_estimated_noextrap_k_fixed0.6_Ngrid'+str(Ngrid)+'.p', 'rb'))
+
     if type == 'normal': 
         sub.plot(
                 k, 
@@ -240,23 +181,6 @@ def plot_delP_extrapolation_test(l, type='normal', fs=1.0, rc=0.4, n_mocks=84):
                 label = "Correlated (No extrap.)"
                 )
 
-        for i_lp in xrange(len(corrdelP_comp)): 
-        
-            sub.plot(
-                    k, corrdelP_comp[i_lp],
-                    c = pretty_colors[7+i_lp],
-                    lw = 2, 
-                    ls = '--',
-                    label = "Correlated: "+r"$l' ="+str(corrdelP_lp[i_lp])+"$"
-                    )
-        
-        for i_lp in xrange(len(corrdelP_noextrap_comp)): 
-        
-            sub.scatter(
-                    k, corrdelP_noextrap_comp[i_lp],
-                    c = pretty_colors[7+i_lp],
-                    label = "No extrapolation: "+r"$l' ="+str(corrdelP_noextrap_lp[i_lp])+"$"
-                    )
     elif type == 'difference': 
         sub.plot(
                 k, 
@@ -265,25 +189,10 @@ def plot_delP_extrapolation_test(l, type='normal', fs=1.0, rc=0.4, n_mocks=84):
                 lw = 4, 
                 )
 
-        for i_lp in xrange(len(corrdelP_comp)): 
-        
-            sub.plot(
-                    k, 
-                    corrdelP_comp[i_lp] - corrdelP_noextrap_comp[i_lp],
-                    c = pretty_colors[7+i_lp],
-                    lw = 2, 
-                    ls = '--',
-                    label = r"$l' ="+str(corrdelP_lp[i_lp])+"$"
-                    )
-
     sub.set_xlim([10**-3,10**0])
     sub.set_xscale("log") 
     sub.set_xlabel(r"$\mathtt{k}\;\;(\mathtt{Mpc}/h)$", fontsize=30)
     
-    #if l == 0: 
-    #    sub.set_ylim([-40000.0, 5000.0])
-    #elif l == 2:
-    #    sub.set_ylim([-100.0, 2000.0])
     if type == 'normal':
         sub.set_ylabel(r"$\mathtt{\Delta P_{"+str(l)+"}^{corr}(k)}$", fontsize=30)
     elif type == 'difference': 
@@ -297,9 +206,9 @@ def plot_delP_extrapolation_test(l, type='normal', fs=1.0, rc=0.4, n_mocks=84):
         sub.legend(loc='lower left', scatterpoints = 1)
      
     if type == 'normal':
-        fig.savefig('qaplot_delPcorr_'+str(l)+'_extrapolationtest.png', bbox_inches="tight")
+        fig.savefig('qaplot_delPcorr_'+str(l)+'_extrapolationtest_k_fixed0.6_Ngrid'+str(Ngrid)+'.png', bbox_inches="tight")
     if type == 'difference':
-        fig.savefig('qaplot_delPcorr_'+str(l)+'_extrapolationtest_diff.png', bbox_inches="tight")
+        fig.savefig('qaplot_delPcorr_'+str(l)+'_extrapolationtest_diff_k_fixed0.6_Ngrid'+str(Ngrid)+'.png', bbox_inches="tight")
     plt.show()
     plt.close()
 
@@ -353,7 +262,7 @@ def plot_corrected_Pk(l, fs=1.0, rc=0.4):
     fig.savefig('qaplot_P_'+str(l)+'_tophat.png', bbox_inches="tight")
     plt.close()
 
-def plot_delP_integrand(l, k_value=0.3, n_mocks=20): 
+def plot_delP_integrand(l, k_value=0.3, k_fixed=0.6, n_mocks=20, Ngrid=360): 
     '''
 
     plot f_l,l'
@@ -365,7 +274,8 @@ def plot_delP_integrand(l, k_value=0.3, n_mocks=20):
         q, P0q_i, P2q_i, P4q_i = np.loadtxt(
                 ''.join([
                     '/mount/riachuelo1/hahn/power/Nseries/', 
-                    'POWER_Q_CutskyN'+str(i_mock)+'.fidcosmo.dat.grid360.P020000.box3600'
+                    'POWER_Q_CutskyN'+str(i_mock)+'.fidcosmo.dat.grid', 
+                    str(Ngrid), '.P020000.box3600'
                     ]),
                 unpack = True, 
                 usecols = [0,1,2,4]
@@ -404,7 +314,7 @@ def plot_delP_integrand(l, k_value=0.3, n_mocks=20):
             Pq_interp = interp1d(q, P4q, kind='cubic')
             extrap_params = [260.0, -1.0]
 
-        Pk_kplus_extrap = lambda q_or_k: tophat.pk_powerlaw(q_or_k, extrap_params)
+        Pk_kplus_extrap = lambda q_or_k: pk_extrap.pk_powerlaw(q_or_k, extrap_params, k_fixed=k_fixed)
 
         sub.plot(
                 q, 
@@ -498,12 +408,18 @@ if __name__=="__main__":
     #    plot_fllp(2, k_value=k, rc=0.4)
     #    plot_fllp(4, k_value=k, rc=0.4)
 
-    plot_delP_extrapolation_test(0, fs=1.0, rc=0.4, n_mocks=20)
-    plot_delP_extrapolation_test(2, fs=1.0, rc=0.4, n_mocks=20)
-    plot_delP_extrapolation_test(4, fs=1.0, rc=0.4, n_mocks=20)
-    plot_delP_extrapolation_test(0, type = 'difference', fs=1.0, rc=0.4, n_mocks=20)
-    plot_delP_extrapolation_test(2, type = 'difference', fs=1.0, rc=0.4, n_mocks=20)
-    plot_delP_extrapolation_test(4, type = 'difference', fs=1.0, rc=0.4, n_mocks=20)
+    #plot_delP(0, fs=1.0, rc=0.4, n_mocks=20)
+    #plot_delP(2, fs=1.0, rc=0.4, n_mocks=20)
+    #plot_delP(4, fs=1.0, rc=0.4, n_mocks=20)
+
+    plot_delP(2, n_mocks=10, Ngrid=720, xrange=[0.1, 1.0], yrange=[-100., 1000.])
+    #plot_delP(2, n_mocks=10, Ngrid=720)
+    #for l_i in [0,2,4]:
+    #    plot_delP(l_i, n_mocks=10, Ngrid=720)
+        #plot_delP_lp_component(l_i, n_mocks=20, Ngrid=720)
+        #plot_delP_extrapolation_test(l_i, type='normal', n_mocks=10, Ngrid=720)
+        #plot_delP_extrapolation_test(l_i, type='difference', n_mocks=10, Ngrid=720)
+
     #plot_delP_uncorr([0,2])
     #plot_fllp(0, k_value=0.3)
     #for l in [0,2]:

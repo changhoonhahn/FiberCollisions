@@ -50,7 +50,7 @@ def build_spec_wrapper(params):
     return None 
 
 # --- Multiprocessing --- 
-def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, quad=False, **kwargs): 
+def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, quad=False, Ngrid=360, **kwargs): 
     """ Calculate dLOS for catalogs in parallel using interruptible
     pool, which is multiprocessing pool that allows for interrputions
 
@@ -98,7 +98,7 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, quad=Fals
                 'spec': {
                     'P0': 20000, #P0 
                     'Lbox': 3600, 
-                    'Ngrid': 360, 
+                    'Ngrid': Ngrid, 
                     'quad': quad 
                     }
 
@@ -127,31 +127,31 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, quad=Fals
     return None 
 
 if __name__=="__main__":
-    #build_multipro('spec', 'nseries', 'true', 1, Nthreads=1, clobber=True, quad=True)
-    #build_multipro('spec', 'nseries', 'true', 20, Nthreads=10, clobber=True, quad=True)
-    #build_multipro('spec', 'nseries', 'upweight', 20, Nthreads=10, clobber=True, quad=True)
+    build_multipro('spec', 'nseries', 'true', 1, Nthreads=1, clobber=True, quad=True, Ngrid=960)
+    #build_multipro('spec', 'nseries', 'true', 10, Nthreads=1, clobber=True, quad=True, Ngrid=960)
+    #build_multipro('spec', 'nseries', 'upweight', 10, Nthreads=1, clobber=True, quad=True, Ngrid=960)
     
-    for f_peakcorr in np.arange(0.0, 1.1, 0.1): 
-        for type in ['data', 'spec']:
-            build_multipro(
-                    type, 
-                    'nseries', 
-                    {'name': 'dlospeak.tailonly', 'sigma': 3.8, 'f_peakcorr': f_peakcorr},
-                    20, 
-                    Nthreads=10, 
-                    clobber=True,
-                    quad=True
-                    )
+    #for f_peakcorr in np.arange(0.0, 1.1, 0.1): 
+    #    for type in ['data', 'spec']:
+    #        build_multipro(
+    #                type, 
+    #                'nseries', 
+    #                {'name': 'dlospeak.tailonly', 'sigma': 3.8, 'f_peakcorr': f_peakcorr},
+    #                20, 
+    #                Nthreads=10, 
+    #                clobber=True,
+    #                quad=True
+    #                )
 
-            build_multipro(
-                    type, 
-                    'nseries', 
-                    {'name': 'dlospeak.peakonly', 'sigma': 3.8, 'f_peakcorr': f_peakcorr},
-                    20, 
-                    Nthreads=10, 
-                    clobber=True,
-                    quad=True
-                    )
+    #        build_multipro(
+    #                type, 
+    #                'nseries', 
+    #                {'name': 'dlospeak.peakonly', 'sigma': 3.8, 'f_peakcorr': f_peakcorr},
+    #                20, 
+    #                Nthreads=10, 
+    #                clobber=True,
+    #                quad=True
+    #                )
     
     #build_multipro('spec', 'nseries', 'dlospeakenv', 20, Nthreads=10, clobber=True, quad=True)
     #build_multipro('spec', 'nseries', 'dlospeakphotoz', 20, Nthreads=10, clobber=True, quad=True)

@@ -52,7 +52,7 @@ class Fcode:
 
         # compile command for fortran code. Quadruple codes have more
         # complex compile commands specified by Roman 
-        if self.type == 'fft_quad':
+        if self.type == 'quad_fft':
             compile_cmd = ' '.join([
                 'ifort -fast -o', 
                 fort_exe, 
@@ -74,6 +74,7 @@ class Fcode:
 
         print ' ' 
         print 'Compiling -----'
+        print self.type
         print compile_cmd
         print '----------------'
         print ' ' 

@@ -14,6 +14,10 @@
       real*8, allocatable :: avgRWr0(:),avgIWr0(:)
       real*8, allocatable :: avgP00w(:),avgP02w(:),avgP20w(:)
       character filecoef*200,filecoefr*200,filepower*200,Rboxstr*200
+      character filecoef0*200,filecoef1*200,filecoef2*200
+      character filecoef3*200,filecoef4*200,filecoef5*200
+      character filecoefr0*200,filecoefr1*200,filecoefr2*200
+      character filecoefr3*200,filecoefr4*200,filecoefr5*200
       character Nbinstr*200
       real akfun,I10,I12,I22,I13,I23,I33,P0,alpha,P0m,rk
       real I12xx,I12yy,I12zz,I12xy,I12yz,I12zx, alphaSTD
@@ -32,8 +36,15 @@
       read(Rboxstr,*)akfun
       call getarg(5,Nbinstr) !Number of bins
       read(Nbinstr,*)Nbins
-
-      open(unit=4,file=filecoef,status='old',form='unformatted')
+      
+      ! Read in galaxy FFTs
+      filecoef0=filecoef//'0'
+      filecoef1=filecoef//'1'
+      filecoef2=filecoef//'2'
+      filecoef3=filecoef//'3'
+      filecoef4=filecoef//'4'
+      filecoef5=filecoef//'5'
+      open(unit=4,file=filecoef0,status='old',form='unformatted')
       read(4)Ngrid
       
       allocate(dcg(Ngrid/2+1,Ngrid,Ngrid),dcr(Ngrid/2+1,Ngrid,Ngrid))
@@ -49,12 +60,28 @@
       read(4)I10d,I12d,I22d,I13d,I23d,I33d
       read(4)P0m,Ng,Ngsys,Ngsyscomp,Ngsystot
       read(4)xminD,xmaxD,yminD,ymaxD,zminD,zmaxD
+      close(4)
+      open(unit=4,file=filecoef1,status='old',form='unformatted')
       read(4)dcgxx ! 5 delta2
+      close(4)
+      open(unit=4,file=filecoef2,status='old',form='unformatted')
       read(4)dcgw
+      close(4)
+      open(unit=4,file=filecoef3,status='old',form='unformatted')
       read(4)dcgwxx
+      close(4)
+      open(unit=4,file=filecoef4,status='old',form='unformatted')
       read(4)dcgxxxx !9 delta4
       close(4)
-      open(unit=4,file=filecoefr,status='old',form='unformatted')
+
+      ! Read in random FFTs
+      filecoefr0=filecoefr//'0'
+      filecoefr1=filecoefr//'1'
+      filecoefr2=filecoefr//'2'
+      filecoefr3=filecoefr//'3'
+      filecoefr4=filecoefr//'4'
+      filecoefr5=filecoefr//'5'
+      open(unit=4,file=filecoefr0,status='old',form='unformatted')
       read(4)Ngrid2
       if (Ngrid2.ne.Ngrid) then
          write(*,*)'Ngrids do not match',Ngrid,Ngrid2
@@ -64,11 +91,20 @@
       read(4)I10,I12,I22,I13,I23,I33
       read(4)P0,Nr,Nrsys,Nrsyscomp,Nrsystot
       read(4)xminR,xmaxR,yminR,ymaxR,zminR,zmaxR
+      close(4)
+      open(unit=4,file=filecoefr1,status='old',form='unformatted')
       read(4)dcrxx
+      close(4)
+      open(unit=4,file=filecoefr2,status='old',form='unformatted')
       read(4)dcrw
+      close(4)
+      open(unit=4,file=filecoefr3,status='old',form='unformatted')
       read(4)dcrwxx
+      close(4)
+      open(unit=4,file=filecoefr4,status='old',form='unformatted')
       read(4)dcrxxxx
       close(4)
+
       if (P0m.ne.P0) then
          write(*,*)'P0s do not match',P0m,P0
          stop

@@ -107,7 +107,7 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
 
             specclass = Spec(spec_type, catcorr_mock) 
             specclass.read()
-            #print specclass.file_name
+            print specclass.file_name
             
             k_arr = specclass.k
 
@@ -179,6 +179,8 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
                 denom_cat = catdict['name']
 
             else: 
+                print avg_pk_denom[-10:]
+                print avg_pk[-10:]
                 sub.scatter(
                         k_arr, 
                         avg_pk - avg_pk_denom, 
@@ -611,14 +613,16 @@ if __name__=='__main__':
             {
                 'catalog': {'name': 'nseries'}, 
                 'correction': {'name': 'upweight'}
-                },
-            {
-                'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68}
                 }
             ]
+    #,
+    #        {
+    #            'catalog': {'name': 'nseries'}, 
+    #            'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68}
+    #            }
+    #        ]
     #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='Pk')
-    #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='ratio')
+    plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='l1_norm')
     
     cat_corrs = [
             {
@@ -635,8 +639,8 @@ if __name__=='__main__':
                     'catalog': {'name': 'nseries'}, 
                     'correction': {'name': 'dlospeak.tailonly', 'sigma': 3.8, 'f_peakcorr': f_peakcorr}
                     })
-    plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='Pk')
-    plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='ratio')
+    #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='Pk')
+    #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='ratio')
     #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='l1_norm')
 
     cat_corrs = [
@@ -648,13 +652,13 @@ if __name__=='__main__':
                 'catalog': {'name': 'nseries'}, 
                 'correction': {'name': 'upweight'}
                 }] 
-    for f_peakcorr in np.arange(0.0, 1.1, 0.1): 
-        cat_corrs.append({
-                    'catalog': {'name': 'nseries'}, 
-                    'correction': {'name': 'dlospeak.peakonly', 'sigma': 3.8, 'f_peakcorr': f_peakcorr}
-                    })
-    plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='Pk')
-    plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='ratio')
+    #for f_peakcorr in np.arange(0.0, 1.1, 0.1): 
+    #    cat_corrs.append({
+    #                'catalog': {'name': 'nseries'}, 
+    #                'correction': {'name': 'dlospeak.peakonly', 'sigma': 3.8, 'f_peakcorr': f_peakcorr}
+    #                })
+    #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='Pk')
+    #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='ratio')
 """
         if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz'):             # LasDamasGeo 
             # compute average[P(k)] for each correction method

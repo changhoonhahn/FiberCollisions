@@ -76,6 +76,8 @@
       complex, allocatable :: dcgwzzxy(:,:,:),dcrwzzxy(:,:,:)
 
       character lssfile*200,randomfile*200,filecoef*200
+      character filecoef0*200,filecoef1*200,filecoef2*200
+      character filecoef3*200,filecoef4*200,filecoef5*200
       character dummy*200,fname*200,outname*200,Omstr*200
       character Rboxstr*200,Ngridstr*200,interpolstr*200,iflagstr*200
       character P0str*200,typestr*200,lssinfofile*200,cosmostr*200
@@ -412,17 +414,33 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
          endif
          
          call getarg(9,filecoef) !Fourier file
-         open(unit=4,file=filecoef,status='unknown',form='unformatted')
+         filecoef0=filecoef//'0'
+         filecoef1=filecoef//'1'
+         filecoef2=filecoef//'2'
+         filecoef3=filecoef//'3'
+         filecoef4=filecoef//'4'
+         filecoef5=filecoef//'5'
+         open(unit=4,file=filecoef0,status='unknown',form='unformatted')
          write(4)Lm
          write(4)(((dcg(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
          write(4)real(I10),real(I12),real(I22),real(I13),real(I23),
      &   real(I33) 
          write(4)P0,Ng,real(Ngsys),real(Ngsyscomp), real(Ngsystot)
          write(4)xmin,xmax,ymin,ymax,zmin,zmax
+         close(4)
+         open(unit=4,file=filecoef1,status='unknown',form='unformatted')
          write(4)(((dcgxx(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
+         close(4)
+         open(unit=4,file=filecoef2,status='unknown',form='unformatted')
          write(4)(((dcgw(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
+         close(4)
+         open(unit=4,file=filecoef3,status='unknown',form='unformatted')
          write(4)(((dcgwxx(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
+         close(4)
+         open(unit=4,file=filecoef4,status='unknown',form='unformatted')
          write(4)(((dcgxxxx(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
+         close(4)
+         open(unit=4,file=filecoef5,status='unknown',form='unformatted')
          write(4)(((dcgwxxxx(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
          close(4)
 
@@ -642,17 +660,33 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
          call getarg(9,filecoef) !Fourier file
-         open(unit=4,file=filecoef,status='unknown',form='unformatted')
+         filecoef0=filecoef//'0'
+         filecoef1=filecoef//'1'
+         filecoef2=filecoef//'2'
+         filecoef3=filecoef//'3'
+         filecoef4=filecoef//'4'
+         filecoef5=filecoef//'5'
+         open(unit=4,file=filecoef0,status='unknown',form='unformatted')
          write(4)Lm
          write(4)(((dcr(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
          write(4)real(I10),real(I12),real(I22),real(I13),real(I23),
      &   real(I33)
          write(4)P0,Nr,real(Nrsys),real(Nrsyscomp),real(Nrsystot)
          write(4)xmin,xmax,ymin,ymax,zmin,zmax
+         close(4)
+         open(unit=4,file=filecoef1,status='unknown',form='unformatted')
          write(4)(((dcrxx(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
+         close(4)
+         open(unit=4,file=filecoef2,status='unknown',form='unformatted')
          write(4)(((dcrw(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
+         close(4)
+         open(unit=4,file=filecoef3,status='unknown',form='unformatted')
          write(4)(((dcrwxx(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
+         close(4)
+         open(unit=4,file=filecoef4,status='unknown',form='unformatted')
          write(4)(((dcrxxxx(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
+         close(4)
+         open(unit=4,file=filecoef5,status='unknown',form='unformatted')
          write(4)(((dcrwxxxx(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
          close(4)
          

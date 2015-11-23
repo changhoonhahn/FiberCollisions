@@ -10,6 +10,9 @@ def build_param_file(i_mock, corr, scale='large', mock_catalog='Nseries'):
     if scale == 'large': 
         dim_max = 40.
         dim_nbin = 40
+    elif scale == 'verysmall': 
+        dim_max = 2.
+        dim_nbin = 20
     else: 
         raise NotImplementedError
 
@@ -280,8 +283,8 @@ if __name__=="__main__":
     #build_downsampled_random(0.2)
 
     for i_mock in xrange(1,85): 
-        print build_bao_param_file(i_mock, 'true', f_down=0.2)
-    #    build_param_file(i_mock, 'true')
-    #    build_param_file(i_mock, 'upweighted')
+        build_param_file(i_mock, 'true', scale='verysmall')
+        build_param_file(i_mock, 'upweighted', scale='verysmall')
+    #    print build_bao_param_file(i_mock, 'true', f_down=0.2)
     #    build_param_file(i_mock, 'collrm')
     #    #build_mockcatalog(i_mock, DorR='data')
