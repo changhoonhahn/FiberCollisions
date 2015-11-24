@@ -179,11 +179,11 @@ class Spec(object):
 
         # fft files 
         datafft = Fft('data', self.cat_corr, **self.kwargs)
-        if not os.path.isfile(datafft.file_name) or bool_clobber:
+        if not os.path.isfile(datafft.file_name+'_0') or bool_clobber:
             datafft.build()
 
         randfft = Fft('random', self.cat_corr, **self.kwargs)
-        if not os.path.isfile(randfft.file_name): 
+        if not os.path.isfile(randfft.file_name+'_0'): 
             randfft.build()
         
         spec_cmd = codeclass.commandline_call(

@@ -271,7 +271,6 @@ def delPcorr_extrapolation(n_mocks=10, k_fixed=0.6, k_max=0.5, Ngrid=360):
     
         for i_l, l in enumerate([0, 2, 4]): 
             
-            start_time = time.time()
             delp = delP_corr(
                     k, Pk, l, 
                     fs=1.0, 

@@ -7,7 +7,6 @@
       complex, allocatable :: dcgw(:,:,:),dcrw(:,:,:)
       complex, allocatable :: dcgxx(:,:,:),dcrxx(:,:,:)
       complex, allocatable :: dcgwxx(:,:,:),dcrwxx(:,:,:)
-      complex, allocatable :: dcgxxxx(:,:,:),dcrxxxx(:,:,:)
       real*8, allocatable :: avgk(:),avgPg0(:),avgPr0(:),co(:)
       real*8, allocatable :: avgPg4fast(:),avgPg4fft15(:)
       real*8, allocatable :: avgPg2fast(:),avgPr2fast(:),avgPg0T(:)
@@ -41,20 +40,13 @@
       filecoef0=filecoef(1:len_trim(filecoef))//'_0'
       filecoef1=filecoef(1:len_trim(filecoef))//'_1'
       filecoef2=filecoef(1:len_trim(filecoef))//'_2'
-      filecoef3=filecoef(1:len_trim(filecoef))//'_3'
-      filecoef4=filecoef(1:len_trim(filecoef))//'_4'
-      filecoef5=filecoef(1:len_trim(filecoef))//'_5'
       open(unit=4,file=filecoef0,status='old',form='unformatted')
       read(4)Ngrid
       
       allocate(dcg(Ngrid/2+1,Ngrid,Ngrid),dcr(Ngrid/2+1,Ngrid,Ngrid))
       allocate(dcgw(Ngrid/2+1,Ngrid,Ngrid),dcrw(Ngrid/2+1,Ngrid,Ngrid))
-      allocate(dcgwxx(Ngrid/2+1,Ngrid,Ngrid))
-      allocate(dcrwxx(Ngrid/2+1,Ngrid,Ngrid))
       allocate(dcgxx(Ngrid/2+1,Ngrid,Ngrid))
       allocate(dcrxx(Ngrid/2+1,Ngrid,Ngrid))
-      allocate(dcgxxxx(Ngrid/2+1,Ngrid,Ngrid))
-      allocate(dcrxxxx(Ngrid/2+1,Ngrid,Ngrid))
 
       read(4)dcg
       read(4)I10d,I12d,I22d,I13d,I23d,I33d
@@ -67,20 +59,11 @@
       open(unit=4,file=filecoef2,status='old',form='unformatted')
       read(4)dcgw
       close(4)
-      open(unit=4,file=filecoef3,status='old',form='unformatted')
-      read(4)dcgwxx
-      close(4)
-      open(unit=4,file=filecoef4,status='old',form='unformatted')
-      read(4)dcgxxxx !9 delta4
-      close(4)
 
       ! Read in random FFTs
       filecoefr0=filecoefr(1:len_trim(filecoefr))//'_0'
       filecoefr1=filecoefr(1:len_trim(filecoefr))//'_1'
       filecoefr2=filecoefr(1:len_trim(filecoefr))//'_2'
-      filecoefr3=filecoefr(1:len_trim(filecoefr))//'_3'
-      filecoefr4=filecoefr(1:len_trim(filecoefr))//'_4'
-      filecoefr5=filecoefr(1:len_trim(filecoefr))//'_5'
       open(unit=4,file=filecoefr0,status='old',form='unformatted')
       read(4)Ngrid2
       if (Ngrid2.ne.Ngrid) then
@@ -97,12 +80,6 @@
       close(4)
       open(unit=4,file=filecoefr2,status='old',form='unformatted')
       read(4)dcrw
-      close(4)
-      open(unit=4,file=filecoefr3,status='old',form='unformatted')
-      read(4)dcrwxx
-      close(4)
-      open(unit=4,file=filecoefr4,status='old',form='unformatted')
-      read(4)dcrxxxx
       close(4)
 
       if (P0m.ne.P0) then
@@ -175,8 +152,6 @@
                dcg(ix,iy,iz)=dcg(ix,iy,iz) -alpha*dcr(ix,iy,iz)
                dcgxx(ix,iy,iz)=dcgxx(ix,iy,iz)-alpha*dcrxx(ix,iy,iz)
                dcgw(ix,iy,iz)=dcgw(ix,iy,iz)+alpha**2*dcrw(ix,iy,iz)
-            dcgwxx(ix,iy,iz)=dcgwxx(ix,iy,iz)-alpha*dcrwxx(ix,iy,iz)
-            dcgxxxx(ix,iy,iz)=dcgxxxx(ix,iy,iz)-alpha*dcrxxxx(ix,iy,iz)
             enddo
          enddo
       enddo
@@ -201,28 +176,20 @@
                      ct=dcg(ix,iy,iz)
                      ctQ=dcgxx(ix,iy,iz)
                      ctx=dcgw(ix,iy,iz)
-                     ctP=dcgxxxx(ix,iy,iz)
-                     cty=dcgwxx(ix,iy,iz)
                   else !use cc (kx changes sign!)
                      ct=dcg(icx,icy,icz)
                      ctQ=dcgxx(icx,icy,icz)
                      ctx=dcgw(icx,icy,icz)
-                     ctP=dcgxxxx(icx,icy,icz)
-                     cty=dcgwxx(icx,icy,icz)
                   endif
                   pk=(cabs(ct))**2
                   pq=ctQ*conjg(ct) !converting to real part gives the same
                   px=ctx*conjg(ct)
-                  pp=ctP*conjg(ct)
                   p4=(cabs(ctQ))**2
-                  py=cty*conjg(ct)
                   pz=ctx*conjg(ctQ)
                   avgPg0(imk)      = avgPg0(imk)      + dble(pk)
                   avgPg2fast(imk)  = avgPg2fast(imk)  + dble(pq)
                   avgP00w(imk)     = avgP00w(imk)     + dble(px)
-                  avgP02w(imk)     = avgP02w(imk)     + dble(py)
                   avgP20w(imk)     = avgP20w(imk)     + dble(pz)
-                  avgPg4fft15(imk) = avgPg4fft15(imk) + dble(pp)
                   avgPg4fast(imk)  = avgPg4fast(imk)  + dble(p4)
                   if (ix.le.Ngrid/2+1) then 
                      ct=alpha*dcr(ix,iy,iz)
@@ -245,7 +212,6 @@
       open(4,file=filepower,status='unknown',form='formatted')
       do 110 Ibin=1,Nbins
          if(co(Ibin).gt.0.)then
-            avgPg4fft15(Ibin)=avgPg4fft15(Ibin)/co(Ibin)/dble(I22) 
             avgPg4fast(Ibin)=avgPg4fast(Ibin)/co(Ibin)/dble(I22) 
             avgPg2fast(Ibin)=avgPg2fast(Ibin)/co(Ibin)/dble(I22) 
             avgk(Ibin)=avgk(Ibin)/co(Ibin)*dble(akfun)
@@ -263,12 +229,10 @@
             avgRWr0(Ibin)=avgRWr0(Ibin)/co(Ibin)/dble(cnorm)**2
             avgIWr0(Ibin)=avgIWr0(Ibin)/co(Ibin)/dble(cnorm)**2
             avgPr2fast(Ibin)=avgPr2fast(Ibin)*dble(I22)/dble(cnorm**2)
-            avgP02w(Ibin)=avgP02w(Ibin)/co(Ibin)/dble(I23)/
-     &       avgPg2fast(Ibin) !in units of expected
             avgP20w(Ibin)=avgP20w(Ibin)/co(Ibin)/dble(I23)/
      &       avgPg2fast(Ibin) !in units of expected
       write(4,1015) avgk(Ibin),avgPg0T(Ibin),avgPg2fast(Ibin),
-     & avgPg4fast(Ibin),avgPg4fft15(Ibin),avgPg0(Ibin),avgPr0(Ibin),
+     & avgPg4fast(Ibin),avgPg0(Ibin),avgPr0(Ibin),
      & avgPr2fast(Ibin),avgRWr0(Ibin),avgIWr0(Ibin),avgP00w(Ibin),
      & avgP02w(Ibin),avgP20w(Ibin),co(Ibin),I22
       end if

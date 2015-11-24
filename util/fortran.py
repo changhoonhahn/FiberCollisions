@@ -23,9 +23,9 @@ class Fcode:
         elif type == 'pk':      # P(k) code
             f_name = 'power-Igal-Irand.f' 
         elif type == 'quad_fft':    # quadruple FFT code
-            f_name = 'FFT_fkp_quad.f'
+            f_name = 'FFT_fkp_quad_fast.f'
         elif type == 'p2k':         # P_2(k) code 
-            f_name = 'power_quad.f'
+            f_name = 'power_quad_fast.f'
         else: 
             raise NotImplementedError()
         
@@ -74,7 +74,6 @@ class Fcode:
 
         print ' ' 
         print 'Compiling -----'
-        print self.type
         print compile_cmd
         print '----------------'
         print ' ' 

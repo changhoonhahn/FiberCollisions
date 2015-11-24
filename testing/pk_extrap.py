@@ -17,9 +17,11 @@ def average_Pk(l, n_mocks, Ngrid=360, quiet=True):
     elif l == 2: 
         data_cols = [0, 2]
     elif l == 4: 
-        data_cols = [0, 4]
+        data_cols = [0, 3]
     else: 
         raise ValueError
+    #elif l == '4fast':
+    #    data_cols = [0, 3]
     
     n_files = 0.
     for i_mock in xrange(1, n_mocks+1): 

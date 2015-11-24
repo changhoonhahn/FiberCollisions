@@ -43,38 +43,6 @@
       complex, allocatable :: dcgwyz(:,:,:),dcrwyz(:,:,:)
       complex, allocatable :: dcgwzx(:,:,:),dcrwzx(:,:,:)
 
-      complex, allocatable :: dcgxxxx(:,:,:),dcrxxxx(:,:,:)
-      complex, allocatable :: dcgyyyy(:,:,:),dcryyyy(:,:,:)
-      complex, allocatable :: dcgzzzz(:,:,:),dcrzzzz(:,:,:)
-      complex, allocatable :: dcgxxxy(:,:,:),dcrxxxy(:,:,:)
-      complex, allocatable :: dcgxxxz(:,:,:),dcrxxxz(:,:,:)
-      complex, allocatable :: dcgyyyx(:,:,:),dcryyyx(:,:,:)
-      complex, allocatable :: dcgyyyz(:,:,:),dcryyyz(:,:,:)
-      complex, allocatable :: dcgzzzx(:,:,:),dcrzzzx(:,:,:)
-      complex, allocatable :: dcgzzzy(:,:,:),dcrzzzy(:,:,:)
-      complex, allocatable :: dcgxxyy(:,:,:),dcrxxyy(:,:,:)
-      complex, allocatable :: dcgxxzz(:,:,:),dcrxxzz(:,:,:)
-      complex, allocatable :: dcgyyzz(:,:,:),dcryyzz(:,:,:)
-      complex, allocatable :: dcgxxyz(:,:,:),dcrxxyz(:,:,:)
-      complex, allocatable :: dcgyyxz(:,:,:),dcryyxz(:,:,:)
-      complex, allocatable :: dcgzzxy(:,:,:),dcrzzxy(:,:,:)
-
-      complex, allocatable :: dcgwxxxx(:,:,:),dcrwxxxx(:,:,:)
-      complex, allocatable :: dcgwyyyy(:,:,:),dcrwyyyy(:,:,:)
-      complex, allocatable :: dcgwzzzz(:,:,:),dcrwzzzz(:,:,:)
-      complex, allocatable :: dcgwxxxy(:,:,:),dcrwxxxy(:,:,:)
-      complex, allocatable :: dcgwxxxz(:,:,:),dcrwxxxz(:,:,:)
-      complex, allocatable :: dcgwyyyx(:,:,:),dcrwyyyx(:,:,:)
-      complex, allocatable :: dcgwyyyz(:,:,:),dcrwyyyz(:,:,:)
-      complex, allocatable :: dcgwzzzx(:,:,:),dcrwzzzx(:,:,:)
-      complex, allocatable :: dcgwzzzy(:,:,:),dcrwzzzy(:,:,:)
-      complex, allocatable :: dcgwxxyy(:,:,:),dcrwxxyy(:,:,:)
-      complex, allocatable :: dcgwxxzz(:,:,:),dcrwxxzz(:,:,:)
-      complex, allocatable :: dcgwyyzz(:,:,:),dcrwyyzz(:,:,:)
-      complex, allocatable :: dcgwxxyz(:,:,:),dcrwxxyz(:,:,:)
-      complex, allocatable :: dcgwyyxz(:,:,:),dcrwyyxz(:,:,:)
-      complex, allocatable :: dcgwzzxy(:,:,:),dcrwzzxy(:,:,:)
-
       character lssfile*200,randomfile*200,filecoef*200
       character filecoef0*200,filecoef1*200,filecoef2*200
       character filecoef3*200,filecoef4*200,filecoef5*200
@@ -165,15 +133,6 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
             allocate(dcgwzz(Lm/2+1,Lm,Lm),dcgwxy(Lm/2+1,Lm,Lm))
             allocate(dcgwyz(Lm/2+1,Lm,Lm),dcgwzx(Lm/2+1,Lm,Lm))
 
-            allocate(dcgxxxx(Lm/2+1,Lm,Lm))
-            allocate(dcgyyyy(Lm/2+1,Lm,Lm),dcgzzzz(Lm/2+1,Lm,Lm))
-            allocate(dcgxxxy(Lm/2+1,Lm,Lm),dcgxxxz(Lm/2+1,Lm,Lm))
-            allocate(dcgyyyx(Lm/2+1,Lm,Lm),dcgyyyz(Lm/2+1,Lm,Lm))
-            allocate(dcgzzzx(Lm/2+1,Lm,Lm),dcgzzzy(Lm/2+1,Lm,Lm))
-            allocate(dcgxxyy(Lm/2+1,Lm,Lm),dcgxxzz(Lm/2+1,Lm,Lm))
-            allocate(dcgyyzz(Lm/2+1,Lm,Lm),dcgxxyz(Lm/2+1,Lm,Lm))
-            allocate(dcgyyxz(Lm/2+1,Lm,Lm),dcgzzxy(Lm/2+1,Lm,Lm))
-
             call assign_CIC(Ngal,rg,rm,Lm,dcg,wg,ig,0,0,0,0) 
 
             call assign_CIC(Ngal,rg,rm,Lm,dcgxx,wg,ig,1,1,0,0) 
@@ -183,21 +142,6 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
             call assign_CIC(Ngal,rg,rm,Lm,dcgyz,wg,ig,2,3,0,0) 
             call assign_CIC(Ngal,rg,rm,Lm,dcgzx,wg,ig,3,1,0,0) 
 
-            call assign_CIC(Ngal,rg,rm,Lm,dcgxxxx,wg,ig,1,1,1,1) 
-            call assign_CIC(Ngal,rg,rm,Lm,dcgyyyy,wg,ig,2,2,2,2) 
-            call assign_CIC(Ngal,rg,rm,Lm,dcgzzzz,wg,ig,3,3,3,3) 
-            call assign_CIC(Ngal,rg,rm,Lm,dcgxxxy,wg,ig,1,1,1,2) 
-            call assign_CIC(Ngal,rg,rm,Lm,dcgxxxz,wg,ig,1,1,1,3) 
-            call assign_CIC(Ngal,rg,rm,Lm,dcgyyyx,wg,ig,2,2,2,1) 
-            call assign_CIC(Ngal,rg,rm,Lm,dcgyyyz,wg,ig,2,2,2,3) 
-            call assign_CIC(Ngal,rg,rm,Lm,dcgzzzx,wg,ig,3,3,3,1) 
-            call assign_CIC(Ngal,rg,rm,Lm,dcgzzzy,wg,ig,3,3,3,2) 
-            call assign_CIC(Ngal,rg,rm,Lm,dcgxxyy,wg,ig,1,1,2,2) 
-            call assign_CIC(Ngal,rg,rm,Lm,dcgxxzz,wg,ig,1,1,3,3) 
-            call assign_CIC(Ngal,rg,rm,Lm,dcgyyzz,wg,ig,2,2,3,3) 
-            call assign_CIC(Ngal,rg,rm,Lm,dcgxxyz,wg,ig,1,1,2,3) 
-            call assign_CIC(Ngal,rg,rm,Lm,dcgyyxz,wg,ig,2,2,1,3) 
-            call assign_CIC(Ngal,rg,rm,Lm,dcgzzxy,wg,ig,3,3,1,2) 
 
             do i=1,Ngal
                wg(i)=wg(i)**2
@@ -224,21 +168,6 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
           call rfftwnd_f77_one_real_to_complex(plan_real,dcgwxy,dcgwxy)
           call rfftwnd_f77_one_real_to_complex(plan_real,dcgwyz,dcgwyz)
           call rfftwnd_f77_one_real_to_complex(plan_real,dcgwzx,dcgwzx)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcgxxxx,dcgxxxx)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcgyyyy,dcgyyyy)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcgzzzz,dcgzzzz)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcgxxxy,dcgxxxy)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcgxxxz,dcgxxxz)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcgyyyx,dcgyyyx)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcgyyyz,dcgyyyz)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcgzzzx,dcgzzzx)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcgzzzy,dcgzzzy)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcgxxyy,dcgxxyy)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcgxxzz,dcgxxzz)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcgyyzz,dcgyyzz)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcgxxyz,dcgxxyz)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcgyyxz,dcgyyxz)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcgzzxy,dcgzzxy)
             call correct(Lm,Lm,Lm,dcg) 
             call correct(Lm,Lm,Lm,dcgxx) 
             call correct(Lm,Lm,Lm,dcgyy) 
@@ -253,21 +182,6 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
             call correct(Lm,Lm,Lm,dcgwxy) 
             call correct(Lm,Lm,Lm,dcgwyz) 
             call correct(Lm,Lm,Lm,dcgwzx) 
-            call correct(Lm,Lm,Lm,dcgxxxx) 
-            call correct(Lm,Lm,Lm,dcgyyyy) 
-            call correct(Lm,Lm,Lm,dcgzzzz) 
-            call correct(Lm,Lm,Lm,dcgxxxy) 
-            call correct(Lm,Lm,Lm,dcgxxxz) 
-            call correct(Lm,Lm,Lm,dcgyyyx) 
-            call correct(Lm,Lm,Lm,dcgyyyz) 
-            call correct(Lm,Lm,Lm,dcgzzzx) 
-            call correct(Lm,Lm,Lm,dcgzzzy) 
-            call correct(Lm,Lm,Lm,dcgxxyy) 
-            call correct(Lm,Lm,Lm,dcgxxzz) 
-            call correct(Lm,Lm,Lm,dcgyyzz) 
-            call correct(Lm,Lm,Lm,dcgxxyz) 
-            call correct(Lm,Lm,Lm,dcgyyxz) 
-            call correct(Lm,Lm,Lm,dcgzzxy) 
 
             do 98 iz=1,Ngrid !build quadrupole
              ikz=mod(iz+Ngrid/2-2,Ngrid)-Ngrid/2+1
@@ -300,36 +214,6 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
             deallocate(dcgyy,dcgzz,dcgxy,dcgyz,dcgzx)
             deallocate(dcgwyy,dcgwzz,dcgwxy,dcgwyz,dcgwzx)
 
-            do 99 iz=1,Ngrid !build hexadecapole
-             ikz=mod(iz+Ngrid/2-2,Ngrid)-Ngrid/2+1
-             do 99 iy=1,Ngrid
-              iky=mod(iy+Ngrid/2-2,Ngrid)-Ngrid/2+1
-              do 99 ix=1,Ngrid/2+1
-               ikx=mod(ix+Ngrid/2-2,Ngrid)-Ngrid/2+1
-               rk=sqrt(float(ikx**2+iky**2+ikz**2))
-               if(rk.gt.0.)then
-                  kxh=float(ikx)/rk !unit vectors
-                  kyh=float(iky)/rk
-                  kzh=float(ikz)/rk
-                  dcgxxxx(ix,iy,iz)=35.*9./8.*(dcgxxxx(ix,iy,iz)*kxh**4 
-     &              +dcgyyyy(ix,iy,iz)*kyh**4+dcgzzzz(ix,iy,iz)*kzh**4
-     & +4.*dcgxxxy(ix,iy,iz)*kxh**3*kyh+4.*dcgxxxz(ix,iy,iz)*kxh**3*kzh 
-     & +4.*dcgyyyx(ix,iy,iz)*kyh**3*kxh+4.*dcgyyyz(ix,iy,iz)*kyh**3*kzh 
-     & +4.*dcgzzzx(ix,iy,iz)*kzh**3*kxh+4.*dcgzzzy(ix,iy,iz)*kzh**3*kyh 
-     & +6.*dcgxxyy(ix,iy,iz)*kxh**2*kyh**2
-     & +6.*dcgxxzz(ix,iy,iz)*kxh**2*kzh**2
-     & +6.*dcgyyzz(ix,iy,iz)*kyh**2*kzh**2
-     & +12.*dcgxxyz(ix,iy,iz)*kxh**2*kyh*kzh
-     & +12.*dcgyyxz(ix,iy,iz)*kyh**2*kxh*kzh
-     & +12.*dcgzzxy(ix,iy,iz)*kzh**2*kxh*kyh)
-     & -9./2.*dcgxx(ix,iy,iz) -63./8.*dcg(ix,iy,iz)  !hexadecapole field: 9 delta4
-               end if
- 99         continue
-      
-            deallocate(dcgyyyy,dcgzzzz,dcgxxxy,dcgxxxz,dcgyyyx,dcgyyyz)
-            deallocate(dcgzzzx,dcgzzzy,dcgxxyy,dcgxxzz,dcgyyzz,dcgxxyz)
-            deallocate(dcgyyxz,dcgzzxy)
-
          else !4th-order interlaced
 
             allocate(dcg(Lm,Lm,Lm)) !do delta_g
@@ -350,30 +234,6 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
             deallocate(dcgxy,dcgyz,dcgzx) !done 5 delta2_g (2nd part)
             write(*,*)'dcgxy,dcgyz,dcgzx assigned'
 
-            allocate(dcgxxxx(Lm,Lm,Lm),dcgyyyy(Lm,Lm,Lm)) !do 9 delta4_g (1st part)
-            allocate(dcgzzzz(Lm,Lm,Lm),dcgxxxy(Lm,Lm,Lm))
-            allocate(dcgxxxz(Lm,Lm,Lm))
-            call NineDelta4g_1(Ngal,Ng,Nmax,rg,rm,Lm,P0,nbg,ig,wg,
-     $           dcgxxxx,dcgyyyy,dcgzzzz,dcgxxxy,dcgxxxz,planf)
-            deallocate(dcgyyyy,dcgzzzz,dcgxxxy,dcgxxxz) !done 9 delta4_g (1st part)
-            write(*,*)'dcgxxxx,dcgyyyy,dcgzzzz assigned'
-
-            allocate(dcgyyyx(Lm,Lm,Lm))!do 9 delta4_g (2nd part)
-            allocate(dcgyyyz(Lm,Lm,Lm),dcgzzzx(Lm,Lm,Lm))
-            allocate(dcgzzzy(Lm,Lm,Lm),dcgxxyy(Lm,Lm,Lm))
-            call NineDelta4g_2(Ngal,Ng,Nmax,rg,rm,Lm,P0,nbg,ig,wg,
-     $           dcgxxxx,dcgyyyx,dcgyyyz,dcgzzzx,dcgzzzy,dcgxxyy,planf)
-            deallocate(dcgyyyx,dcgyyyz,dcgzzzx,dcgzzzy,dcgxxyy)!done 9 delta4_g (2nd part)
-            write(*,*)'dcgyyyz,dcgzzzx assigned'
-
-            allocate(dcgxxzz(Lm,Lm,Lm)) !do 9 delta4_g (3rd part)
-            allocate(dcgyyzz(Lm,Lm,Lm),dcgxxyz(Lm,Lm,Lm))
-            allocate(dcgyyxz(Lm,Lm,Lm),dcgzzxy(Lm,Lm,Lm))
-            call NineDelta4g_3(Ngal,Ng,Nmax,rg,rm,Lm,P0,nbg,ig,wg,dcg,
-     $      dcgxx,dcgxxxx,dcgxxzz,dcgyyzz,dcgxxyz,dcgyyxz,dcgzzxy,planf)
-            deallocate(dcgxxzz,dcgyyzz,dcgxxyz,dcgyyxz,dcgzzxy)!done 9 delta4_g (3rd part)
-            write(*,*)'dcgxxzz,dcgyyzz,dcgxxyz assigned'
-
             do i=1,Ngal !build reweighted fields now
                wg(i)=wg(i)**2
             enddo   
@@ -383,64 +243,12 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
             call fcomb(Lm,dcgw,Ng)
             write(*,*)'dcgw assigned'
 
-            allocate(dcgwxx(Lm,Lm,Lm)) !do 5 delta2w_g (1st part)
-            allocate(dcgwyy(Lm,Lm,Lm),dcgwzz(Lm,Lm,Lm))
-            call FiveDelta2g_1(Ngal,Ng,Nmax,rg,rm,Lm,P0,nbg,ig,wg, 
-     $      dcgwxx,dcgwyy,dcgwzz,planf)
-            deallocate(dcgwyy,dcgwzz) !done 5 delta2w_g (1st part)
-            write(*,*)'dcgwxx,dcgwyy,dcgwzz assigned'
-
-            allocate(dcgwxy(Lm,Lm,Lm)) !do 5 delta2w_g (2nd part)
-            allocate(dcgwyz(Lm,Lm,Lm),dcgwzx(Lm,Lm,Lm))
-            call FiveDelta2g_2(Ngal,Ng,Nmax,rg,rm,Lm,P0,nbg,ig,wg, 
-     $      dcgw,dcgwxx,dcgwxy,dcgwyz,dcgwzx,planf)
-            deallocate(dcgwxy,dcgwyz,dcgwzx) !done 5 delta2w_g (2nd part)
-            write(*,*)'dcgwxy,dcgwyz,dcgwzx assigned'
-
-            allocate(dcgwxxxx(Lm,Lm,Lm),dcgwyyyy(Lm,Lm,Lm)) !do 9 delta4w_g (1st part)
-            allocate(dcgwzzzz(Lm,Lm,Lm),dcgwxxxy(Lm,Lm,Lm))
-            allocate(dcgwxxxz(Lm,Lm,Lm))
-            call NineDelta4g_1(Ngal,Ng,Nmax,rg,rm,Lm,P0,nbg,ig,wg,
-     $           dcgwxxxx,dcgwyyyy,dcgwzzzz,dcgwxxxy,dcgwxxxz,planf)
-            deallocate(dcgwyyyy,dcgwzzzz,dcgwxxxy,dcgwxxxz) !done 9 delta4w_g (1st part)
-            write(*,*)'dcgwyyyy,dcgwzzzz assigned'
-
-            allocate(dcgwyyyx(Lm,Lm,Lm))!do 9 delta4w_g (2nd part)
-            allocate(dcgwyyyz(Lm,Lm,Lm),dcgwzzzx(Lm,Lm,Lm))
-            allocate(dcgwzzzy(Lm,Lm,Lm),dcgwxxyy(Lm,Lm,Lm))
-            call NineDelta4g_2(Ngal,Ng,Nmax,rg,rm,Lm,P0,nbg,ig,wg,
-     $           dcgwxxxx,dcgwyyyx,dcgwyyyz,dcgwzzzx,dcgwzzzy,
-     $           dcgwxxyy,planf)
-            deallocate(dcgwyyyx,dcgwyyyz,dcgwzzzx,dcgwzzzy,dcgwxxyy)!done 9 delta4w_g (2nd part)
-            write(*,*)'dcgwyyyx,dcgwzzzx assigned'
-
-            allocate(dcgwyyyx(Lm,Lm,Lm))!do 9 delta4w_g (2nd part)
-            allocate(dcgwyyyz(Lm,Lm,Lm),dcgwzzzx(Lm,Lm,Lm))
-            allocate(dcgwzzzy(Lm,Lm,Lm),dcgwxxyy(Lm,Lm,Lm))
-            call NineDelta4g_2(Ngal,Ng,Nmax,rg,rm,Lm,P0,nbg,ig,wg,
-     $           dcgwxxxx,dcgwyyyx,dcgwyyyz,dcgwzzzx,dcgwzzzy,
-     $           dcgwxxyy,planf)
-            deallocate(dcgwyyyx,dcgwyyyz,dcgwzzzx,dcgwzzzy,dcgwxxyy)!done 9 delta4w_g (2nd part)
-            write(*,*)'delta4w_g 2nd part'
-
-            allocate(dcgwxxzz(Lm,Lm,Lm)) !do 9 delta4w_g (3rd part)
-            allocate(dcgwyyzz(Lm,Lm,Lm),dcgwxxyz(Lm,Lm,Lm))
-            allocate(dcgwyyxz(Lm,Lm,Lm),dcgwzzxy(Lm,Lm,Lm))
-            call NineDelta4g_3(Ngal,Ng,Nmax,rg,rm,Lm,P0,nbg,ig,wg,dcgw,
-     $      dcgwxx,dcgwxxxx,dcgwxxzz,dcgwyyzz,dcgwxxyz,dcgwyyxz,
-     $      dcgwzzxy,planf)
-            deallocate(dcgwxxzz,dcgwyyzz,dcgwxxyz,dcgwyyxz,dcgwzzxy)!done 9 delta4w_g (3rd part)
-            write(*,*)'delta4w_g 3rd part'
-
          endif
          
          call getarg(9,filecoef) !Fourier file
          filecoef0=filecoef(1:len_trim(filecoef))//'_0'
          filecoef1=filecoef(1:len_trim(filecoef))//'_1'
          filecoef2=filecoef(1:len_trim(filecoef))//'_2'
-         filecoef3=filecoef(1:len_trim(filecoef))//'_3'
-         filecoef4=filecoef(1:len_trim(filecoef))//'_4'
-         filecoef5=filecoef(1:len_trim(filecoef))//'_5'
          write(*,*)filecoef0
          open(unit=4,file=filecoef0,status='unknown',form='unformatted')
          write(4)Lm
@@ -457,15 +265,6 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
          write(*,*)filecoef2
          open(unit=4,file=filecoef2,status='unknown',form='unformatted')
          write(4)(((dcgw(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
-         close(4)
-         open(unit=4,file=filecoef3,status='unknown',form='unformatted')
-         write(4)(((dcgwxx(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
-         close(4)
-         open(unit=4,file=filecoef4,status='unknown',form='unformatted')
-         write(4)(((dcgxxxx(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
-         close(4)
-         open(unit=4,file=filecoef5,status='unknown',form='unformatted')
-         write(4)(((dcgwxxxx(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
          close(4)
 
        elseif (iflag.eq.1) then ! compute discretness integrals and FFT random mock
@@ -500,14 +299,6 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
             allocate(dcrwxx(Lm/2+1,Lm,Lm),dcrwyy(Lm/2+1,Lm,Lm))
             allocate(dcrwzz(Lm/2+1,Lm,Lm),dcrwxy(Lm/2+1,Lm,Lm))
             allocate(dcrwyz(Lm/2+1,Lm,Lm),dcrwzx(Lm/2+1,Lm,Lm))
-            allocate(dcrxxxx(Lm/2+1,Lm,Lm),dcryyyy(Lm/2+1,Lm,Lm))
-            allocate(dcrzzzz(Lm/2+1,Lm,Lm),dcrxxxy(Lm/2+1,Lm,Lm))
-            allocate(dcrxxxz(Lm/2+1,Lm,Lm),dcryyyx(Lm/2+1,Lm,Lm))
-            allocate(dcryyyz(Lm/2+1,Lm,Lm),dcrzzzx(Lm/2+1,Lm,Lm))
-            allocate(dcrzzzy(Lm/2+1,Lm,Lm),dcrxxyy(Lm/2+1,Lm,Lm))
-            allocate(dcrxxzz(Lm/2+1,Lm,Lm),dcryyzz(Lm/2+1,Lm,Lm))
-            allocate(dcrxxyz(Lm/2+1,Lm,Lm),dcryyxz(Lm/2+1,Lm,Lm))
-            allocate(dcrzzxy(Lm/2+1,Lm,Lm))
             call assign_CIC(Nran,rr,rm,Lm,dcr,wr,ir,0,0,0,0) 
             call assign_CIC(Nran,rr,rm,Lm,dcrxx,wr,ir,1,1,0,0) 
             call assign_CIC(Nran,rr,rm,Lm,dcryy,wr,ir,2,2,0,0) 
@@ -515,21 +306,6 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
             call assign_CIC(Nran,rr,rm,Lm,dcrxy,wr,ir,1,2,0,0) 
             call assign_CIC(Nran,rr,rm,Lm,dcryz,wr,ir,2,3,0,0) 
             call assign_CIC(Nran,rr,rm,Lm,dcrzx,wr,ir,3,1,0,0) 
-            call assign_CIC(Nran,rr,rm,Lm,dcrxxxx,wr,ir,1,1,1,1) 
-            call assign_CIC(Nran,rr,rm,Lm,dcryyyy,wr,ir,2,2,2,2) 
-            call assign_CIC(Nran,rr,rm,Lm,dcrzzzz,wr,ir,3,3,3,3) 
-            call assign_CIC(Nran,rr,rm,Lm,dcrxxxy,wr,ir,1,1,1,2) 
-            call assign_CIC(Nran,rr,rm,Lm,dcrxxxz,wr,ir,1,1,1,3) 
-            call assign_CIC(Nran,rr,rm,Lm,dcryyyx,wr,ir,2,2,2,1) 
-            call assign_CIC(Nran,rr,rm,Lm,dcryyyz,wr,ir,2,2,2,3) 
-            call assign_CIC(Nran,rr,rm,Lm,dcrzzzx,wr,ir,3,3,3,1) 
-            call assign_CIC(Nran,rr,rm,Lm,dcrzzzy,wr,ir,3,3,3,2) 
-            call assign_CIC(Nran,rr,rm,Lm,dcrxxyy,wr,ir,1,1,2,2) 
-            call assign_CIC(Nran,rr,rm,Lm,dcrxxzz,wr,ir,1,1,3,3) 
-            call assign_CIC(Nran,rr,rm,Lm,dcryyzz,wr,ir,2,2,3,3) 
-            call assign_CIC(Nran,rr,rm,Lm,dcrxxyz,wr,ir,1,1,2,3) 
-            call assign_CIC(Nran,rr,rm,Lm,dcryyxz,wr,ir,2,2,1,3) 
-            call assign_CIC(Nran,rr,rm,Lm,dcrzzxy,wr,ir,3,3,1,2) 
             do i=1,Nran
                wr(i)=wr(i)**2
             enddo   
@@ -554,21 +330,6 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
           call rfftwnd_f77_one_real_to_complex(plan_real,dcrwxy,dcrwxy)
           call rfftwnd_f77_one_real_to_complex(plan_real,dcrwyz,dcrwyz)
           call rfftwnd_f77_one_real_to_complex(plan_real,dcrwzx,dcrwzx)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcrxxxx,dcrxxxx)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcryyyy,dcryyyy)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcrzzzz,dcrzzzz)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcrxxxy,dcrxxxy)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcrxxxz,dcrxxxz)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcryyyx,dcryyyx)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcryyyz,dcryyyz)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcrzzzx,dcrzzzx)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcrzzzy,dcrzzzy)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcrxxyy,dcrxxyy)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcrxxzz,dcrxxzz)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcryyzz,dcryyzz)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcrxxyz,dcrxxyz)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcryyxz,dcryyxz)
-        call rfftwnd_f77_one_real_to_complex(plan_real,dcrzzxy,dcrzzxy)
             call correct(Lm,Lm,Lm,dcr) 
             call correct(Lm,Lm,Lm,dcrxx) 
             call correct(Lm,Lm,Lm,dcryy) 
@@ -583,21 +344,6 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
             call correct(Lm,Lm,Lm,dcrwxy) 
             call correct(Lm,Lm,Lm,dcrwyz) 
             call correct(Lm,Lm,Lm,dcrwzx) 
-            call correct(Lm,Lm,Lm,dcrxxxx) 
-            call correct(Lm,Lm,Lm,dcryyyy) 
-            call correct(Lm,Lm,Lm,dcrzzzz) 
-            call correct(Lm,Lm,Lm,dcrxxxy) 
-            call correct(Lm,Lm,Lm,dcrxxxz) 
-            call correct(Lm,Lm,Lm,dcryyyx) 
-            call correct(Lm,Lm,Lm,dcryyyz) 
-            call correct(Lm,Lm,Lm,dcrzzzx) 
-            call correct(Lm,Lm,Lm,dcrzzzy) 
-            call correct(Lm,Lm,Lm,dcrxxyy) 
-            call correct(Lm,Lm,Lm,dcrxxzz) 
-            call correct(Lm,Lm,Lm,dcryyzz) 
-            call correct(Lm,Lm,Lm,dcrxxyz) 
-            call correct(Lm,Lm,Lm,dcryyxz) 
-            call correct(Lm,Lm,Lm,dcrzzxy) 
 
          else !4th-order interlaced
 
@@ -616,27 +362,6 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
      $      dcr,dcrxx,dcrxy,dcryz,dcrzx,planf)
             deallocate(dcrxy,dcryz,dcrzx) !done 5 delta2_g (2nd part)
 
-            allocate(dcrxxxx(Lm,Lm,Lm),dcryyyy(Lm,Lm,Lm)) !do 9 delta4_g (1st part)
-            allocate(dcrzzzz(Lm,Lm,Lm),dcrxxxy(Lm,Lm,Lm))
-            allocate(dcrxxxz(Lm,Lm,Lm))
-            call NineDelta4g_1(Nran,Nr,Nmax,rr,rm,Lm,P0,nbr,ir,wr,
-     $           dcrxxxx,dcryyyy,dcrzzzz,dcrxxxy,dcrxxxz,planf)
-            deallocate(dcryyyy,dcrzzzz,dcrxxxy,dcrxxxz) !done 9 delta4_g (1st part)
-
-            allocate(dcryyyx(Lm,Lm,Lm))!do 9 delta4_g (2nd part)
-            allocate(dcryyyz(Lm,Lm,Lm),dcrzzzx(Lm,Lm,Lm))
-            allocate(dcrzzzy(Lm,Lm,Lm),dcrxxyy(Lm,Lm,Lm))
-            call NineDelta4g_2(Nran,Nr,Nmax,rr,rm,Lm,P0,nbr,ir,wr,
-     $           dcrxxxx,dcryyyx,dcryyyz,dcrzzzx,dcrzzzy,dcrxxyy,planf)
-            deallocate(dcryyyx,dcryyyz,dcrzzzx,dcrzzzy,dcrxxyy)!done 9 delta4_g (2nd part)
-
-            allocate(dcrxxzz(Lm,Lm,Lm)) !do 9 delta4_g (3rd part)
-            allocate(dcryyzz(Lm,Lm,Lm),dcrxxyz(Lm,Lm,Lm))
-            allocate(dcryyxz(Lm,Lm,Lm),dcrzzxy(Lm,Lm,Lm))
-            call NineDelta4g_3(Nran,Nr,Nmax,rr,rm,Lm,P0,nbr,ir,wr,dcr,
-     $      dcrxx,dcrxxxx,dcrxxzz,dcryyzz,dcrxxyz,dcryyxz,dcrzzxy,planf)
-            deallocate(dcrxxzz,dcryyzz,dcrxxyz,dcryyxz,dcrzzxy)!done 9 delta4_g (3rd part)
-
             do i=1,Nran !build reweighted fields now
                wr(i)=wr(i)**2
             enddo   
@@ -644,42 +369,6 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
             call assign(Nran,rr,rm,Lm,dcrw,P0,nbr,ir,wr,0,0,0,0)
             call fftwnd_f77_one(planf,dcrw,dcrw)      
             call fcomb(Lm,dcrw,Nr)
-
-            allocate(dcrwxx(Lm,Lm,Lm)) !do 5 delta2w_g (1st part)
-            allocate(dcrwyy(Lm,Lm,Lm),dcrwzz(Lm,Lm,Lm))
-            call FiveDelta2g_1(Nran,Nr,Nmax,rr,rm,Lm,P0,nbr,ir,wr, 
-     $      dcrwxx,dcrwyy,dcrwzz,planf)
-            deallocate(dcrwyy,dcrwzz) !done 5 delta2w_g (1st part)
-
-            allocate(dcrwxy(Lm,Lm,Lm)) !do 5 delta2w_g (2nd part)
-            allocate(dcrwyz(Lm,Lm,Lm),dcrwzx(Lm,Lm,Lm))
-            call FiveDelta2g_2(Nran,Nr,Nmax,rr,rm,Lm,P0,nbr,ir,wr, 
-     $      dcrw,dcrwxx,dcrwxy,dcrwyz,dcrwzx,planf)
-            deallocate(dcrwxy,dcrwyz,dcrwzx) !done 5 delta2w_g (2nd part)
-
-            allocate(dcrwxxxx(Lm,Lm,Lm),dcrwyyyy(Lm,Lm,Lm)) !do 9 delta4_g (1st part)
-            allocate(dcrwzzzz(Lm,Lm,Lm),dcrwxxxy(Lm,Lm,Lm))
-            allocate(dcrwxxxz(Lm,Lm,Lm))
-            call NineDelta4g_1(Nran,Nr,Nmax,rr,rm,Lm,P0,nbr,ir,wr,
-     $           dcrwxxxx,dcrwyyyy,dcrwzzzz,dcrwxxxy,dcrwxxxz,planf)
-            deallocate(dcrwyyyy,dcrwzzzz,dcrwxxxy,dcrwxxxz) !done 9 delta4_g (1st part)
-
-            allocate(dcrwyyyx(Lm,Lm,Lm))!do 9 delta4_g (2nd part)
-            allocate(dcrwyyyz(Lm,Lm,Lm),dcrwzzzx(Lm,Lm,Lm))
-            allocate(dcrwzzzy(Lm,Lm,Lm),dcrwxxyy(Lm,Lm,Lm))
-            call NineDelta4g_2(Nran,Nr,Nmax,rr,rm,Lm,P0,nbr,ir,wr,
-     $           dcrwxxxx,dcrwyyyx,dcrwyyyz,dcrwzzzx,dcrwzzzy,dcrwxxyy,
-     $           planf)
-            deallocate(dcrwyyyx,dcrwyyyz,dcrwzzzx,dcrwzzzy,dcrwxxyy)!done 9 delta4_g (2nd part)
-
-            allocate(dcrwxxzz(Lm,Lm,Lm)) !do 9 delta4_g (3rd part)
-            allocate(dcrwyyzz(Lm,Lm,Lm),dcrwxxyz(Lm,Lm,Lm))
-            allocate(dcrwyyxz(Lm,Lm,Lm),dcrwzzxy(Lm,Lm,Lm))
-            call NineDelta4g_3(Nran,Nr,Nmax,rr,rm,Lm,P0,nbr,ir,wr,dcrw,
-     $      dcrwxx,dcrwxxxx,dcrwxxzz,dcrwyyzz,dcrwxxyz,dcrwyyxz,
-     $      dcrwzzxy,planf)
-            deallocate(dcrwxxzz,dcrwyyzz,dcrwxxyz,dcrwyyxz,dcrwzzxy)!done 9 delta4_g (3rd part)
-
          endif
 
 
@@ -687,9 +376,6 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
          filecoef0=filecoef(1:len_trim(filecoef))//'_0'
          filecoef1=filecoef(1:len_trim(filecoef))//'_1'
          filecoef2=filecoef(1:len_trim(filecoef))//'_2'
-         filecoef3=filecoef(1:len_trim(filecoef))//'_3'
-         filecoef4=filecoef(1:len_trim(filecoef))//'_4'
-         filecoef5=filecoef(1:len_trim(filecoef))//'_5'
          open(unit=4,file=filecoef0,status='unknown',form='unformatted')
          write(4)Lm
          write(4)(((dcr(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
@@ -703,15 +389,6 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
          close(4)
          open(unit=4,file=filecoef2,status='unknown',form='unformatted')
          write(4)(((dcrw(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
-         close(4)
-         open(unit=4,file=filecoef3,status='unknown',form='unformatted')
-         write(4)(((dcrwxx(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
-         close(4)
-         open(unit=4,file=filecoef4,status='unknown',form='unformatted')
-         write(4)(((dcrxxxx(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
-         close(4)
-         open(unit=4,file=filecoef5,status='unknown',form='unformatted')
-         write(4)(((dcrwxxxx(ix,iy,iz),ix=1,Lm/2+1),iy=1,Lm),iz=1,Lm)
          close(4)
          
       endif

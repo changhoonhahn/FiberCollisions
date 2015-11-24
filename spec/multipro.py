@@ -127,9 +127,9 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, quad=Fals
     return None 
 
 if __name__=="__main__":
-    build_multipro('spec', 'nseries', 'true', 1, Nthreads=1, clobber=True, quad=True, Ngrid=960)
-    #build_multipro('spec', 'nseries', 'true', 10, Nthreads=1, clobber=True, quad=True, Ngrid=960)
-    #build_multipro('spec', 'nseries', 'upweight', 10, Nthreads=1, clobber=True, quad=True, Ngrid=960)
+    #build_multipro('spec', 'nseries', 'true', 1, Nthreads=1, clobber=True, quad=True, Ngrid=960)
+    build_multipro('spec', 'nseries', 'true', 10, Nthreads=1, clobber=True, quad=True, Ngrid=960)
+    build_multipro('spec', 'nseries', 'upweight', 10, Nthreads=1, clobber=True, quad=True, Ngrid=960)
     
     #for f_peakcorr in np.arange(0.0, 1.1, 0.1): 
     #    for type in ['data', 'spec']:

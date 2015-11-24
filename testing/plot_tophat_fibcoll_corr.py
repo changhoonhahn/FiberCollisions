@@ -8,12 +8,12 @@ import pickle
 import numpy as np 
 import scipy as sp
 
+import pk_extrap
+
 from scipy.interpolate import interp1d
 import tophat_fibcoll_corr_test as tophat
 from defutility.plotting import prettyplot 
 from defutility.plotting import prettycolors 
-
-import pk_extrap
 
 def plot_delP(l, fs=1.0, rc=0.4, n_mocks=84, Ngrid=360, **kwargs):
     '''
@@ -402,6 +402,94 @@ def plot_fllp(l, k_value=0.3, rc=0.4):
     fig.savefig(fig_file, bbox_inches='tight')
     plt.close()
 
+def plot_delP_corr_extrapolations(l, n_mocks=10, k_fixed=0.6, k_max=0.5, Ngrid=360, fs=1.0, rc=0.4, **kwargs):
+    '''
+    Comparison of delP^corr, delP^uncorr, and P^upw_avg - P^true_avg
+
+    '''
+
+    if isinstance(k_max, list) or isinstance(k_max, np.ndarray):  
+        pass
+    else: 
+        k_max = [k_max]
+    
+    # average P_l(k) and P_l^upw(k)
+    k, Pk = pk_extrap.average_Pk(l, n_mocks, Ngrid=Ngrid)
+    k_upw, Pk_upw = pk_extrap.average_Pk_upw(l, n_mocks, Ngrid=Ngrid)
+    
+    prettyplot()
+    pretty_colors = prettycolors()
+
+    fig = plt.figure(figsize=(10,10))
+    sub = fig.add_subplot(111)
+
+    # uncorrelated delP
+    uncorrdelP = tophat.delP_uncorr(k, l, fs=fs, rc=rc)
+    
+    sub.plot(
+            k, 
+            uncorrdelP, 
+            c=pretty_colors[3], 
+            lw=4, 
+            label="Uncorrelated"
+            )
+
+    # correlated delP 
+    for k_max_i in k_max: 
+
+        pickle_file = ''.join([
+            'delP', str(l), 'k_corr', 
+            '_k_fixed', str(round(k_fixed, 1)),
+            '_kmax', str(round(k_max_i, 2)), 
+            '_Ngrid', str(Ngrid), '.p'
+            ])
+
+        corrdelP = pickle.load(open(pickle_file, 'rb'))
+
+        sub.plot(
+                k, 
+                corrdelP, 
+                lw = 4, 
+                ls = '--', 
+                label = "Correlated "+r"$\mathtt{k_{fit} ="+str(round(k_max_i, 2))+"}$"
+                )
+
+    # delP from data
+    sub.plot(
+            k, 
+            Pk_upw - Pk, 
+            c = 'k', 
+            lw = 4,
+            ls = '--', 
+            label = r"$\mathtt{P^{upw}(k) - P^{true}(k)}$"
+            )
+    
+    if 'xrange' in kwargs.keys(): 
+        sub.set_xlim(kwargs['xrange'])
+    else:
+        sub.set_xlim([10**-3,10**0])
+
+    if 'yrange' in kwargs.keys(): 
+        sub.set_ylim(kwargs['yrange'])
+
+    sub.set_xscale("log") 
+    sub.set_xlabel(r"$\mathtt{k}\;\;(\mathtt{Mpc}/h)$", fontsize=30)
+    sub.set_ylabel(r"$\mathtt{\Delta P_{"+str(l)+"}(k)}$", fontsize=30)
+    
+    if l == 0: 
+        sub.legend(loc='lower right', scatterpoints = 1)
+    elif l == 2: 
+        sub.legend(loc='upper right', scatterpoints = 1)
+    elif l == 4: 
+        sub.legend(loc='lower right', scatterpoints = 1)
+
+    fig_file = ''.join([
+        'qaplot_delP_', str(l), '_k_fixed0.6_Ngrid', str(Ngrid), '_extrapolations.png'
+        ])
+    fig.savefig(fig_file, bbox_inches="tight")
+    plt.show()
+    plt.close()
+
 if __name__=="__main__": 
     #for k in [0.0025]:#, 0.05, 0.1, 0.3]: 
     #    plot_fllp(0, k_value=k, rc=0.4)
@@ -412,7 +500,16 @@ if __name__=="__main__":
     #plot_delP(2, fs=1.0, rc=0.4, n_mocks=20)
     #plot_delP(4, fs=1.0, rc=0.4, n_mocks=20)
 
-    plot_delP(2, n_mocks=10, Ngrid=720, xrange=[0.1, 1.0], yrange=[-100., 1000.])
+    #plot_delP(2, n_mocks=10, Ngrid=720, xrange=[0.1, 1.0], yrange=[-100., 1000.])
+    plot_delP_corr_extrapolations(
+            0, 
+            n_mocks=10, 
+            k_fixed=0.6, 
+            k_max=np.arange(0.4, 0.65, 0.05), 
+            Ngrid=720, 
+            xrange=[0.1, 1.0], 
+            yrange=[-100., 1000.]
+            )
     #plot_delP(2, n_mocks=10, Ngrid=720)
     #for l_i in [0,2,4]:
     #    plot_delP(l_i, n_mocks=10, Ngrid=720)
