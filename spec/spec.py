@@ -17,7 +17,7 @@ from util.fortran import Fcode
 # Classes ------------------------------------------------------------
 class Spec(object): 
 
-    def __init__(self, spectype, cat_corr, **kwargs):
+    def __init__(self, spectype, cat_corr, ell=None, **kwargs):
         """ Class that describes power/bispectrum measurements 
         
         specify catalog, version, mock file number, file specifications (e.g. Nrandom), 
@@ -31,28 +31,37 @@ class Spec(object):
 
         """
 
-        if spectype not in ['pk', 'p2k', 'bk']: 
+        if spectype not in ['pk', 'bk']: 
             raise ValueError()
         else: 
             self.type = spectype
 
         if 'spec' not in cat_corr.keys(): 
-            # default spectrum parameters
-            if spectype == 'pk': 
-                quad = False
-            elif spectype == 'p2k': 
-                quad = True
 
+            if ell is None: 
+                raise ValueError
+
+            # default spectrum parameters
             cat_corr['spec'] = {
                     'P0': 20000, #P0 
                     'Lbox': 3600, 
                     'Ngrid':360, 
-                    'quad': quad 
+                    'ell': ell 
                     }
+            self.ell = ell
+
+            if 'Ngrid' in kwargs.keys(): 
+                cat_corr['spec']['Ngrid'] = kwargs.pop('Ngrid')
         else: 
-            if spectype == 'pk': 
-                if cat_corr['spec']['quad']: 
-                    raise ValueError()
+
+            if 'ell' not in cat_corr['spec'].keys():
+                raise ValueError
+
+            if ell is not None: 
+                if ell != cat_corr['spec']['ell']: 
+                    raise ValueError
+
+            self.ell = cat_corr['spec']['ell']
         
         self.cat_corr = cat_corr.copy()
         self.kwargs = kwargs
@@ -62,18 +71,21 @@ class Spec(object):
     def read(self): 
         """ Read power/bispectrum of simulated/observed data catalog
         """
-
-        spec_dict = self.cat_corr['spec']
     
-        if self.type == 'pk': 
+        if self.ell == 0:   # monopole
                 
             col_index = [0, 1]
             data_cols = ['k', 'p0k']
 
-        elif self.type == 'p2k': 
+        elif self.ell == 2:     # quadrupoel
             
-            col_index = [0, 2, 1, 4]
+            col_index = [0, 2, 1, 3]
             data_cols = ['k', 'p2k', 'p0k', 'p4k']
+
+        elif self.ell == 4:     # hexadecapole
+            
+            col_index = [0, 3, 1, 2]
+            data_cols = ['k', 'p4k', 'p0k', 'p2k']
 
         else: 
             raise NotImplementedError()
@@ -97,22 +109,18 @@ class Spec(object):
         corrdict = (self.cat_corr)['correction']
         specdict = (self.cat_corr)['spec']
 
-        spec_dir = ''.join([
-            '/mount/riachuelo1/hahn/', 
-            self.type, 
-            '/'
-            ]) 
-        
         # powerspectrum or bispectrum 
-        if self.type in ('pk', 'p2k'): 
+        if self.type in ('pk'): 
             spec_str = 'POWER_'
         elif self.type == 'bk':
             spec_str = 'BISP_'
 
-        if 'quad' not in specdict.keys(): 
-            specdict['quad'] = False
+        #if 'quad' not in specdict.keys(): 
+        #    specdict['quad'] = False
         
-        if specdict['quad']:          
+        #if specdict['quad']:          
+        #    spec_str += 'Q_'
+        if self.ell != 0: 
             spec_str += 'Q_'
 
         gal_data = Data('data', self.cat_corr, **self.kwargs)
@@ -124,7 +132,7 @@ class Spec(object):
 
         spec_dir = direc('spec', self.cat_corr)
 
-        if self.type in ('pk', 'p2k'): 
+        if self.type == 'pk': 
             specparam_str = ''.join([
                 '.grid', str(specdict['Ngrid']), 
                 '.P0', str(specdict['P0']), 
@@ -213,9 +221,8 @@ class Spec(object):
             print ''
 
         return None
-    
-if __name__=='__main__':
 
+if __name__=='__main__':
     cat_corr = {
             'catalog': {'name': 'nseries', 'n_mock': 1}, 
             'correction': {'name': 'true'}
@@ -225,7 +232,6 @@ if __name__=='__main__':
     spectrum = Spec('p2k', cat_corr, clobber=True)
     print spectrum.file()
     print spectrum.build()
-
 
 """
 def build_fibcol_bispec(**cat_corr): 

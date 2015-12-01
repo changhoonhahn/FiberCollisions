@@ -48,7 +48,7 @@ class Fft(object):
 
         # FFT label 
         fft_str = 'FFT_'
-        if specdict['quad']: 
+        if specdict['ell'] != 0: 
             fft_str += 'Q_'
     
         fft_corr_str = ''
@@ -79,13 +79,17 @@ class Fft(object):
             galdata = Data(self.type, self.cat_corr, **self.kwargs) 
             galdata.build()
 
-        if 'quad' not in specdict.keys(): 
-            raise KeyError(" 'quad' must be specified ") 
-
-        if not specdict['quad']:       # quadrupole or regular FFT code
+        #if 'quad' not in specdict.keys(): 
+        #    raise KeyError(" 'quad' must be specified ") 
+        #if not specdict['quad']:       # quadrupole or regular FFT code
+        #    fft_type = 'fft'
+        #else:  
+        #    fft_type = 'quad_fft'
+    
+        if specdict['ell'] == 0: 
             fft_type = 'fft'
-        else:  
-            fft_type = 'quad_fft'
+        else: 
+            fft_type = 'quad_fft'       # (outdated naming convention but too lazy to fully change)
 
         codeclass = Fcode(fft_type, self.cat_corr) 
         fftcode = codeclass.code
@@ -99,7 +103,7 @@ class Fft(object):
                 
         fft_file = self.file() 
 
-        if not specdict['quad']:       # NOT Quadrupole
+        if specdict['ell'] == 0:       # Monopole 
             
             # command line call 
             FFTcmd = codeclass.commandline_call(
@@ -132,7 +136,7 @@ class Fft(object):
                 print '-----------------------'
                 print ''
 
-        else:                           # Yes Quadrupole
+        else:                           # others Quadrupole
             # command line call 
             FFTcmd = codeclass.commandline_call(
                     DorR = self.type, 
