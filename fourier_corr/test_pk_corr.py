@@ -142,7 +142,9 @@ def test_delPk_corr_scatter(ell, n_mocks, Ngrid=960, k_max=0.25, k_fixed=0.6, fs
     fig_file = ''.join([
         'figure/', 
         'qaplot_delP_corr_extrap_scatter.', 
-        str(n_mocks), 'mocks', 
+        str(n_mocks), 'mocks.', 
+        'kfit', str(round(k_max,2)), '.', 
+        'kfixed', str(round(k_fixed,2)),
         '.png'
         ])
     fig.savefig(fig_file, bbox_inches="tight")

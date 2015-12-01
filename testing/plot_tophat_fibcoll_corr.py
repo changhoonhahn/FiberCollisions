@@ -632,8 +632,8 @@ if __name__=="__main__":
     #plot_delP(4, fs=1.0, rc=0.4, n_mocks=20)
 
     #plot_delP(2, n_mocks=10, Ngrid=960)#, xrange=[0.1, 1.0], yrange=[-100., 1000.])
-    plot_delP_corr_extrap_param_test(2, n_mocks=10, Ngrid=960)
-    plot_delP_corr_extrap_param_test(4, n_mocks=10, Ngrid=960)
+    #plot_delP_corr_extrap_param_test(2, n_mocks=10, Ngrid=960)
+    #plot_delP_corr_extrap_param_test(4, n_mocks=10, Ngrid=960)
     #plot_delP_corr_extrapolations(
     #        2, 
     #        n_mocks=10, 
@@ -647,8 +647,8 @@ if __name__=="__main__":
     #    plot_delP(l_i, n_mocks=10, Ngrid=720)
     #plot_delP_lp_component(2, n_mocks=10, Ngrid=720)
     #plot_delP_lp_component(4, n_mocks=10, Ngrid=720)
-    #plot_delP_lp_component(2, n_mocks=10, Ngrid=960)
-    #plot_delP_lp_component(4, n_mocks=10, Ngrid=960)
+    plot_delP_lp_component(2, n_mocks=10, Ngrid=960)
+    plot_delP_lp_component(4, n_mocks=10, Ngrid=960)
         #plot_delP_extrapolation_test(l_i, type='normal', n_mocks=10, Ngrid=720)
         #plot_delP_extrapolation_test(l_i, type='difference', n_mocks=10, Ngrid=720)
 

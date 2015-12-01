@@ -554,6 +554,8 @@ def plot_delpoverp_comp(cat_corrs, n_mock, ell=0, **kwargs):
     except TypeError:
         n_mock_str = str(n_mock) 
 
+    plt.figtext(0, 0, "testing \n testing")
+
     fig_name = ''.join([
         'del', spec_key, 'over', spec_key, '_', 
         n_mock_str, 
@@ -569,6 +571,7 @@ def plot_delpoverp_comp(cat_corrs, n_mock, ell=0, **kwargs):
             ''.join([fig_dir, fig_name]), 
             bbox_inches="tight"
             )
+
     #plt.show()
     plt.close()
 
