@@ -37,7 +37,7 @@ def average_Pk(l, n_mocks, Ngrid=360, quiet=True):
                     unpack = True, 
                     usecols = data_cols
                     )
-            if quiet: 
+            if not quiet: 
                 print pk_file
 
             n_files += 1.
@@ -51,8 +51,10 @@ def average_Pk(l, n_mocks, Ngrid=360, quiet=True):
         except UnboundLocalError: 
             k = k_i 
             Plk_sum = Plk_i
+    
+    if not quiet: 
+        print int(n_files), ' P(k) files have beeen read'
 
-    print int(n_files), ' P(k) files have beeen read'
     Plk = Plk_sum/n_files
 
     return [k, Plk]
@@ -138,8 +140,7 @@ def pk_bestfit(k_in, pk_in, k_max=0.25, k_fixed=0.6, quiet=True):
 
 if __name__=="__main__": 
     for l_i in [0, 2, 4]: 
-        #for k_max_i in np.arange(0.4, 0.65, 0.05): 
-        k_max_i = 0.6
-        print 'l = ', l_i, 'k_max = ', k_max_i
-        k_i, Plk_i = average_Pk(l_i, 10, Ngrid=720)
-        print pk_bestfit(k_i, Plk_i, k_max=k_max_i, k_fixed=0.6)
+        for k_max_i in np.arange(0.6, 0.85, 0.05): 
+            print 'l = ', l_i, 'k_max = ', k_max_i
+            k_i, Plk_i = average_Pk(l_i, 10, Ngrid=960, quiet=True)
+            print pk_bestfit(k_i, Plk_i, k_max=k_max_i, k_fixed=0.837)

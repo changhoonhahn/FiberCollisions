@@ -77,7 +77,8 @@ def delP_corr(k, Pk, l, fs=1.0, rc=0.4,
         delP = np.zeros(len(k))
 
         start_time = time.time()
-        
+        print 'l=', l, " l'=", int(lp)
+
         # loop through k values and evaluate delta P for all ks 
         for i_k, k_i in enumerate(k): 
 
@@ -97,7 +98,6 @@ def delP_corr(k, Pk, l, fs=1.0, rc=0.4,
             delP[i_k] = alpha * delP_int
 
         print "delP(k) calculation takes ", time.time() - start_time 
-        print 'l=', l, " l'=", int(lp)
         #print delP 
         sum_delP += delP
     
@@ -210,6 +210,7 @@ def delPcorr_estimated(n_mocks=10, k_fixed=0.6, lpcomponent=True, noextrap=False
     k0, avg_P0k = pk_extrap.average_Pk(0, n_mocks=n_mocks, Ngrid=Ngrid)
     k2, avg_P2k = pk_extrap.average_Pk(2, n_mocks=n_mocks, Ngrid=Ngrid)
     k4, avg_P4k = pk_extrap.average_Pk(4, n_mocks=n_mocks, Ngrid=Ngrid)
+    k = k0
 
     Pk = [avg_P0k, avg_P2k, avg_P4k]
     
@@ -241,7 +242,7 @@ def delPcorr_estimated(n_mocks=10, k_fixed=0.6, lpcomponent=True, noextrap=False
             ])
         pickle.dump(delp, open(pickle_file, 'wb'))
 
-def delPcorr_extrapolation(n_mocks=10, k_fixed=0.6, k_max=0.5, Ngrid=360):
+def delPcorr_extrapolation(n_mocks=10, k_max=0.5, Ngrid=360):
     '''
     Wrapper function to calculate delta P^corr
     '''
@@ -252,6 +253,7 @@ def delPcorr_extrapolation(n_mocks=10, k_fixed=0.6, k_max=0.5, Ngrid=360):
 
     Pk = [avg_P0k, avg_P2k, avg_P4k]
     k = k0
+    k_fixed = k[-1]
 
     if isinstance(k_max, list) or isinstance(k_max, np.ndarray):  
         pass
@@ -266,7 +268,7 @@ def delPcorr_extrapolation(n_mocks=10, k_fixed=0.6, k_max=0.5, Ngrid=360):
             bestfit_params.append(
                     pk_extrap.pk_bestfit(k0, Pk[i_l], k_max=k_max_i, k_fixed=k_fixed)
                     )
-        print k_max_i
+        print 'fitting range ', k_max_i , ' < k < ', k[-1]
         print bestfit_params 
     
         for i_l, l in enumerate([0, 2, 4]): 
@@ -281,7 +283,7 @@ def delPcorr_extrapolation(n_mocks=10, k_fixed=0.6, k_max=0.5, Ngrid=360):
 
             pickle_file = ''.join([
                 'delP', str(l), 'k_corr', 
-                '_k_fixed', str(round(k_fixed, 1)),
+                '_k_fixed', str(round(k_fixed, 2)),
                 '_kmax', str(round(k_max_i, 2)), 
                 '_Ngrid', str(Ngrid), '.p'
                 ])
@@ -290,9 +292,9 @@ def delPcorr_extrapolation(n_mocks=10, k_fixed=0.6, k_max=0.5, Ngrid=360):
 if __name__=='__main__': 
     #delPcorr_estimated(n_mocks=10, k_fixed=0.6, lpcomponent=True, noextrap=True, Ngrid=720)
     #delPcorr_estimated(n_mocks=10, k_fixed=0.6, lpcomponent=False, noextrap=True, Ngrid=720)
-    #delPcorr_estimated(n_mocks=10, k_fixed=0.6, lpcomponent=True, noextrap=False, Ngrid=720)
+    #delPcorr_estimated(n_mocks=10, k_fixed=0.6, lpcomponent=True, noextrap=False, Ngrid=960)
     #delPcorr_estimated(n_mocks=10, k_fixed=0.6, lpcomponent=False, noextrap=False, Ngrid=720)
-    delPcorr_extrapolation(n_mocks=10, k_fixed=0.6, k_max=np.arange(0.4, 0.65, 0.05), Ngrid=720)
+    delPcorr_extrapolation(n_mocks=10, k_max=np.arange(0.6, 0.85, 0.05), Ngrid=960)
 
 """
 def delPq_integrand_old(q, k, l, lp, f_interp, f_extrap, rc=0.4, k_min=0.002, k_max=0.3, first_order=False, w1d=False, noextrap=False):

@@ -13,19 +13,27 @@ class Fcode:
         powerspectrum calculations 
 
         """
-        self.cat_corr = cat_corr
+        self.cat_corr = cat_corr.copy()
         self.type = type
     
         fcode_dir = '/home/users/hahn/powercode/FiberCollisions/fortran/'
+
+        specdict = cat_corr['spec']
         
         if type == 'fft':       # fft code
-            f_name = 'FFT_fkp.f'
+            if specdict['ell'] == 0: 
+                f_name = 'FFT_fkp.f'
+            else: 
+                f_name = 'FFT_fkp_quad_fast.f'
         elif type == 'pk':      # P(k) code
-            f_name = 'power-Igal-Irand.f' 
-        elif type == 'quad_fft':    # quadruple FFT code
-            f_name = 'FFT_fkp_quad_fast.f'
-        elif type == 'p2k':         # P_2(k) code 
-            f_name = 'power_quad_fast.f'
+            if specdict['ell'] == 0: 
+                f_name = 'power-Igal-Irand.f' 
+            else:
+                f_name = 'power_quad_fast.f'
+            #elif type == 'quad_fft':    # quadruple FFT code
+            #    f_name = 'FFT_fkp_quad_fast.f'
+            #elif type == 'p2k':         # P_2(k) code 
+            #    f_name = 'power_quad_fast.f'
         else: 
             raise NotImplementedError()
         
@@ -49,17 +57,18 @@ class Fcode:
         """
 
         fort_exe = self.fexe() 
+        specdict = self.cat_corr['spec']
 
         # compile command for fortran code. Quadruple codes have more
         # complex compile commands specified by Roman 
-        if self.type == 'quad_fft':
+        if (self.type == 'fft') and (specdict['ell'] != 0): 
             compile_cmd = ' '.join([
                 'ifort -fast -o', 
                 fort_exe, 
                 self.code, 
                 '-L/usr/local/fftw_intel_s/lib -lsrfftw -lsfftw -lm'
                 ])
-        elif self.type == 'p2k': 
+        elif (self.type == 'pk') and (specdict['ell'] != 0): 
             compile_cmd = ' '.join([
                 'ifort -fast -o', 
                 fort_exe, 
@@ -86,6 +95,7 @@ class Fcode:
     def commandline_call(self, **kwargs): 
         """ Command line call for Fortran code
         """
+        specdict = self.cat_corr['spec']
         
         fcode_t_mod, fexe_t_mod = self.mod_time()
         if fcode_t_mod < fcode_t_mod: 
@@ -95,136 +105,138 @@ class Fcode:
 
         if self.type == 'fft': 
 
-            if not all([kwarg in kwargs.keys() for kwarg in ['DorR', 'datafile', 'fftfile']]):
+            if specdict['ell'] == 0:    # monopole
 
-                err_msg = ''.join([
-                    'For type = ', self.type, 
-                    " 'DorR', 'datafile', 'fftfile' must be specified in kwargs"
-                    ])
-                raise KeyError(err_msg)
-            
-            catname = ((self.cat_corr)['catalog'])['name']
-            specdict = (self.cat_corr)['spec']
+                if not all([kwarg in kwargs.keys() for kwarg in ['DorR', 'datafile', 'fftfile']]):
 
-            if catname == 'nseries': 
-                n_cat = 7
-            else: 
-                raise NotImplementedError()
-            
-            try: 
-                if kwargs['cosmology'] == 'survey': 
-                    n_cosmo = 1
+                    err_msg = ''.join([
+                        'For type = ', self.type, 
+                        " 'DorR', 'datafile', 'fftfile' must be specified in kwargs"
+                        ])
+                    raise KeyError(err_msg)
+                
+                catname = ((self.cat_corr)['catalog'])['name']
+                specdict = (self.cat_corr)['spec']
+
+                if catname == 'nseries': 
+                    n_cat = 7
                 else: 
+                    raise NotImplementedError()
+                
+                try: 
+                    if kwargs['cosmology'] == 'survey': 
+                        n_cosmo = 1
+                    else: 
+                        n_cosmo = 0 
+                except KeyError: 
                     n_cosmo = 0 
-            except KeyError: 
-                n_cosmo = 0 
 
-            if kwargs['DorR'] == 'data': 
-                n_DorR = 0 
-            elif kwargs['DorR'] == 'random': 
-                n_DorR = 1 
+                if kwargs['DorR'] == 'data': 
+                    n_DorR = 0 
+                elif kwargs['DorR'] == 'random': 
+                    n_DorR = 1 
 
-            cmdline_call = ' '.join([
-                self.exe, 
-                str(n_cat), 
-                str(n_cosmo), 
-                str(specdict['Lbox']), 
-                str(specdict['Ngrid']), 
-                str(n_DorR),
-                str(specdict['P0']), 
-                kwargs['datafile'], 
-                kwargs['fftfile']
-                ])
+                cmdline_call = ' '.join([
+                    self.exe, 
+                    str(n_cat), 
+                    str(n_cosmo), 
+                    str(specdict['Lbox']), 
+                    str(specdict['Ngrid']), 
+                    str(n_DorR),
+                    str(specdict['P0']), 
+                    kwargs['datafile'], 
+                    kwargs['fftfile']
+                    ])
+            else: 
+                if not all([kwarg in kwargs.keys() for kwarg in ['DorR', 'datafile', 'fftfile']]):
+
+                    err_msg = ''.join([
+                        'For type = ', self.type, 
+                        " 'DorR', 'datafile', 'fftfile' must be specified in kwargs"
+                        ])
+                    raise KeyError(err_msg)
+                
+                catname = ((self.cat_corr)['catalog'])['name']
+                specdict = (self.cat_corr)['spec']
+
+                if catname == 'nseries': 
+                    n_cat = 7
+                else: 
+                    raise NotImplementedError()
+                
+                try: 
+                    if kwargs['cosmology'] == 'survey': 
+                        n_cosmo = 1
+                    else: 
+                        n_cosmo = 0 
+                except KeyError: 
+                    n_cosmo = 0 
+
+                if kwargs['DorR'] == 'data': 
+                    n_DorR = 0 
+                elif kwargs['DorR'] == 'random': 
+                    n_DorR = 1 
+
+                n_interp = 4    # 4th order interlaced CIC
+
+                cmdline_call = ' '.join([
+                    self.exe, 
+                    str(n_cat), 
+                    str(n_cosmo), 
+                    str(specdict['Lbox']), 
+                    str(specdict['Ngrid']), 
+                    str(n_interp), 
+                    str(n_DorR),
+                    str(specdict['P0']), 
+                    kwargs['datafile'], 
+                    kwargs['fftfile']
+                    ])
 
         elif self.type == 'pk': 
 
-            if not all([kwarg in kwargs.keys() for kwarg in ['datafft', 'randfft', 'powerfile']]):
-                err_msg = ''.join([
-                    'For type = ', self.type, 
-                    " must be specified in kwargs"
+            if specdict['ell'] == 0:    # monopole
+
+                if not all([kwarg in kwargs.keys() for kwarg in ['datafft', 'randfft', 'powerfile']]):
+                    err_msg = ''.join([
+                        'For type = ', self.type, 
+                        " must be specified in kwargs"
+                        ])
+                    raise KeyError(err_msg)
+                
+                catname = ((self.cat_corr)['catalog'])['name']
+                specdict = (self.cat_corr)['spec']
+
+                nbins = int(specdict['Ngrid']/2) # number of bins
+
+                cmdline_call = ' '.join([
+                    self.exe, 
+                    kwargs['datafft'], 
+                    kwargs['randfft'],
+                    kwargs['powerfile'], 
+                    str(specdict['Lbox']), 
+                    str(nbins),
                     ])
-                raise KeyError(err_msg)
-            
-            catname = ((self.cat_corr)['catalog'])['name']
-            specdict = (self.cat_corr)['spec']
 
-            nbins = int(specdict['Ngrid']/2) # number of bins
+            else:   # quadrupole, hexadecapole, etc
 
-            cmdline_call = ' '.join([
-                self.exe, 
-                kwargs['datafft'], 
-                kwargs['randfft'],
-                kwargs['powerfile'], 
-                str(specdict['Lbox']), 
-                str(nbins),
-                ])
-        
-        elif self.type == 'quad_fft': 
+                if not all([kwarg in kwargs.keys() for kwarg in ['datafft', 'randfft', 'powerfile']]):
+                    err_msg = ''.join([
+                        "For type = ", self.type, "datafft, randfft, and powerfile must be specified in kwargs"
+                        ])
+                    raise KeyError(err_msg)
+                
+                specdict = (self.cat_corr)['spec']
 
-            if not all([kwarg in kwargs.keys() for kwarg in ['DorR', 'datafile', 'fftfile']]):
+                nbins = int(specdict['Ngrid']/2) # number of bins hardcoded to be Ngrid/2
 
-                err_msg = ''.join([
-                    'For type = ', self.type, 
-                    " 'DorR', 'datafile', 'fftfile' must be specified in kwargs"
+                cmdline_call = ' '.join([
+                    self.exe, 
+                    kwargs['datafft'], 
+                    kwargs['randfft'],
+                    kwargs['powerfile'], 
+                    str(specdict['Lbox']), 
+                    str(nbins),
                     ])
-                raise KeyError(err_msg)
-            
-            catname = ((self.cat_corr)['catalog'])['name']
-            specdict = (self.cat_corr)['spec']
-
-            if catname == 'nseries': 
-                n_cat = 7
-            else: 
-                raise NotImplementedError()
-            
-            try: 
-                if kwargs['cosmology'] == 'survey': 
-                    n_cosmo = 1
-                else: 
-                    n_cosmo = 0 
-            except KeyError: 
-                n_cosmo = 0 
-
-            if kwargs['DorR'] == 'data': 
-                n_DorR = 0 
-            elif kwargs['DorR'] == 'random': 
-                n_DorR = 1 
-
-            n_interp = 4    # 4th order interlaced CIC
-
-            cmdline_call = ' '.join([
-                self.exe, 
-                str(n_cat), 
-                str(n_cosmo), 
-                str(specdict['Lbox']), 
-                str(specdict['Ngrid']), 
-                str(n_interp), 
-                str(n_DorR),
-                str(specdict['P0']), 
-                kwargs['datafile'], 
-                kwargs['fftfile']
-                ])
-
-        elif self.type == 'p2k': 
-
-            if not all([kwarg in kwargs.keys() for kwarg in ['datafft', 'randfft', 'powerfile']]):
-                err_msg = ''.join([
-                    "For type = ", self.type, "datafft, randfft, and powerfile must be specified in kwargs"
-                    ])
-                raise KeyError(err_msg)
-            
-            specdict = (self.cat_corr)['spec']
-
-            nbins = int(specdict['Ngrid']/2) # number of bins hardcoded to be Ngrid/2
-
-            cmdline_call = ' '.join([
-                self.exe, 
-                kwargs['datafft'], 
-                kwargs['randfft'],
-                kwargs['powerfile'], 
-                str(specdict['Lbox']), 
-                str(nbins),
-                ])
         else: 
             raise NotImplementError()
 

@@ -118,6 +118,27 @@ def plot_pk_comp(cat_corrs, n_mock, ell=0, type='ratio', **kwargs):
                     label = plot_label(cat_corr),
                     fmt='--o'
                     ) 
+
+        elif type == 'Pk_all': 
+            if isinstance(n_mock_list[i_corr], int): 
+                n_mock_list_i = range(1, n_mock_list[i_corr]+1)
+            else: 
+                n_mock_list_i = n_mock_list[i_corr]
+
+            for i_mock in n_mock_list_i:
+                k_i, spec_i_spec = avg_spec.spec_i(i_mock)
+
+                sub.plot( 
+                        k_i, spec_i_spec, 
+                        color = '0.25', 
+                        lw = 1 
+                        ) 
+            sub.plot( 
+                    k_arr, avg_pk, 
+                    color = pretty_colors[i_corr + 1], 
+                    label = plot_label(cat_corr),
+                    lw = 4
+                    ) 
         
         elif type == 'kPk':         # Compare k^1.5 * P(k) with each other. Enhances the 
             # BAO signature? (Upon Paco's request). 
@@ -198,7 +219,7 @@ def plot_pk_comp(cat_corrs, n_mock, ell=0, type='ratio', **kwargs):
     
     # Dictate the x-range and y-range of the plotting
     # based on type of comparison 
-    if (type == 'Pk') or (type == 'Pk_err'):
+    if (type == 'Pk') or (type == 'Pk_err') or (type == 'Pk_all'):
         if 'yrange' in kwargs.keys(): 
             ylimit = kwargs['yrange'] 
             yytext = 10**.5*min(ylimit) 
@@ -225,6 +246,8 @@ def plot_pk_comp(cat_corrs, n_mock, ell=0, type='ratio', **kwargs):
             resid_str = ''
         elif type == 'Pk_err': 
             resid_str = '_err'
+        elif type == 'Pk_all':
+            resid_str = '_all'
     
     elif type == 'kPk':
         if 'yrange' in kwargs.keys(): 
@@ -549,7 +572,7 @@ if __name__=='__main__':
                 'correction': {'name': 'true'}
                 }
             ]
-    plot_pk_comp(cat_corrs, 20, Ngrid=960, ell=4, type='Pk_err', yrange=[10**2, 10**3], xrange=[10**-1, 10**0.])
+    plot_pk_comp(cat_corrs, 20, Ngrid=960, ell=4, type='Pk_all', yrange=[10**2, 10**3], xrange=[10**-1, 10**0.])
     #plot_pk_comp(cat_corrs, 20, Ngrid=960, ell=2, type='Pk_err')
     #plot_pk_comp(cat_corrs, 20, Ngrid=960, ell=4, type='l1_norm')
     

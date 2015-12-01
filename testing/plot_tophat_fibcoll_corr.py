@@ -43,8 +43,7 @@ def plot_delP(l, fs=1.0, rc=0.4, n_mocks=84, Ngrid=360, **kwargs):
 
     # correlated delP 
     pickle_file = ''.join([
-        'delP', str(l), 'k_', 
-        'corr_estimated_k_fixed0.6_Ngrid', str(Ngrid),'.p'
+        'delP', str(l), 'k_corr_k_fixed0.6_kmax0.7_Ngrid', str(Ngrid), '.p'
         ])
     corrdelP = pickle.load(open(pickle_file, 'rb'))
 
@@ -54,6 +53,15 @@ def plot_delP(l, fs=1.0, rc=0.4, n_mocks=84, Ngrid=360, **kwargs):
             c = pretty_colors[1], 
             lw = 4, 
             label = "Correlated"
+            )
+    
+    # combined uncorrelated and correlated delP
+    sub.plot(
+            k, 
+            uncorrdelP + corrdelP, 
+            c='k', 
+            lw=2, 
+            label="Combined"
             )
 
     # delP from data
@@ -107,10 +115,13 @@ def plot_delP_lp_component(l, n_mocks=84, Ngrid=360):
     fig = plt.figure(figsize=(10,10))
     sub = fig.add_subplot(111)
     
-    corrdelP = pickle.load(open('delP'+str(l)+'k_corr_estimated_k_fixed0.6_Ngrid720.p', 'rb'))
+    if Ngrid == 960:
+        corrdelP = pickle.load(open('delP'+str(l)+'k_corr_k_fixed0.6_kmax0.8_Ngrid'+str(Ngrid)+'.p', 'rb'))
+    elif Ngrid == 720: 
+        corrdelP = pickle.load(open('delP'+str(l)+'k_corr_estimated_k_fixed0.6_Ngrid'+str(Ngrid)+'.p', 'rb'))
 
     corrdelP_lp, corrdelP_comp = \
-            pickle.load(open('delP'+str(l)+'k_corr_estimated_lpcomponent_k_fixed0.6_Ngrid720.p', 'rb'))
+            pickle.load(open('delP'+str(l)+'k_corr_estimated_lpcomponent_k_fixed0.6_Ngrid'+str(Ngrid)+'.p', 'rb'))
     
     # del P correlated
     sub.plot(
@@ -118,7 +129,7 @@ def plot_delP_lp_component(l, n_mocks=84, Ngrid=360):
             corrdelP, 
             c = pretty_colors[1], 
             lw = 4, 
-            label = "Correlated"
+            label = "Correlated: Combined"
             )
 
     # del P correlated l' components
@@ -131,8 +142,18 @@ def plot_delP_lp_component(l, n_mocks=84, Ngrid=360):
                 ls = '--',
                 label = "Correlated: "+r"$l' ="+str(corrdelP_lp[i_lp])+"$"
                 )
+    sub.plot(k, 
+            Pk_upw - Pk, 
+            c= 'k',
+            lw=2, 
+            label='data'
+            )
 
     sub.set_xlim([10**-3,10**0])
+    if l == 2: 
+        sub.set_ylim([-50.0, 250.])
+    elif l == 4: 
+        sub.set_ylim([-50.0, 1000.])
     sub.set_xscale("log") 
     sub.set_xlabel(r"$\mathtt{k}\;\;(\mathtt{Mpc}/h)$", fontsize=30)
     sub.set_ylabel(r"$\mathtt{\Delta P_{"+str(l)+"}^{corr}(k)}$", fontsize=30)
@@ -144,7 +165,7 @@ def plot_delP_lp_component(l, n_mocks=84, Ngrid=360):
     elif l == 4: 
         sub.legend(loc='lower left', scatterpoints = 1)
      
-    fig.savefig('qaplot_delPcorr_'+str(l)+'_lp_components_k_fixed0.6_Ngrid720.png', bbox_inches="tight")
+    fig.savefig('qaplot_delPcorr_'+str(l)+'_lp_components_k_fixed0.6_Ngrid'+str(Ngrid)+'.png', bbox_inches="tight")
     plt.show()
     plt.close()
 
@@ -439,7 +460,7 @@ def plot_delP_corr_extrapolations(l, n_mocks=10, k_fixed=0.6, k_max=0.5, Ngrid=3
 
         pickle_file = ''.join([
             'delP', str(l), 'k_corr', 
-            '_k_fixed', str(round(k_fixed, 1)),
+            '_k_fixed', str(round(k_fixed, 2)),
             '_kmax', str(round(k_max_i, 2)), 
             '_Ngrid', str(Ngrid), '.p'
             ])
@@ -490,6 +511,116 @@ def plot_delP_corr_extrapolations(l, n_mocks=10, k_fixed=0.6, k_max=0.5, Ngrid=3
     plt.show()
     plt.close()
 
+def plot_delP_corr_extrap_param_test(l, n_mocks=10, Ngrid=360, fs=1.0, rc=0.4, **kwargs):
+    '''
+    '''
+
+    # average P_l(k) and P_l^upw(k)
+    k, Pk = pk_extrap.average_Pk(l, n_mocks, Ngrid=Ngrid)
+    k_upw, Pk_upw = pk_extrap.average_Pk_upw(l, n_mocks, Ngrid=Ngrid)
+    
+    Pks = [] 
+    for l_i in [0, 2, 4]:
+        Pks.append(pk_extrap.average_Pk(l, n_mocks, Ngrid=Ngrid)[1])
+    
+    prettyplot()
+    pretty_colors = prettycolors()
+
+    fig = plt.figure(figsize=(10,20))
+    sub0 = fig.add_subplot(211)
+    
+    if l == 2: 
+        quad_slopes = np.arange(-0.5, 0.5, 0.1)
+    else: 
+        quad_slopes = nparange(-0.3, 0.7, 0.1)
+
+    for i_slope, quad_slope in enumerate(quad_slopes): 
+        if l == 2: 
+            extrap_params = [
+                    [520., -2.0],           # P0k
+                    [-540., quad_slope],    # P2k
+                    [480., 0.2]             # P4k
+                    ]
+        elif l == 4: 
+            extrap_params = [
+                    [520., -2.0],           # P0k
+                    [-540., 0.0],    # P2k
+                    [480., quad_slope]             # P4k
+                    ]
+        else: 
+            raise ValueError
+
+        print extrap_params
+        corrdelP = tophat.delP_corr(k, Pks, l, fs=fs, rc=rc, extrap_params=extrap_params, k_fixed=0.837)
+
+        sub0.plot(
+                k, 
+                corrdelP, 
+                c = pretty_colors[i_slope],
+                lw = 2, 
+                ls = '--'
+                )
+
+    # delP from data
+    sub0.plot(
+            k, 
+            Pk_upw - Pk, 
+            c = 'k', 
+            lw = 4,
+            ls = '--', 
+            label = r"$\mathtt{P^{upw}(k) - P^{true}(k)}$"
+            )
+    
+    sub0.set_xlim([10**-3,10**0])
+    if l == 2: 
+        sub0.set_ylim([-50., 300.])
+    sub0.set_xscale("log") 
+    sub0.set_ylabel(r"$\mathtt{\Delta P_{"+str(l)+"}(k)}$", fontsize=30)
+    
+    sub1 = fig.add_subplot(212)
+    sub1.plot(k, np.abs(Pk), c='k', lw=4)
+
+    for i_slope, quad_slope in enumerate(quad_slopes): 
+        if l == 2: 
+            extrap_params = [
+                    [520., -2.0],           # P0k
+                    [-540., quad_slope],    # P2k
+                    [480., 0.2]             # P4k
+                    ]
+            l_index = 1
+        elif l == 4: 
+            extrap_params = [
+                    [520., -2.0],           # P0k
+                    [-540., 0.0],    # P2k
+                    [480., quad_slope]             # P4k
+                    ]
+            l_index = 2
+        else: 
+            raise ValueError
+    
+        k_range = np.arange(0.837, 1.0, 0.05)
+        sub1.plot(
+                k_range, 
+                np.abs(pk_extrap.pk_powerlaw(k_range, extrap_params[l_index], k_fixed=0.837)),
+                c=pretty_colors[i_slope], 
+                ls='--', 
+                lw=2
+                )
+    
+    sub1.set_xscale("log") 
+    sub1.set_xlim([10**-3,10**0])
+    sub1.set_ylim([10**1, 10**5])
+    sub1.set_yscale('log')
+    sub1.set_xlabel(r"$\mathtt{k}\;\;(\mathtt{Mpc}/h)$", fontsize=30)
+    sub1.set_ylabel(r"$\mathtt{log \; |P_{"+str(l)+"}(k)|}$", fontsize=30)
+    
+    fig_file = ''.join([
+        'qaplot_delP_', str(l), '_k_Ngrid', str(Ngrid), '_extrap_param_test.png'
+        ])
+    fig.savefig(fig_file, bbox_inches="tight")
+    #plt.show()
+    plt.close()
+
 if __name__=="__main__": 
     #for k in [0.0025]:#, 0.05, 0.1, 0.3]: 
     #    plot_fllp(0, k_value=k, rc=0.4)
@@ -500,20 +631,24 @@ if __name__=="__main__":
     #plot_delP(2, fs=1.0, rc=0.4, n_mocks=20)
     #plot_delP(4, fs=1.0, rc=0.4, n_mocks=20)
 
-    #plot_delP(2, n_mocks=10, Ngrid=720, xrange=[0.1, 1.0], yrange=[-100., 1000.])
-    plot_delP_corr_extrapolations(
-            0, 
-            n_mocks=10, 
-            k_fixed=0.6, 
-            k_max=np.arange(0.4, 0.65, 0.05), 
-            Ngrid=720, 
-            xrange=[0.1, 1.0], 
-            yrange=[-100., 1000.]
-            )
+    #plot_delP(2, n_mocks=10, Ngrid=960)#, xrange=[0.1, 1.0], yrange=[-100., 1000.])
+    plot_delP_corr_extrap_param_test(2, n_mocks=10, Ngrid=960)
+    plot_delP_corr_extrap_param_test(4, n_mocks=10, Ngrid=960)
+    #plot_delP_corr_extrapolations(
+    #        2, 
+    #        n_mocks=10, 
+    #        k_fixed=0.6, 
+    #        k_max=np.arange(0.4, 0.65, 0.05), 
+    #        Ngrid=720,
+    #        yrange=[-1500., 2000.]
+    #        )
     #plot_delP(2, n_mocks=10, Ngrid=720)
     #for l_i in [0,2,4]:
     #    plot_delP(l_i, n_mocks=10, Ngrid=720)
-        #plot_delP_lp_component(l_i, n_mocks=20, Ngrid=720)
+    #plot_delP_lp_component(2, n_mocks=10, Ngrid=720)
+    #plot_delP_lp_component(4, n_mocks=10, Ngrid=720)
+    #plot_delP_lp_component(2, n_mocks=10, Ngrid=960)
+    #plot_delP_lp_component(4, n_mocks=10, Ngrid=960)
         #plot_delP_extrapolation_test(l_i, type='normal', n_mocks=10, Ngrid=720)
         #plot_delP_extrapolation_test(l_i, type='difference', n_mocks=10, Ngrid=720)
 
@@ -743,6 +878,4 @@ def fllp_poly(l1_in, l2_in, x):
         return x**4 - x**2
     else: 
         raise ValueError
-
-
 """

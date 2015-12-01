@@ -238,6 +238,7 @@ def plot_avg_Plk_extrap(l, n_mocks, Ngrid=360, k_fixed=0.6, k_max=0.3, **kwargs)
 
 def plot_avg_Pkfast_test(**kwargs): 
     '''
+    Quick test to compare average P_l(k) for Ngrid=960 in order to make sure it is consistent with P_l(k) for Ngrid=720.
     '''
 
     prettyplot()
@@ -246,8 +247,8 @@ def plot_avg_Pkfast_test(**kwargs):
 
     for i_l, l_i in enumerate([0, 2, 4]):
         # P(k) fast
-        k_fast_i, plk_fast_i = pk_extrap.average_Pk(l_i, 1, Ngrid=960)
-        k_i, plk_i = pk_extrap.average_Pk(l_i, 1, Ngrid=720)
+        k_fast_i, plk_fast_i = pk_extrap.average_Pk(l_i, 10, Ngrid=960)
+        k_i, plk_i = pk_extrap.average_Pk(l_i, 10, Ngrid=720)
 
         l_i_str =  str(l_i)
         try:
@@ -276,8 +277,10 @@ def plot_avg_Pkfast_test(**kwargs):
     
         if 'xrange' in kwargs.keys(): 
             sub.set_xlim(kwargs['xrange'])
+            file_str = '_xranged'
         else:
             sub.set_xlim([1e-3, 1.0])
+            file_str = ''
 
         sub.set_ylabel(r"$\mathtt{|P_l(k)|}$", fontsize=40)
         sub.set_xlabel(r"$\mathtt{k}$", fontsize=40)
@@ -286,21 +289,22 @@ def plot_avg_Pkfast_test(**kwargs):
         sub.set_yscale('log')
 
         sub.legend(loc='upper right')
-
-        fig_file = ''.join(['qaplot_avgP'+str(l_i)+'k_fast_test.png'])
+        
+        fig_file = ''.join([
+            'qaplot_avgP', str(l_i), 'k_fast_test', file_str, '.png'
+            ])
         fig.savefig(fig_file, bbox_inches='tight')
         plt.close()
 
 if __name__=="__main__":
-    plot_avg_Pkfast_test(xrange=[0.1, 1.0])
     #plot_avg_P4k_comp(10, Ngrid=720)
     
-    #for l_i in [0, 2, 4]:
-    #    plot_avg_Plk_extrap(
-    #            [l_i], 
-    #            10, 
-    #            Ngrid=720, 
-    #            k_fixed=0.6, 
-    #            k_max=np.arange(0.4, 0.65, 0.05),
-    #            xrange=[0.1, 1.0], yrange=[10.**0., 10.**5.]
-    #            )
+    for l_i in [0, 2, 4]:
+        plot_avg_Plk_extrap(
+                [l_i], 
+                10, 
+                Ngrid=360, 
+                k_fixed=0.3, 
+                k_max=np.arange(0.1, 0.35, 0.05),
+                xrange=[0.1, 1.0], yrange=[10.**0., 10.**5.]
+                )
