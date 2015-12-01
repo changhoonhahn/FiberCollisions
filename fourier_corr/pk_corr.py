@@ -4,43 +4,38 @@ fourier correction for P_l(k).
 Interfaces with spec modules in order to actually calculate P_l(k) for mocks/data.
 
 '''
-from spec.spec import Spec
 import pk_extrap
+import cosmolopy as cosmos
+from spec.spec import Spec
 
-def test_pk_extrap_scatter(ell, n_mocks, Ngrid=960, k_max=0.25, k_fixed=0.6, **kwargs): 
+def fibcoll_angularscale(redshift='median', omega_m=0.31): 
     '''
-    test the scatter in pk extrapolation
+    Calculate comoving distance of fiber collision angular scale at specified redshift
     '''
-    alphas, ns = [], []
-    for i_mock in range(1, n_mocks+1):
-        # default cat-corr for Nseries
-        cat_corr = {
-                'catalog': {'name': 'nseries', 'n_mock': i_mock}, 
-                'correction': {'name': 'true'}
-                }
-        spec_i = Spec('pk', cat_corr, ell=ell, Ngrid=Ngrid)
-        spec_i.read()
+    if redshift == 'median': 
+        z = 0.55
+    elif redshift == 'min': 
+        z = 0.43
+    elif redshift == 'max': 
+        z = 0.7
+    else: 
+        raise NotImplementedError
 
-        spec_i_spec = getattr(spec_i, 'p'+str(ell)+'k')
+    fibcol_ang = 62.0   # arcseconds
+    fibcol_ang *= 1./3600. * 2.*np.pi/360. # radians
+    
+    cosmo = {} 
+    cosmo['omega_M_0'] = omega_m 
+    cosmo['omega_lambda_0'] = 1.0 - omega_m 
+    cosmo['h'] = 0.676
+    cosmo = cosmos.distance.set_omega_k_0(cosmo) 
+    
+    # tranverse comoving distance
+    D_M = cosmos.distance.comoving_distance_transverse(z, **cosmo) * cosmo['h']
 
-        alpha_i, n_i = pk_extrap.pk_powerlaw_bestfit(spec_i.k, spec_i_spec, k_max=k_max, k_fixed=k_fixed)
-
-        alphas.append(alpha_i)
-        ns.append(n_i)
-
-    alphas = np.array(alphas) 
-    ns = np.array(ns)
-
-    print 'alphas'
-    print 'mean ', np.mean(alphas)
-    print 'min ', np.min(alphas), ' max ', np.max(alphas)
-    print 'stddev ', np.std(alphas)
-
-    print 'ns'
-    print 'mean ', np.mean(ns)
-    print 'min ', np.min(ns), ' max ', np.max(ns)
-    print 'stddev ', np.std(ns)
+    return D_M * fibcol_ang
 
 if __name__=='__main__':
-    test_pk_extrap_scatter(4, 20, Ngrid=960, k_max=0.7, k_fixed=0.8) 
-
+    print fibcoll_angularscale(redshift='median', omega_m=0.31)
+    print fibcoll_angularscale(redshift='min', omega_m=0.31)
+    print fibcoll_angularscale(redshift='max', omega_m=0.31)

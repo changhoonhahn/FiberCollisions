@@ -405,6 +405,175 @@ def plot_pk_comp(cat_corrs, n_mock, ell=0, type='ratio', **kwargs):
 
     return None 
 
+def plot_delpoverp_comp(cat_corrs, n_mock, ell=0, **kwargs): 
+    ''' 
+    Plot comparison of delta P/ avg(P) for multiple lists of catalog and correction 
+    specifications. 
+
+    --------------------------------------------------------------------------
+    Paramters
+    --------------------------------------------------------------------------
+    cat_corrs : list of catalog correction dictionary 
+    n_mock : number of mocks 
+    ell : ell-th component of multipole decomposition 
+    
+    --------------------------------------------------------------------------
+    Notes
+    --------------------------------------------------------------------------
+    * Long ass code with a lot of idiosyncracies.
+    * Make sure k values agree with each other. 
+    
+    --------------------------------------------------------------------------
+    Example
+    --------------------------------------------------------------------------
+    cat_corrs = [ 
+            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'true'}},
+            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'upweight'}},
+            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68}} 
+            ] 
+
+    '''
+
+    if 'Ngrid' in kwargs.keys():
+        Ngrid = kwargs['Ngrid']
+    else: 
+        Ngrid = 360 
+
+    if isinstance(n_mock, int): 
+        n_mock_list = [ n_mock for i in xrange(len(cat_corrs)) ] 
+    else: 
+        if len(n_mock) != len(cat_corrs): 
+            raise ValueError()
+        else: 
+            n_mock_list = n_mock
+
+    corr_str = ''
+
+    prettyplot()                         # set up plot 
+    pretty_colors = prettycolors()
+    
+    fig = plt.figure(1, figsize=(14, 8)) # set up figure 
+    sub = fig.add_subplot(111)
+
+    for i_corr, cat_corr in enumerate(cat_corrs):
+
+        catdict = cat_corr['catalog']
+        corrdict = cat_corr['correction']
+        specdict = {
+                'P0': 20000,
+                'Lbox': 3600, 
+                'Ngrid': Ngrid, 
+                'ell': ell 
+                }
+        cat_corr_i = {
+                'catalog': {'name': catdict['name'], 'n_mock': 1}, 
+                'correction': corrdict, 
+                'spec': specdict
+                }
+
+        avg_spec = AvgSpec(n_mock_list[i_corr], 'pk', cat_corr_i)
+        avg_spec.read()
+    
+        spec_type = 'pk'
+        spec_key = ''.join(['p', str(ell), 'k'])
+
+        k_arr = avg_spec.k
+        avg_pk = getattr(avg_spec, spec_key)
+        pk_err = avg_spec.stddev()
+        
+        sub.plot( 
+                k_arr, pk_err/np.abs(avg_pk),  
+                color = pretty_colors[i_corr + 1], 
+                label = plot_label(cat_corr),
+                lw = 4
+                ) 
+        
+        # Specify corrections for figure file name  
+        if 'dlospeak' in corrdict['name']: 
+            try:
+                corr_str += ''.join([
+                    catdict['name'], '_', 
+                    corrdict['name'], '_', 
+                    corrdict['fit'], '_',
+                    '_sigma', str(corrdict['sigma']), 
+                    'fpeak', str(corrdict['fpeak'])
+                    ]) 
+            except KeyError: 
+                corr_str += ''.join([
+                    catdict['name'], '_', 
+                    corrdict['name'], '_', 
+                    '_sigma', str(corrdict['sigma'])
+                    ]) 
+        else: 
+            corr_str += ''.join([ 
+                catdict['name'], '_', 
+                corrdict['name']
+                ]) 
+    
+    # x-axis
+    if 'xscale' in kwargs.keys(): 
+        sub.set_xscale(kwargs['xscale']) 
+    else: 
+        sub.set_xscale('log')
+
+    if 'xrange' in kwargs.keys():   # specify x-range 
+        sub.set_xlim(kwargs['xrange']) 
+        yxtext = 1.5*min(kwargs['xrange'])
+    else: 
+        sub.set_xlim([10**-3,10**0])
+        yxtext = 1.5*10**-3
+    sub.set_xlabel('k (h/Mpc)', fontsize=20)
+
+    # y-axis
+    if 'ylabel' in kwargs.keys(): 
+        ylabel = kwargs['ylabel']
+    else: 
+        ylabel = r'$\mathtt{\Delta P_'+str(ell)+'(k)/|\overline{P_'+str(ell)+'}|}$'
+    if 'yrange' in kwargs.keys():   # specify x-range 
+        sub.set_ylim(kwargs['yrange']) 
+    else: 
+        sub.set_ylim([-1.,1.0])
+    sub.set_xlabel('k (h/Mpc)', fontsize=20)
+    sub.set_ylabel(ylabel, fontsize=20)
+    
+    # Display the number of mocks for given catalog so that
+    # I know how many mocks the P(k) is averaged over.
+    n_mock_text = '\n'.join([
+                ' '.join([
+                    str(n_mock_list[ii]), 
+                    ((cat_corrs[ii])['catalog'])['name'].upper()
+                    ]) 
+                for ii in xrange(len(n_mock_list))
+                ])
+    sub.text(yxtext, 0.05, n_mock_text)
+
+    sub.legend(scatterpoints=1, loc='upper left', prop={'size':14})
+    
+    try: 
+        n_mock_str = '_'.join([str(nm) for nm in n_mock]) 
+    except TypeError:
+        n_mock_str = str(n_mock) 
+
+    fig_name = ''.join([
+        'del', spec_key, 'over', spec_key, '_', 
+        n_mock_str, 
+        'mock_fibcoll_', 
+        corr_str, 
+        '_comparison_Ngrid', 
+        str(Ngrid), 
+        '.png'
+        ])     
+
+    fig_dir = '/home/users/hahn/powercode/FiberCollisions/figure/'
+    fig.savefig(
+            ''.join([fig_dir, fig_name]), 
+            bbox_inches="tight"
+            )
+    #plt.show()
+    plt.close()
+
+    return None 
+
 def plot_label(cat_corr): 
     """ Labels for plotting that specify the catalog and 
     correction names. Written for plot_pk_comp but can be used
@@ -572,7 +741,10 @@ if __name__=='__main__':
                 'correction': {'name': 'true'}
                 }
             ]
-    plot_pk_comp(cat_corrs, 20, Ngrid=960, ell=4, type='Pk_all', yrange=[10**2, 10**3], xrange=[10**-1, 10**0.])
+    #plot_delpoverp_comp(cat_corrs, 84, ell=0, Ngrid=960)
+    plot_delpoverp_comp(cat_corrs, 84, ell=2, Ngrid=960, xrange=[0.1, 1.0], yrange=[0.0, 1.0])
+    plot_delpoverp_comp(cat_corrs, 84, ell=4, Ngrid=960, xrange=[0.1, 1.0], yrange=[0.0, 1.0])
+    #plot_pk_comp(cat_corrs, 20, Ngrid=960, ell=4, type='Pk_all', yrange=[10**2, 10**3], xrange=[10**-1, 10**0.])
     #plot_pk_comp(cat_corrs, 20, Ngrid=960, ell=2, type='Pk_err')
     #plot_pk_comp(cat_corrs, 20, Ngrid=960, ell=4, type='l1_norm')
     

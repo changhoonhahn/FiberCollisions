@@ -307,9 +307,9 @@ def plot_cute2pcf_residual(n_mocks, n_rp, n_pi, corrections=['true', 'upweighted
         plt.close()
 
 if __name__=="__main__":
-    plot_cute2pcf_residual(range(1,21), 20, 20, corrections=['true', 'upweighted'], scale='verysmall')
+    #plot_cute2pcf_residual(range(1,21), 20, 20, corrections=['true', 'upweighted'], scale='verysmall')
     #plot_bao_cute2pcf(range(1,45), 30, 30, xiform = 'none', corrections=['true'])
-    #plot_bao_cute2pcf(range(1,85), 30, 30, xiform = 'log', corrections=['true'], cmap='hot')
+    plot_bao_cute2pcf(range(1,85), 30, 30, xiform = 'log', corrections=['true'], cmap='hot')
     #plot_bao_cute2pcf(range(1,85), 30, 30, xiform = 'log', corrections=['true'], cmap='jet')
     #plot_bao_cute2pcf(range(1,85), 30, 30, xiform = 'asinh', corrections=['true'])
     #plot_bao_cute2pcf(range(1,85), 30, 30, xiform = 'asinh', corrections=['true'], cmap='jet')
