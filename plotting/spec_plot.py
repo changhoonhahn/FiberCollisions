@@ -15,8 +15,9 @@ from matplotlib.collections import LineCollection
 
 from defutility.plotting import prettycolors 
 from spec.spec import Spec
+from spec.average import AvgSpec
 
-def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs): 
+def plot_pk_comp(cat_corrs, n_mock, ell=0, type='ratio', **kwargs): 
     ''' Plot comparison of average power spectrum monopole or quadrupole (avg(P(k))) 
     for multiple a list of catalog and correction specifications. Main use is to 
     compare the effects of fiber collisions correction method. However, it can be
@@ -27,7 +28,7 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
     --------------------------------------------------------------------------
     cat_corrs : list of catalog correction dictionary 
     n_mock : number of mocks 
-    quad : If True, then plot quadrupole. If False plot monopole
+    ell : ell-th component of multipole decomposition 
     type : 'regular' compares the actual P2(k) values, 'ratio' compares the ratio 
     with the true P2(k), 'residual' compares the difference with the true P2(k) 
     
@@ -80,49 +81,24 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
                 'P0': 20000,
                 'Lbox': 3600, 
                 'Ngrid': Ngrid, 
-                'quad': quad 
+                'ell': ell 
+                }
+        cat_corr_i = {
+                'catalog': {'name': catdict['name'], 'n_mock': 1}, 
+                'correction': corrdict, 
+                'spec': specdict
                 }
 
-        n_mock_i = n_mock_list[i_corr]
+        avg_spec = AvgSpec(n_mock_list[i_corr], 'pk', cat_corr_i)
+        avg_spec.read()
+    
+        spec_type = 'pk'
+        spec_key = ''.join(['p', str(ell), 'k'])
+
+        k_arr = avg_spec.k
+        avg_pk = getattr(avg_spec, spec_key)
         
-        catcorr_mocks = [{
-                    'catalog': {
-                        'name': catdict['name'], 
-                        'n_mock': i_mock
-                        }, 
-                    'correction': corrdict, 
-                    'spec': specdict
-                    }
-                for i_mock in xrange(1, n_mock_i + 1)]
-                        
-        # calculate average P(k) (both monopole or quadrupole) 
-        for catcorr_mock in catcorr_mocks: 
-
-            if not quad: 
-                spec_type = 'pk'
-                spec_key = 'p0k'
-            else: 
-                spec_type = 'p2k'
-                spec_key = 'p2k'
-
-            specclass = Spec(spec_type, catcorr_mock) 
-            specclass.read()
-            print specclass.file_name
-            
-            k_arr = specclass.k
-
-            pk_arr = getattr(specclass, spec_key)
-            
-            try:
-                sum_pk += pk_arr
-            except UnboundLocalError: 
-                sum_pk = pk_arr
-
-        avg_pk = sum_pk/np.float(n_mock_i) 
-        del sum_pk
-        
-        # Compare P(k) to each other 
-        if type == 'Pk':
+        if type == 'Pk':         # Compare P(k) to each other 
 
             sub.plot( 
                     k_arr, avg_pk, 
@@ -130,10 +106,21 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
                     label = plot_label(cat_corr),
                     lw = 4
                     ) 
+
+        elif type == 'Pk_err':  # Compare P(k) with sample variance error bar
+
+            pk_err = avg_spec.stddev()
+
+            sub.errorbar( 
+                    k_arr, avg_pk, 
+                    yerr = [pk_err, pk_err], 
+                    color = pretty_colors[i_corr + 1], 
+                    label = plot_label(cat_corr),
+                    fmt='--o'
+                    ) 
         
-        # Compare k^1.5 * P(k) with each other. Enhances the 
-        # BAO signature? (Upon Paco's request). 
-        elif type == 'kPk': 
+        elif type == 'kPk':         # Compare k^1.5 * P(k) with each other. Enhances the 
+            # BAO signature? (Upon Paco's request). 
 
             kPk = k_arr**1.5 * avg_pk
                 
@@ -159,11 +146,7 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
                         )
                 
                 print plot_label(cat_corr)
-                if not quad:
-                    print (avg_pk/avg_pk_denom)[-10:]
-                else:
-                    print (avg_pk/avg_pk_denom) 
-                
+
                 largescale = np.where(k_arr < 0.2)
                 smallscale = np.where(k_arr > 0.2)
                 print np.sum( np.abs((avg_pk/avg_pk_denom) - 1.0 ) )
@@ -179,8 +162,6 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
                 denom_cat = catdict['name']
 
             else: 
-                print avg_pk_denom[-10:]
-                print avg_pk[-10:]
                 sub.scatter(
                         k_arr, 
                         avg_pk - avg_pk_denom, 
@@ -217,7 +198,7 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
     
     # Dictate the x-range and y-range of the plotting
     # based on type of comparison 
-    if type == 'Pk':
+    if (type == 'Pk') or (type == 'Pk_err'):
         if 'yrange' in kwargs.keys(): 
             ylimit = kwargs['yrange'] 
             yytext = 10**.5*min(ylimit) 
@@ -228,10 +209,7 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
         if 'ylabel' in kwargs.keys(): 
             ylabel = kwargs['ylabel']
         else: 
-            if quad: 
-                ylabel = r'$\mathtt{P_2(k)}$'
-            else: 
-                ylabel = r'$\mathtt{P_0(k)}$'
+            ylabel = r'$\mathtt{P_'+str(ell)+'(k)}$'
 
         if 'xscale' in kwargs.keys(): 
             sub.set_xscale(kwargs['xscale']) 
@@ -242,8 +220,11 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
             sub.set_yscale(kwargs['yscale'])
         else: 
             sub.set_yscale('log')
-
-        resid_str = ''
+        
+        if type == 'Pk': 
+            resid_str = ''
+        elif type == 'Pk_err': 
+            resid_str = '_err'
     
     elif type == 'kPk':
         if 'yrange' in kwargs.keys(): 
@@ -278,14 +259,9 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
             ylimit = [0.5, 1.5] 
             yytext = 0.55
 
-        if quad: 
-            ylabel = ''.join([
-                r"$\mathtt{\overline{P_2(k)}/\overline{P_2(k)_{\rm{", denom_cat, "}}}}$"
-                ])
-        else: 
-            ylabel = ''.join([
-                r"$\mathtt{\overline{P_0(k)}/\overline{P_0(k)_{\rm{", denom_cat, "}}}}$"
-                ])
+        ylabel = ''.join([
+            r"$\mathtt{\overline{P_", str(ell), "(k)}/\overline{P_", str(ell), r"(k)_{\rm{", denom_cat, "}}}}$"
+            ])
         
         if 'xscale' in kwargs.keys(): 
             sub.set_xscale(kwargs['xscale']) 
@@ -307,10 +283,9 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
             ylimit = [0.0, 5.0]
             yytext = 2.5
 
-        if quad == True: 
-            ylabel = r"$\mathtt{|\overline{P_2(k)} - \overline{P_2(k)_{\rm{True}}}|/\Delta P_2}$"
-        else: 
-            ylabel = r"$\mathtt{|\overline{P_0(k)} - \overline{P_0(k)_{\rm{True}}}|/\Delta P_0}$"
+        ylabel = ''.join([
+            r"$\mathtt{|\overline{P_", str(ell), "(k)} - \overline{P_", str(ell), r"(k)_{\rm{True}}}|/\Delta P_", str(ell), "}$"
+            ])
 
         if 'xscale' in kwargs.keys(): 
             sub.set_xscale(kwargs['xscale']) 
@@ -336,14 +311,9 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
             ylimit = None 
             yytext = 0.55
 
-        if quad: 
-            ylabel = ''.join([
-                r"$\mathtt{\overline{P_2(k)} - \overline{P_2(k)_{\rm{", denom_cat, "}}}}$"
-                ])
-        else: 
-            ylabel = ''.join([
-                r"$\mathtt{\overline{P_0(k)} - \overline{P_0(k)_{\rm{", denom_cat, "}}}}$"
-                ])
+        ylabel = ''.join([
+            r"$\mathtt{\overline{P_", str(ell), "(k)} - \overline{P_", str(ell), r"(k)_{\rm{", denom_cat, "}}}}$"
+            ])
         
         if 'xscale' in kwargs.keys(): 
             sub.set_xscale(kwargs['xscale']) 
@@ -384,20 +354,15 @@ def plot_pk_comp(cat_corrs, n_mock, quad=False, type='ratio', **kwargs):
                 ])
     sub.text(yxtext, yytext, n_mock_text)
 
-    sub.legend(loc='upper left', scatterpoints=1, prop={'size':14})
+    sub.legend(scatterpoints=1, loc='upper left', prop={'size':14})
     
     try: 
         n_mock_str = '_'.join([str(nm) for nm in n_mock]) 
     except TypeError:
         n_mock_str = str(n_mock) 
-    
-    if quad: 
-        spec_str = 'p2k_'
-    else: 
-        spec_str = 'p0k_'
 
     fig_name = ''.join([
-        spec_str, 
+        spec_key, '_', 
         n_mock_str, 
         'mock_fibcoll_', 
         corr_str, 
@@ -561,49 +526,6 @@ def plot_bispec_fibcolcorr_comparison(BorQ='B', x_axis='triangles', triangle='al
     fig.clear()
 
 if __name__=='__main__': 
-    
-    cat_corrs = [ 
-            {
-                'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'true'}
-                },
-            {
-                'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'upweight'}
-                },
-            {
-                'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68}
-                }, 
-            {
-                'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'dlospeakenv', 'n_NN': 5, 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68}
-                }, 
-            {
-                'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'dlospeakphotoz', 'd_photoz_tail_cut': 15, 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68}
-                }
-            ] 
-    cat_corrs = [ 
-            {
-                'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'true'}
-                },
-            {
-                'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'upweight'}
-                },
-            {
-                'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68}
-                },
-            {
-                'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.69}
-                }
-            ] 
-    
-
 
     cat_corrs = [ 
             {
@@ -621,8 +543,15 @@ if __name__=='__main__':
     #            'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68}
     #            }
     #        ]
-    #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='Pk')
-    plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='l1_norm')
+    cat_corrs = [ 
+            {
+                'catalog': {'name': 'nseries'}, 
+                'correction': {'name': 'true'}
+                }
+            ]
+    plot_pk_comp(cat_corrs, 20, Ngrid=960, ell=4, type='Pk_err', yrange=[10**2, 10**3], xrange=[10**-1, 10**0.])
+    #plot_pk_comp(cat_corrs, 20, Ngrid=960, ell=2, type='Pk_err')
+    #plot_pk_comp(cat_corrs, 20, Ngrid=960, ell=4, type='l1_norm')
     
     cat_corrs = [
             {
@@ -659,149 +588,3 @@ if __name__=='__main__':
     #                })
     #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='Pk')
     #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='ratio')
-"""
-        if catalog['name'].lower() in ('lasdamasgeo', 'ldgdownnz'):             # LasDamasGeo 
-            # compute average[P(k)] for each correction method
-            n_file = 0
-            for i_mock in range(1, n_mock_i+1):
-                for letter in ['a', 'b', 'c', 'd']: 
-                    # set catalog correction dictionary for specific file 
-                    i_catalog = catalog.copy() 
-                    i_catalog['n_mock'] = i_mock
-                    i_catalog['letter'] = letter
-                    i_cat_corr = {'catalog': i_catalog, 'correction': correction, 'spec':spec}
-                    
-                    # import power spectrum 
-                    power_i = fc_spec.Spec('power', **i_cat_corr)
-                    print power_i.file_name
-                    power_i.readfile()
-
-                    if quad == True: 
-                        PK = power_i.P2k
-                    else: 
-                        PK = power_i.Pk
-                    
-                    try: 
-                        avg_k 
-                    except NameError: 
-                        avg_k = power_i.k
-                        sum_Pk = PK 
-                    else: 
-                        sum_Pk += PK 
-
-                    n_file = n_file+1
-
-        elif catalog['name'].lower() in ('tilingmock', 'cmass'):       # Tiling Mocks
-            i_cat_corr = {'catalog': catalog, 'correction': correction, 'spec':spec}
-
-            power = fc_spec.Spec('power', **i_cat_corr)         # read tiling mock P(k)
-            power.readfile()
-            print power.file_name
-
-            avg_k = power.k
-
-            if quad == True: 
-                sum_Pk = power.P2k
-            else: 
-                sum_Pk = power.Pk
-
-            n_file = 1          # only one file 
-        
-        elif 'bigmd' in catalog['name'].lower():                        # BigMD
-            i_cat_corr = {'catalog': catalog, 'correction': correction, 'spec':spec}
-
-            power = fc_spec.Spec('power', **i_cat_corr)         # read tiling mock P(k)
-            power.readfile()
-            print power.file_name
-
-            avg_k = power.k
-
-            if quad == True: 
-                sum_Pk = power.P2k
-            else: 
-                sum_Pk = power.Pk
-
-            n_file = 1          # only one file 
-
-        elif catalog['name'].lower() in ('qpm', 'nseries', 'patchy'):           # QPM/PATCHY
-            n_file = 0  
-            for i_mock in range(1, n_mock_i+1): 
-                i_catalog = catalog.copy() 
-                i_catalog['n_mock'] = i_mock
-                i_cat_corr = {'catalog': i_catalog, 'correction': correction, 'spec':spec}
-                    
-                power_i = fc_spec.Spec('power', **i_cat_corr)
-                #print power_i.file_name
-                power_i.readfile()
-
-                if quad: 
-                    PK = power_i.P2k
-                else: 
-                    PK = power_i.Pk
-                    
-                try: 
-                    avg_k 
-                except NameError: 
-                    avg_k = power_i.k
-                    sum_Pk = PK
-                else: 
-                    sum_Pk += PK 
-
-                n_file += 1
-
-        else: 
-            raise NameError('not yet coded!')
-    
-    
-    elif type == 'residual':        # |P_corr(k) - P_true(k)|/Delta P(k) 
-
-        if correction['name'].lower() == 'true': # P_true(k) 
-            true_cat_corr = {'catalog': catalog, 
-                    'correction': {'name': 'true'}, 'spec': spec} 
-
-            avg_Pk_true = avg_Pk
-            delta_P = fc.deltaP(n_mock, **true_cat_corr) 
-            delP = delta_P[1]
-        else: 
-            if correction['name'].lower() in ('peak', 'peaknbar', 'peaktest', 
-                    'peakshot', 'allpeakshot', 'vlospeakshot'):
-
-                if correction['name'] == 'peakshot': 
-                    corr_name = 'Hahn'
-                else: 
-                    corr_name = correction['name']  
-
-                if correction['fit'].lower() in ('expon', 'gauss'): # residual labels
-                    # exponential and gaussian fits 
-                    resid_label = ''.join([
-                        corr_name, ': ', correction['fit'], ', ' 
-                        ','.join([str(correction['sigma']), str(correction['fpeak'])])
-                        ])
-
-                elif correction['fit'].lower() in ('true'): 
-                    # true distribution fits
-                    resid_label = ''.join([
-                        corr_name, ': ', correction['fit'], ',', str(correction['fpeak'])
-                        ]) 
-                else:
-                    raise NameError('asdflkj')
-                
-                resids = [ np.abs(avg_Pk[i] - avg_Pk_true[i])/delP[i]
-                        for i in range(len(avg_Pk)) ] 
-
-                # plot residual 
-                sub.scatter(avg_k, resids, \
-                        color=pretty_colors[i_corr+1], label=resid_label)
-
-            else:
-                resid_label = correction['name'] 
-
-                resids = [ np.abs(avg_Pk[i] - avg_Pk_true[i])/delP[i]
-                        for i in range(len(avg_Pk)) ] 
-                
-                sub.scatter(avg_k, resids, \
-                        color=pretty_colors[i_corr+1], label=resid_label)
-
-    else: 
-        raise NotImplementedError('asdfasdfasdfadf') 
-"""
