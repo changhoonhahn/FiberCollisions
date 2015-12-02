@@ -70,14 +70,14 @@ def test_pk_extrap_scatter(ell, n_mocks, Ngrid=960, k_max=0.25, k_fixed=0.6, **k
     sub.legend(loc='lower right')
     plt.show()
 
-def test_delPk_corr_scatter(ell, n_mocks, Ngrid=960, k_max=0.25, k_fixed=0.6, fs=1.0, rc=0.4, **kwargs): 
+def test_delPk_corr_scatter(ell, n_mocks, Ngrid=960, k_max=0.25, k_fixed=0.6, fs=1.0, rc=0.43, **kwargs): 
     '''
     test the scatter in del P(k)^corr from extrapolation of each individual mock catalog realizations
     '''
     prettyplot()
     pretty_colors = prettycolors()
     
-    fig = plt.figure(figsize=(7,8))
+    fig = plt.figure(figsize=(14,8))
     sub = fig.add_subplot(111)
 
     for i_mock in range(1, n_mocks+1):
@@ -151,4 +151,5 @@ def test_delPk_corr_scatter(ell, n_mocks, Ngrid=960, k_max=0.25, k_fixed=0.6, fs
     plt.close()
 
 if __name__=='__main__':
-    test_delPk_corr_scatter(2, 84, Ngrid=960, k_max=0.7, k_fixed=0.837) 
+    for k_max in np.arange(0.6, 0.85, 0.05):
+        test_delPk_corr_scatter(2, 20, Ngrid=960, k_max=k_max, k_fixed=0.837) 

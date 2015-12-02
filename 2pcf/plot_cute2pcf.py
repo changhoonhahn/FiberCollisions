@@ -224,6 +224,132 @@ def plot_bao_cute2pcf(n_mocks, n_rp, n_pi, corrections=['true'], f_down=0.2, xif
         #fig.savefig(fig_name, bbox_inches="tight")
         #plt.close()
 
+def plot_bao_cmass_cute2pcf(n_rp, n_pi, xiform='asinh', cmap='hot', **kwargs): 
+    '''
+    Plot xi(r_p, pi) from CUTE 2PCF code specifically for CMASS
+    '''
+
+    prettyplot()
+    mpl.rcParams['font.size']=24
+    pretty_colors = prettycolors()
+
+    contour_range = 10 
+
+    fig = plt.figure(figsize=(14,10))
+    sub = fig.add_subplot(111)
+
+    corr_file = ''.join([
+        '/mount/riachuelo1/hahn/2pcf/corr/',
+        'corr_2pcf_cmass-dr12v4-N-Reid.cute2pcf.BAOscale.dat'
+        ])
+    print corr_file 
+
+    tpcf = np.loadtxt(corr_file, unpack=True)
+    
+    rp_bins = tpcf[0].reshape(n_rp, n_pi)[0]
+    pi_bins = tpcf[1].reshape(n_rp, n_pi)[:,0]
+
+    twop_corr = tpcf[2].reshape(n_rp, n_pi)
+    
+    # annoying stuff to reflect the quadrants
+    quad_rp_bins = np.hstack([-1.0 * rp_bins[::-1], rp_bins])
+    quad_pi_bins = np.hstack([-1.0 * pi_bins[::-1], pi_bins])
+        
+    quad_tpcf_0, quad_tpcf_1, quad_tpcf_2 = [], [], []
+    for i_pi, pibin in enumerate(quad_pi_bins): 
+        for i_rp, rpbin in enumerate(quad_rp_bins): 
+            quad_tpcf_0.append(rpbin)
+            quad_tpcf_1.append(pibin)
+            if i_pi < n_pi: 
+                ipi = n_pi - i_pi - 1
+            else: 
+                ipi = i_pi % n_pi
+
+            if i_rp < n_rp: 
+                irp = n_rp - i_rp - 1
+            else: 
+                irp = i_rp % n_rp
+            quad_tpcf_2.append(twop_corr[irp, ipi])
+            
+            #if (np.abs(rpbin) < 10.) and (np.abs(pibin) >95.): 
+            #    print twop_corr[irp, ipi]
+
+    quad_tpcf_0 = np.array(quad_tpcf_0)
+    quad_tpcf_1 = np.array(quad_tpcf_1)
+    quad_tpcf_2 = np.array(quad_tpcf_2)
+        
+    quad_rp_bins = quad_tpcf_0.reshape(2*n_rp, 2*n_pi)[0]
+    quad_pi_bins = quad_tpcf_1.reshape(2*n_rp, 2*n_pi)[:,0]
+    quad_twop_corr = quad_tpcf_2.reshape(2*n_rp, 2*n_pi)
+
+    quad_rp, quad_pi = np.meshgrid(quad_rp_bins, quad_pi_bins)
+
+    if cmap == 'hot':
+        colormap = plt.cm.afmhot
+    else: 
+        colormap = plt.cm.Paired
+    
+    # contour of log(xi(r_p, pi))
+    if xiform == 'log': 
+        print np.min(quad_twop_corr), np.max(quad_twop_corr)
+        norm = mpl.colors.SymLogNorm(0.005, vmin=-0.02, vmax=4.0, clip=True)
+        cont = sub.pcolormesh(quad_rp, quad_pi, quad_twop_corr, norm=norm, cmap=colormap)
+
+        ticker = mpl.ticker.FixedLocator([-0.01, 0.0, 0.5, 0.1, 1.0, 3.0])
+
+    elif xiform == 'asinh': 
+        contour_range = np.arange(-0.025, 0.105, 0.005)
+        #cont = sub.contourf(quad_rp, quad_pi, np.arcsinh(10. * quad_twop_corr), contour_range, cmap=plt.cm.afmhot)
+        norm = mpl.colors.Normalize(-0.1, 0.1, clip=True)
+        cont = sub.pcolormesh(quad_rp, quad_pi, np.arcsinh(10. * quad_twop_corr), norm=norm, cmap=colormap)
+        #cont.set_interpolation('none')
+
+    elif xiform == 'none': 
+        contour_range = np.arange(-0.5, 5.0, 0.05)
+        cont = sub.contourf(quad_rp, quad_pi, quad_twop_corr, contour_range, cmap=colormap)
+        #cont = sub.contourf(r_p, pi, twop_corr.T, contour_range, cmap=plt.cm.afmhot)
+    else:
+        raise ValueError
+
+    if xiform == 'log':
+        plt.colorbar(cont, ticks=ticker)
+    else: 
+        plt.colorbar(cont)
+
+    sub.set_xlabel('$\mathtt{r_{\perp}} \; (\mathtt{Mpc}/h)$', fontsize=50)
+    sub.set_ylabel('$\mathtt{r_{||}} \; (\mathtt{Mpc}/h)$', fontsize=50)
+
+    sub.set_xlim([np.min(quad_rp_bins), np.max(quad_rp_bins)])
+    sub.set_ylim([np.min(quad_pi_bins), np.max(quad_pi_bins)])
+
+    if cmap == 'hot': 
+        colormap_str = 'hot'
+    else: 
+        colormap_str = 'jet'
+
+    
+    if xiform == 'log': 
+        fig_name = ''.join([
+            '/home/users/hahn/powercode/FiberCollisions/figure/',
+            'log2pcf_cmass-dr12v4-N-Reid.BAO.', colormap_str ,'.png'
+            ])
+    elif xiform == 'asinh': 
+        sub.set_title(r'$\mathtt{'+corr.upper()+r"}\;arcsinh\:10\times\xi(r_{||}, r_\perp)$", fontsize=40)
+        fig_name = ''.join([
+            '/home/users/hahn/powercode/FiberCollisions/figure/',
+            'arcsinh2pcf_cmass-dr12v4-N-Reid.BAO.', colormap_str ,'.png'
+            ])
+    elif xiform == 'none': 
+        sub.set_title(r'$\mathtt{'+corr.upper()+r"}\;\xi(r_{||}, r_\perp)$", fontsize=40)
+        fig_name = ''.join([
+            '/home/users/hahn/powercode/FiberCollisions/figure/',
+            '2pcf_cmass-dr12v4-N-Reid.BAO.', colormap_str ,'.png'
+            ])
+
+    plt.gca().set_aspect('equal', adjustable='box')
+    fig.savefig(fig_name, bbox_inches="tight")
+    plt.close()
+
 def plot_cute2pcf_residual(n_mocks, n_rp, n_pi, corrections=['true', 'upweighted', 'collrm'], scale='large', **kwargs): 
     '''
     Plot xi(r_p, pi) from CUTE 2PCF code
@@ -308,8 +434,9 @@ def plot_cute2pcf_residual(n_mocks, n_rp, n_pi, corrections=['true', 'upweighted
 
 if __name__=="__main__":
     #plot_cute2pcf_residual(range(1,21), 20, 20, corrections=['true', 'upweighted'], scale='verysmall')
+    plot_bao_cmass_cute2pcf(30, 30, xiform = 'log', cmap='hot')
     #plot_bao_cute2pcf(range(1,45), 30, 30, xiform = 'none', corrections=['true'])
-    plot_bao_cute2pcf(range(1,85), 30, 30, xiform = 'log', corrections=['true'], cmap='hot')
+    #plot_bao_cute2pcf(range(1,85), 30, 30, xiform = 'log', corrections=['true'], cmap='hot')
     #plot_bao_cute2pcf(range(1,85), 30, 30, xiform = 'log', corrections=['true'], cmap='jet')
     #plot_bao_cute2pcf(range(1,85), 30, 30, xiform = 'asinh', corrections=['true'])
     #plot_bao_cute2pcf(range(1,85), 30, 30, xiform = 'asinh', corrections=['true'], cmap='jet')
