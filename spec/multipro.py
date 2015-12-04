@@ -34,23 +34,19 @@ def build_spec_wrapper(params):
     """ Wrapper for calculating power/bispectrum
     """
     cat_corr = params[0]
+    ell = params[1]
     kwargs = {} 
-    if len(params) > 1: 
-        kwargs = params[1]
+    if len(params) > 2: 
+        kwargs = params[2]
 
-    if cat_corr['spec']['quad']: 
-        spectype = 'p2k'
-    else: 
-        spectype = 'pk'
-
-    spectrum = Spec(spectype, cat_corr, **kwargs)
+    spectrum = Spec('pk', cat_corr, **kwargs)
     print spectrum.file()
     spectrum.build()
 
     return None 
 
 # --- Multiprocessing --- 
-def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, quad=False, Ngrid=360, **kwargs): 
+def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, ell=2, Ngrid=360, **kwargs): 
     """ Calculate dLOS for catalogs in parallel using interruptible
     pool, which is multiprocessing pool that allows for interrputions
 
@@ -91,6 +87,12 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, quad=Fals
             if 'photoz' in corr_name: 
 
                 corrdict['d_photoz_tail_cut'] = 15 
+
+            if corr_name == 'fourier_tophat': 
+                corrdict['fs'] = 1.0 
+                corrdict['rc'] = 0.43 
+                corrdict['k_fit'] = 0.7 
+                corrdict['k_fixed'] = 0.84
     
     arglist = [ [{
                 'catalog': {'name': catalog_name, 'n_mock': i_mock}, 
@@ -99,10 +101,10 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, quad=Fals
                     'P0': 20000, #P0 
                     'Lbox': 3600, 
                     'Ngrid': Ngrid, 
-                    'quad': quad 
+                    'ell': ell 
                     }
 
-                }, kwargs]
+                }, ell, kwargs]
             for i_mock in n_mock_list]
     
     if Nthreads > 1: 
@@ -128,8 +130,9 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, quad=Fals
 
 if __name__=="__main__":
     #build_multipro('spec', 'nseries', 'true', 1, Nthreads=1, clobber=True, quad=True, Ngrid=960)
-    build_multipro('spec', 'nseries', 'true', range(21, 85), Nthreads=1, clobber=True, quad=True, Ngrid=960)
-    build_multipro('spec', 'nseries', 'upweight', range(21, 85), Nthreads=1, clobber=True, quad=True, Ngrid=960)
+    #build_multipro('spec', 'nseries', 'true', range(21, 85), Nthreads=1, clobber=True, quad=True, Ngrid=960)
+    #build_multipro('spec', 'nseries', 'upweight', range(21, 85), Nthreads=1, clobber=True, quad=True, Ngrid=960)
+    build_multipro('spec', 'nseries', 'fourier_tophat', range(21,41), Nthreads=5, ell=2, Ngrid=960)
     
     #for f_peakcorr in np.arange(0.0, 1.1, 0.1): 
     #    for type in ['data', 'spec']:

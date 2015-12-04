@@ -6,7 +6,7 @@ from spec.average import AvgSpec
 from defutility.plotting import prettyplot 
 from defutility.plotting import prettycolors 
 
-def test_pk_extrap_scatter(ell, n_mocks, Ngrid=960, k_max=0.25, k_fixed=0.6, **kwargs): 
+def test_pk_extrap_scatter(ell, n_mocks, Ngrid=960, k_fit=0.25, k_fixed=0.6, **kwargs): 
     '''
     test the scatter in pk extrapolation
     '''
@@ -28,7 +28,7 @@ def test_pk_extrap_scatter(ell, n_mocks, Ngrid=960, k_max=0.25, k_fixed=0.6, **k
 
         spec_i_spec = getattr(spec_i, 'p'+str(ell)+'k')
 
-        alpha_i, n_i = pk_extrap.pk_powerlaw_bestfit(spec_i.k, spec_i_spec, k_max=k_max, k_fixed=k_fixed)
+        alpha_i, n_i = pk_extrap.pk_powerlaw_bestfit(spec_i.k, spec_i_spec, k_fit=k_fit, k_fixed=k_fixed)
 
         if i_mock == 1: 
             pk_label = 'Data'
@@ -39,8 +39,8 @@ def test_pk_extrap_scatter(ell, n_mocks, Ngrid=960, k_max=0.25, k_fixed=0.6, **k
 
         sub.plot(spec_i.k, spec_i_spec, lw=2, c=pretty_colors[0], label=pk_label)
         sub.plot(
-                np.arange(k_max, 10, 0.01), 
-                pk_extrap.pk_powerlaw(np.arange(k_max, 10, 0.01), [alpha_i, n_i], k_fixed=k_fixed), 
+                np.arange(k_fit, 10, 0.01), 
+                pk_extrap.pk_powerlaw(np.arange(k_fit, 10, 0.01), [alpha_i, n_i], k_fixed=k_fixed), 
                 ls='--', lw=2, c=pretty_colors[1], label = pk_extrap_label
                 )
 
@@ -70,7 +70,7 @@ def test_pk_extrap_scatter(ell, n_mocks, Ngrid=960, k_max=0.25, k_fixed=0.6, **k
     sub.legend(loc='lower right')
     plt.show()
 
-def test_delPk_corr_scatter(ell, n_mocks, Ngrid=960, k_max=0.25, k_fixed=0.6, fs=1.0, rc=0.43, **kwargs): 
+def test_delPk_corr_scatter(ell, n_mocks, Ngrid=960, k_fit=0.25, k_fixed=0.6, fs=1.0, rc=0.43, **kwargs): 
     '''
     test the scatter in del P(k)^corr from extrapolation of each individual mock catalog realizations
     '''
@@ -95,7 +95,7 @@ def test_delPk_corr_scatter(ell, n_mocks, Ngrid=960, k_max=0.25, k_fixed=0.6, fs
         extrap_pars = [] 
         for i_ell, ellp in enumerate([0,2,4]):
             extrap_pars.append(
-                    pk_extrap.pk_powerlaw_bestfit(spec_i.k, specs_i[i_ell], k_max=k_max, k_fixed=k_fixed)
+                    pk_extrap.pk_powerlaw_bestfit(spec_i.k, specs_i[i_ell], k_fit=k_fit, k_fixed=k_fixed)
                     )
         print extrap_pars
 
@@ -143,7 +143,7 @@ def test_delPk_corr_scatter(ell, n_mocks, Ngrid=960, k_max=0.25, k_fixed=0.6, fs
         'figure/', 
         'qaplot_delP_corr_extrap_scatter.', 
         str(n_mocks), 'mocks.', 
-        'kfit', str(round(k_max,2)), '.', 
+        'kfit', str(round(k_fit,2)), '.', 
         'kfixed', str(round(k_fixed,2)),
         '.png'
         ])
@@ -151,5 +151,5 @@ def test_delPk_corr_scatter(ell, n_mocks, Ngrid=960, k_max=0.25, k_fixed=0.6, fs
     plt.close()
 
 if __name__=='__main__':
-    for k_max in np.arange(0.6, 0.85, 0.05):
-        test_delPk_corr_scatter(2, 20, Ngrid=960, k_max=k_max, k_fixed=0.837) 
+    for k_fit in np.arange(0.6, 0.85, 0.05):
+        test_delPk_corr_scatter(2, 20, Ngrid=960, k_fit=k_fit, k_fixed=0.837) 

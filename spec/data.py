@@ -30,6 +30,7 @@ from corrections.dlospeak_shuffle import DlospeakShuffleCorr
 from corrections.dlospeak_tailonly import DlospeakTailonlyCorr
 from corrections.dlospeak_peakonly import DlospeakPeakonlyCorr
 from corrections.photoz_corr import PhotozCorr
+from corrections.fourier_tophat import FourierTophatCorr
 
 # Classes ------------------------------------------------------------
 class Data(object): 
@@ -63,7 +64,8 @@ class Data(object):
                     'dlospeak.flex': DlospeakFlexCorr,
                     'dlospeak.shuffle': DlospeakShuffleCorr,
                     'dlospeak.tailonly': DlospeakTailonlyCorr, 
-                    'dlospeak.peakonly': DlospeakPeakonlyCorr
+                    'dlospeak.peakonly': DlospeakPeakonlyCorr,
+                    'fourier_tophat': FourierTophatCorr
                     }
 
             corr_name = ((self.cat_corr)['correction'])['name']

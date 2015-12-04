@@ -22,7 +22,8 @@ from fibcollided import UpweightCorr
 class DlospeakCorr(Corrections): 
 
     def __init__(self, cat_corr, **kwargs): 
-        """ Child class of Correction class in corrections.py 
+        """ 
+        Child class of Correction class in corrections.py 
         Fiber collisions correction using the peak of the line-of-sight displacement 
         distribution 
 

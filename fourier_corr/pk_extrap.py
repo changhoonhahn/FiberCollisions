@@ -8,12 +8,14 @@ import numpy as np
 # --- Local --- 
 import mpfit
 
-def pk_powerlaw_bestfit(k_in, pk_in, k_max=0.25, k_fixed=0.6, quiet=True): 
+def pk_powerlaw_bestfit(k_in, pk_in, k_fit=0.25, k_fixed=0.6, quiet=True): 
     '''
     Find best fit power law for P_l(k) extrapolatin
     '''
 
-    fit_range = np.where(k_in > k_max)
+    fit_range = np.where(k_in > k_fit)
+    if len(fit_range[0]) == 0: 
+        raise ValueError('k_fit range does not make sense')
 
     fa = {'x': k_in[fit_range], 'y': pk_in[fit_range], 'k_fixed': k_fixed}
 

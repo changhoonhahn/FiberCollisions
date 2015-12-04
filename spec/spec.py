@@ -13,6 +13,7 @@ from data import Data
 from fft import Fft
 from util.direc import direc
 from util.fortran import Fcode
+from fourier_corr.pk_corr import fourier_tophat_Pk
 
 # Classes ------------------------------------------------------------
 class Spec(object): 
@@ -172,7 +173,20 @@ class Spec(object):
         catdict = (self.cat_corr)['catalog']
         corrdict = (self.cat_corr)['correction']
         specdict = (self.cat_corr)['spec'] 
-       
+
+        if corrdict['name'] == 'fourier_tophat':
+            if self.ell != 2: 
+                raise ValueError
+
+            true_cat_corr = {
+                    'catalog': catdict, 
+                    'correction': {'name': 'true'}
+                    }
+            tr_gal = Data('data', true_cat_corr)
+
+            fourier_tophat_Pk(self.cat_corr, self.file_name, tr_gal.file_name)
+            return None
+
         spec_type = self.type
 
         codeclass = Fcode(spec_type, self.cat_corr) 
@@ -225,11 +239,11 @@ class Spec(object):
 if __name__=='__main__':
     cat_corr = {
             'catalog': {'name': 'nseries', 'n_mock': 1}, 
-            'correction': {'name': 'true'}
+            'correction': {'name': 'fourier_tophat', 'fs': 1.0, 'rc': 0.43, 'k_fit': 0.7, 'k_fixed': 0.84}
             }
             #'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68} 
             #}
-    spectrum = Spec('p2k', cat_corr, clobber=True)
+    spectrum = Spec('pk', cat_corr, ell=2, Ngrid=960)
     print spectrum.file()
     print spectrum.build()
 

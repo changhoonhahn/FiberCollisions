@@ -648,7 +648,7 @@ if __name__=="__main__":
     #plot_delP_lp_component(2, n_mocks=10, Ngrid=720)
     #plot_delP_lp_component(4, n_mocks=10, Ngrid=720)
     plot_delP_lp_component(2, n_mocks=10, Ngrid=960)
-    plot_delP_lp_component(4, n_mocks=10, Ngrid=960)
+    #plot_delP_lp_component(4, n_mocks=10, Ngrid=960)
         #plot_delP_extrapolation_test(l_i, type='normal', n_mocks=10, Ngrid=720)
         #plot_delP_extrapolation_test(l_i, type='difference', n_mocks=10, Ngrid=720)
 

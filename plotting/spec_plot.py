@@ -70,7 +70,10 @@ def plot_pk_comp(cat_corrs, n_mock, ell=0, type='ratio', **kwargs):
     prettyplot()                         # set up plot 
     pretty_colors = prettycolors()
     
-    fig = plt.figure(1, figsize=(7, 8)) # set up figure 
+    if 'figsize' in kwargs.keys(): 
+        fig = plt.figure(1, kwargs['figsize'])
+    else: 
+        fig = plt.figure(1, figsize=(7, 8)) # set up figure 
     sub = fig.add_subplot(111)
 
     for i_corr, cat_corr in enumerate(cat_corrs):
@@ -151,12 +154,12 @@ def plot_pk_comp(cat_corrs, n_mock, ell=0, type='ratio', **kwargs):
                     label = plot_label(cat_corr)
                     )
 
-        # Compare the ratio of the power spectra (P/P_denom)
-        elif type == 'ratio':                       
+        elif type == 'ratio':       # Compare the ratio of the power spectra (P/P_denom)
 
             if i_corr == 0 :        
                 avg_pk_denom = avg_pk
-                denom_cat = catdict['name']
+                #denom_cat = catdict['name']
+                denom_cat = corrdict['name']
 
             else: 
                 sub.scatter(
@@ -175,6 +178,25 @@ def plot_pk_comp(cat_corrs, n_mock, ell=0, type='ratio', **kwargs):
                 print np.sum( np.abs((avg_pk[largescale]/avg_pk_denom[largescale]) - 1.0 ) )
                 print 'Small scale k > 0.2'
                 print np.sum( np.abs((avg_pk[smallscale]/avg_pk_denom[smallscale]) - 1.0 ) )
+
+            if corrdict['name'] == 'true': 
+
+                pk_err = avg_spec.stddev()
+        
+                sub.plot( 
+                        k_arr, 1.0 + pk_err/np.abs(avg_pk),  
+                        color = 'k', 
+                        lw = 2, 
+                        ls = '-.', 
+                        label = r"$\mathtt{1 + \Delta P^{true} (k) / P^{true}}$"
+                        ) 
+        
+                sub.plot( 
+                        k_arr, 1.0 + -1.0 * pk_err/np.abs(avg_pk),  
+                        color = 'k',  
+                        lw = 2, 
+                        ls = '-.'
+                        ) 
 
         elif type == 'l1_norm':
 
@@ -211,6 +233,15 @@ def plot_pk_comp(cat_corrs, n_mock, ell=0, type='ratio', **kwargs):
                     corrdict['name'], '_', 
                     '_sigma', str(corrdict['sigma'])
                     ]) 
+        elif corrdict['name'] == 'fourier_tophat': 
+            corr_str += ''.join([
+                catdict['name'], '_', 
+                corrdict['name'],  
+                '.fs', str(round(corrdict['fs'], 1)), 
+                '.rc', str(round(corrdict['rc'], 2)), 
+                '.kfit', str(round(corrdict['k_fit'], 2)), 
+                '.kfixed', str(round(corrdict['k_fixed'], 2))
+                ])
         else: 
             corr_str += ''.join([ 
                 catdict['name'], '_', 
@@ -395,12 +426,13 @@ def plot_pk_comp(cat_corrs, n_mock, ell=0, type='ratio', **kwargs):
         '.png'
         ])     
 
-    #fig_dir = '/home/users/hahn/powercode/FiberCollisions/figure/'
-    #fig.savefig(
-    #        ''.join([fig_dir, fig_name]), 
-    #        bbox_inches="tight"
-    #        )
-    plt.show()
+    fig_dir = '/home/users/hahn/powercode/FiberCollisions/figure/'
+    print fig_name
+    fig.savefig(
+            ''.join([fig_dir, fig_name]), 
+            bbox_inches="tight"
+            )
+    #plt.show()
     plt.close()
 
     return None 
@@ -610,6 +642,18 @@ def plot_label(cat_corr):
             catdict['name'].upper(), 
             corrdict['name'].upper()
             ])
+
+    elif corrdict['name'] == 'fourier_tophat':
+
+        label = ''.join([
+            'FOURIER TOPHAT:', 
+            '$f_s = '+str(round(corrdict['fs'], 1))+'$,', 
+            '$r_c = '+str(round(corrdict['rc'], 2))+'$', '\n',
+            '$k_{fit} = '+str(round(corrdict['k_fit'], 2))+'$,', 
+            '$k_{fixed} = '+str(round(corrdict['k_fixed'], 2))+'$'
+            ])
+        print label
+
     else: 
         raise NotImplementedError()
 
@@ -725,29 +769,22 @@ if __name__=='__main__':
     cat_corrs = [ 
             {
                 'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'true'}
+                'correction': {'name': 'upweight'}
                 },
             {
                 'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'upweight'}
-                }
-            ]
-    #,
-    #        {
-    #            'catalog': {'name': 'nseries'}, 
-    #            'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 3.9, 'fpeak': 0.68}
-    #            }
-    #        ]
-    cat_corrs = [ 
-            {
-                'catalog': {'name': 'nseries'}, 
                 'correction': {'name': 'true'}
-                }
+                },
+            {
+            'catalog': {'name': 'nseries', 'n_mock': 1}, 
+            'correction': {'name': 'fourier_tophat', 'fs': 1.0, 'rc': 0.43, 'k_fit': 0.7, 'k_fixed': 0.84}
+            }
             ]
+    #plot_pk_comp(cat_corrs, 20, Ngrid=960, ell=2, type='Pk')#, yrange=[0.0, 2.0], xrange=[10**-1, 10**0.])
+    plot_pk_comp(cat_corrs, 20, Ngrid=960, ell=2, type='ratio', yrange=[0.0, 2.0], figsize=[14,8])#, xrange=[10**-1, 10**0.])
     #plot_delpoverp_comp(cat_corrs, 84, ell=0, Ngrid=960)
-    plot_delpoverp_comp(cat_corrs, 84, ell=2, Ngrid=960, xrange=[0.1, 1.0], yrange=[0.0, 1.0])
-    plot_delpoverp_comp(cat_corrs, 84, ell=4, Ngrid=960, xrange=[0.1, 1.0], yrange=[0.0, 1.0])
-    #plot_pk_comp(cat_corrs, 20, Ngrid=960, ell=4, type='Pk_all', yrange=[10**2, 10**3], xrange=[10**-1, 10**0.])
+    #plot_delpoverp_comp(cat_corrs, 84, ell=2, Ngrid=960, xrange=[0.1, 1.0], yrange=[0.0, 1.0])
+    #plot_delpoverp_comp(cat_corrs, 84, ell=4, Ngrid=960, xrange=[0.1, 1.0], yrange=[0.0, 1.0])
     #plot_pk_comp(cat_corrs, 20, Ngrid=960, ell=2, type='Pk_err')
     #plot_pk_comp(cat_corrs, 20, Ngrid=960, ell=4, type='l1_norm')
     
