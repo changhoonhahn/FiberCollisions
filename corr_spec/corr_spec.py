@@ -18,6 +18,6 @@ class CorrSpec(Spec):
 
 if __name__=='__main__': 
     cat_corr = {'catalog': {'name': 'nseries', 'n_mock': 1}, 'correction': {'name': 'upweight'}}
-    spectrum = CorrSpec('pk', cat_corr, ell=0, Ngrid=360)
+    spectrum = CorrSpec('bk', cat_corr, Ngrid=360)
     print spectrum.file()
     print spectrum.build()
