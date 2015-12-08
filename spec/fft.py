@@ -11,6 +11,7 @@ import subprocess
 import cosmolopy as cosmos
 
 from data import Data 
+from random import Random
 from util.direc import direc
 from util.fortran import Fcode
 
@@ -42,8 +43,12 @@ class Fft(object):
         specdict = (self.cat_corr)['spec'] 
     
         fft_dir = direc('fft', self.cat_corr)
+        
+        if self.type == 'data': 
+            galdata = Data(self.type, self.cat_corr, **self.kwargs)  # data class 
+        elif self.type == 'random': 
+            galdata = Random(self.type, self.cat_corr, **self.kwargs)  # data class 
 
-        galdata = Data(self.type, self.cat_corr, **self.kwargs)  # data class 
         self.data_file = galdata.file_name # galaxy data file
 
         # FFT label 
@@ -76,7 +81,10 @@ class Fft(object):
         specdict = (self.cat_corr)['spec'] 
         
         if not os.path.isfile(self.data_file):
-            galdata = Data(self.type, self.cat_corr, **self.kwargs) 
+            if self.type == 'data': 
+                galdata = Data(self.cat_corr, **self.kwargs) 
+            elif self.type == 'random': 
+                galdata = Random(self.cat_corr, **self.kwargs) 
             galdata.build()
 
         #if 'quad' not in specdict.keys(): 
