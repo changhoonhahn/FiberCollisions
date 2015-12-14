@@ -1,7 +1,7 @@
 import pk_extrap
 import fourier_corr
-from spec.spec import Spec
-from spec.average import AvgSpec
+from corr_spec.corr_spec import CorrSpec
+from corr_spec.corr_average import CorrAvgSpec
 
 from defutility.plotting import prettyplot 
 from defutility.plotting import prettycolors 
@@ -20,10 +20,11 @@ def test_pk_extrap_scatter(ell, n_mocks, Ngrid=960, k_fit=0.25, k_fixed=0.6, **k
     for i_mock in range(1, n_mocks+1):
         # default cat-corr for Nseries
         cat_corr = {
-                'catalog': {'name': 'nseries', 'n_mock': i_mock}, 
+                'catalog': {'name': 'nseriesbox', 'n_mock': i_mock}, 
                 'correction': {'name': 'true'}
                 }
-        spec_i = Spec('pk', cat_corr, ell=ell, Ngrid=Ngrid)
+        spec_i = CorrSpec('pk', cat_corr, ell=ell, Ngrid=Ngrid)
+        print spec_i.file_name
         spec_i.read()
 
         spec_i_spec = getattr(spec_i, 'p'+str(ell)+'k')
@@ -37,10 +38,10 @@ def test_pk_extrap_scatter(ell, n_mocks, Ngrid=960, k_fit=0.25, k_fixed=0.6, **k
             pk_label = None
             pk_extrap_label = None
 
-        sub.plot(spec_i.k, spec_i_spec, lw=2, c=pretty_colors[0], label=pk_label)
+        sub.plot(spec_i.k, np.abs(spec_i_spec), lw=2, c=pretty_colors[0], label=pk_label)
         sub.plot(
                 np.arange(k_fit, 10, 0.01), 
-                pk_extrap.pk_powerlaw(np.arange(k_fit, 10, 0.01), [alpha_i, n_i], k_fixed=k_fixed), 
+                np.abs(pk_extrap.pk_powerlaw(np.arange(k_fit, 10, 0.01), [alpha_i, n_i], k_fixed=k_fixed)), 
                 ls='--', lw=2, c=pretty_colors[1], label = pk_extrap_label
                 )
 
@@ -53,7 +54,7 @@ def test_pk_extrap_scatter(ell, n_mocks, Ngrid=960, k_fit=0.25, k_fixed=0.6, **k
     # x-axis
     sub.set_xlabel(r'$\mathtt{k}$', fontsize=30)
     sub.set_xscale('log')
-    sub.set_xlim([0.1, 5.])
+    sub.set_xlim([0.1, 10.])
     # y-axis
     sub.set_ylabel(r'$\mathtt{P_'+str(ell)+'(k)}$', fontsize=30)
     sub.set_yscale('log')
@@ -151,5 +152,6 @@ def test_delPk_corr_scatter(ell, n_mocks, Ngrid=960, k_fit=0.25, k_fixed=0.6, fs
     plt.close()
 
 if __name__=='__main__':
-    for k_fit in np.arange(0.6, 0.85, 0.05):
-        test_delPk_corr_scatter(2, 20, Ngrid=960, k_fit=k_fit, k_fixed=0.837) 
+    for k_fit in np.arange(3.5, 4.5, 0.25):
+        test_pk_extrap_scatter(2, 7, Ngrid=960, k_fit=k_fit, k_fixed=4.3)
+        #test_delPk_corr_scatter(2, 20, Ngrid=960, k_fit=k_fit, k_fixed=0.837) 
