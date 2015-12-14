@@ -1,10 +1,11 @@
+
+import numpy as np
 from Spectrum.spec import Spec
 
 from corr_fft import CorrFft
 from corr_corrdata import CorrCorrData
 
 class CorrSpec(Spec): 
-    
     def __init__(self, spectype, cat_corr, ell=None, **kwargs): 
         '''
         '''
@@ -56,7 +57,10 @@ class CorrSpec(Spec):
                         usecols = col_index
                         )
             for i_col, col in enumerate(data_cols): 
-                setattr(self, col, spec_data[i_col])
+                if col != 'k': 
+                    setattr(self, col, (2.*np.pi)**3 * spec_data[i_col])
+                else: 
+                    setattr(self, col, spec_data[i_col])
             return None
         else: 
             return super(CorrSpec, self).read()

@@ -134,7 +134,7 @@ class CorrAvgSpec(CorrSpec):
         cat_corr_i = self.cat_corr.copy() 
         cat_corr_i['catalog']['n_mock'] = i_mock
 
-        spec_i = Spec(self.type, cat_corr_i, **self.kwargs)
+        spec_i = CorrSpec(self.type, cat_corr_i, **self.kwargs)
         spec_i.read() 
 
         if self.type == 'pk':
@@ -180,6 +180,17 @@ class CorrAvgSpec(CorrSpec):
                     str(self.n_mocks), 'mocks.', 
                     spec_file_ending
                     ])
+        elif self.cat_corr['catalog']['name'] == 'nseriesbox': 
+            if self.type == 'pk': 
+                avg_file = ''.join([
+                    '/'.join(spec_file.split('/')[:-1]), '/', 
+                    'AVG_P', str(specdict['ell']), 'K_', 
+                    spec_file_core.split('1')[0], '.', 
+                    str(self.n_mocks), 'mocks.', 
+                    spec_file_ending
+                    ])
+        else: 
+            raise NotImplementedError
         return avg_file
     
     def build(self):

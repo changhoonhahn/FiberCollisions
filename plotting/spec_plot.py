@@ -12,10 +12,10 @@ import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 
 # --- Local --- 
-
+from corr_spec.corr_average import CorrAvgSpec as AvgSpec
+# --- plotting ---
+from defutility.plotting import prettyplot 
 from defutility.plotting import prettycolors 
-from spec.spec import Spec
-from spec.average import AvgSpec
 
 def plot_pk_comp(cat_corrs, n_mock, ell=0, type='ratio', **kwargs): 
     ''' Plot comparison of average power spectrum monopole or quadrupole (avg(P(k))) 
@@ -104,7 +104,7 @@ def plot_pk_comp(cat_corrs, n_mock, ell=0, type='ratio', **kwargs):
         if type == 'Pk':         # Compare P(k) to each other 
 
             sub.plot( 
-                    k_arr, avg_pk, 
+                    k_arr, np.abs(avg_pk), 
                     color = pretty_colors[i_corr + 1], 
                     label = plot_label(cat_corr),
                     lw = 4
@@ -253,7 +253,7 @@ def plot_pk_comp(cat_corrs, n_mock, ell=0, type='ratio', **kwargs):
     if (type == 'Pk') or (type == 'Pk_err') or (type == 'Pk_all'):
         if 'yrange' in kwargs.keys(): 
             ylimit = kwargs['yrange'] 
-            yytext = 10**.5*min(ylimit) 
+            yytext = 10**.5 * min(ylimit) 
         else: 
             ylimit = [10**2,10**5.5]
             yytext = 10**2.5
@@ -767,21 +767,22 @@ def plot_bispec_fibcolcorr_comparison(BorQ='B', x_axis='triangles', triangle='al
 if __name__=='__main__': 
 
     cat_corrs = [ 
-            {
-                'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'upweight'}
-                },
-            {
-                'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'true'}
-                },
-            {
-            'catalog': {'name': 'nseries', 'n_mock': 1}, 
-            'correction': {'name': 'fourier_tophat', 'fs': 1.0, 'rc': 0.43, 'k_fit': 0.7, 'k_fixed': 0.84}
-            }
+            {'catalog': {'name': 'nseries'}, 
+                'correction': {'name': 'true'}},
+            {'catalog': {'name': 'nseriesbox'}, 
+                'correction': {'name': 'true'}}
             ]
-    #plot_pk_comp(cat_corrs, 20, Ngrid=960, ell=2, type='Pk')#, yrange=[0.0, 2.0], xrange=[10**-1, 10**0.])
-    plot_pk_comp(cat_corrs, 20, Ngrid=960, ell=2, type='ratio', yrange=[0.0, 2.0], figsize=[14,8])#, xrange=[10**-1, 10**0.])
+    #{
+    #    'catalog': {'name': 'nseries'}, 
+    #    'correction': {'name': 'upweight'}
+    #    },
+    #{
+    #'catalog': {'name': 'nseries', 'n_mock': 1}, 
+    #'correction': {'name': 'fourier_tophat', 'fs': 1.0, 'rc': 0.43, 'k_fit': 0.7, 'k_fixed': 0.84}
+    #}
+    for ell in [0, 2, 4]: 
+        plot_pk_comp(cat_corrs, [20, 7], Ngrid=960, ell=ell, type='Pk', xrange=[10**-1, 10**1.], figsize=[14,8])
+    #plot_pk_comp(cat_corrs, [20, 7], Ngrid=960, ell=2, type='Pk', yrange=[0.0, 2.0], figsize=[14,8])#, xrange=[10**-1, 10**0.])
     #plot_delpoverp_comp(cat_corrs, 84, ell=0, Ngrid=960)
     #plot_delpoverp_comp(cat_corrs, 84, ell=2, Ngrid=960, xrange=[0.1, 1.0], yrange=[0.0, 1.0])
     #plot_delpoverp_comp(cat_corrs, 84, ell=4, Ngrid=960, xrange=[0.1, 1.0], yrange=[0.0, 1.0])
