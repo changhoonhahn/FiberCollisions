@@ -152,5 +152,6 @@ def build_bk_wrapper(params):
 
 # --- Multiprocessing --- 
 if __name__=="__main__":
-    build_multipro('bk', 'nseries', 'upweight', range(2, 85), Nthreads=1, clobber=True, Ngrid=360)
+    #build_multipro('bk', 'nseries', 'upweight', range(2, 85), Nthreads=1, clobber=True, Ngrid=360)
     #build_multipro('bk', 'nseries', 'true', range(2, 85), Nthreads=1, clobber=True, Ngrid=360)
+    build_multipro('pk', 'nseries', 'fourier_tophat', [1], Nthreads=1, clobber=True, Ngrid=960)
