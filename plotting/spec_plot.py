@@ -113,14 +113,18 @@ def plot_pk_comp(cat_corrs, n_mock, ell=0, type='ratio', **kwargs):
         elif type == 'Pk_err':  # Compare P(k) with sample variance error bar
 
             pk_err = avg_spec.stddev()
-
-            sub.errorbar( 
-                    k_arr, avg_pk, 
-                    yerr = [pk_err, pk_err], 
-                    color = pretty_colors[i_corr + 1], 
-                    label = plot_label(cat_corr),
-                    fmt='--o'
-                    ) 
+            pk_err[np.abs(pk_err) > np.abs(avg_pk)] = avg_pk[np.abs(pk_err) > np.abs(avg_pk)] * 0.999999
+            
+            sub.fill_between(k_arr, np.abs(avg_pk - pk_err), np.abs(avg_pk + pk_err), 
+                    color = pretty_colors[i_corr + 1], alpha=0.9)
+            sub.plot(k_arr, np.abs(avg_pk), lw=4, color = pretty_colors[i_corr + 1], label = plot_label(cat_corr))
+            #sub.errorbar( 
+            #        k_arr, avg_pk, 
+            #        yerr = [pk_err, pk_err], 
+            #        color = pretty_colors[i_corr + 1], 
+            #        label = plot_label(cat_corr),
+            #        fmt='--o'
+            #        ) 
 
         elif type == 'Pk_all': 
             if isinstance(n_mock_list[i_corr], int): 
@@ -261,7 +265,7 @@ def plot_pk_comp(cat_corrs, n_mock, ell=0, type='ratio', **kwargs):
         if 'ylabel' in kwargs.keys(): 
             ylabel = kwargs['ylabel']
         else: 
-            ylabel = r'$\mathtt{P_'+str(ell)+'(k)}$'
+            ylabel = r'$\mathtt{|P_'+str(ell)+'(k)|}$'
 
         if 'xscale' in kwargs.keys(): 
             sub.set_xscale(kwargs['xscale']) 
@@ -767,10 +771,8 @@ def plot_bispec_fibcolcorr_comparison(BorQ='B', x_axis='triangles', triangle='al
 if __name__=='__main__': 
 
     cat_corrs = [ 
-            {'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'true'}},
-            {'catalog': {'name': 'nseriesbox'}, 
-                'correction': {'name': 'true'}}
+            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'true'}},
+            {'catalog': {'name': 'nseriesbox'}, 'correction': {'name': 'true'}}
             ]
     #{
     #    'catalog': {'name': 'nseries'}, 
@@ -781,7 +783,16 @@ if __name__=='__main__':
     #'correction': {'name': 'fourier_tophat', 'fs': 1.0, 'rc': 0.43, 'k_fit': 0.7, 'k_fixed': 0.84}
     #}
     for ell in [0, 2, 4]: 
-        plot_pk_comp(cat_corrs, [20, 7], Ngrid=960, ell=ell, type='Pk', xrange=[10**-1, 10**1.], figsize=[14,8])
+        if ell == 0: 
+            yrange = [10., 10.**5.]
+        elif ell == 2: 
+            yrange = [10., 10.**4.]
+        elif ell == 4: 
+            yrange = [10., 10.**3.]
+        plot_pk_comp(cat_corrs, [20, 7], Ngrid=960, ell=ell, type='Pk_err', xrange=[10**-1, 10**1.], yrange=yrange, figsize=[14,8])
+
+    plot_pk_comp([{'catalog': {'name': 'nseriesbox'}, 'correction': {'name': 'true'}}],
+            7, Ngrid=960, ell=6, type='Pk_err', xrange=[10**-1, 10**1.], yrange=[10., 10.**3.], figsize=[14,8])
     #plot_pk_comp(cat_corrs, [20, 7], Ngrid=960, ell=2, type='Pk', yrange=[0.0, 2.0], figsize=[14,8])#, xrange=[10**-1, 10**0.])
     #plot_delpoverp_comp(cat_corrs, 84, ell=0, Ngrid=960)
     #plot_delpoverp_comp(cat_corrs, 84, ell=2, Ngrid=960, xrange=[0.1, 1.0], yrange=[0.0, 1.0])

@@ -121,5 +121,3 @@ if __name__=="__main__":
                 )
 
         pickle.dump( delp, open('delP'+str(l)+'k_corr_different_integral.p', 'wb') )
-
-
