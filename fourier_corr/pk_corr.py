@@ -65,6 +65,7 @@ def fourier_tophat_Pk(cat_corr, pk_file_name, true_pk_file_name):
         raise ValueError
         
     # read in the true power spectrum
+    print true_pk_file_name
     if catdict['name'] == 'nseries': 
         tr_k, tr_p0k, tr_p2k, tr_p4k = np.loadtxt(
                     true_pk_file_name, 
@@ -78,7 +79,9 @@ def fourier_tophat_Pk(cat_corr, pk_file_name, true_pk_file_name):
                     unpack = True, 
                     usecols =[0,6,2,3,4] 
                     )
-        tr_specs = [tr_p0k, tr_p2k, tr_p4k, tr_p6k]
+        print tr_p0k
+        notnorm_tr_specs = [tr_p0k, tr_p2k, tr_p4k, tr_p6k]
+        tr_specs =  [(2.0*np.pi)**3 * tr_spec for tr_spec in notnorm_tr_specs]
     else: 
         raise NotImplemented
 
@@ -90,47 +93,54 @@ def fourier_tophat_Pk(cat_corr, pk_file_name, true_pk_file_name):
         tr_extrap_pars.append(
                 pk_extrap.pk_powerlaw_bestfit(tr_k, tr_specs[i_ell], k_fit=corrdict['k_fit'], k_fixed=corrdict['k_fixed'])
                 )
-
-    # calculate the correlated portion of delP_2(k)
-    lps, corrdelP2k_lp = fourier_corr.delP_corr(
-            tr_k,               # k 
-            tr_specs,           # [p0k, p2k, p4k, ..] 
-            2,                  # ell
-            fs=corrdict['fs'],  # fs 
-            rc=corrdict['rc'],  # rc 
-            extrap_params=tr_extrap_pars, 
-            k_fixed=corrdict['k_fixed'], 
-            lp_comp=True
-            )
-    print lps
-    for i_lp, lp in enumerate(lps): 
-        corrdelP2_pickle_file = ''.join([
-            '/'.join(pk_file_name.rsplit('/')[:-1]), '/',
-            'corrdelP2k_lp', str(lp), '_', 
-            pk_file_name.rsplit('/')[-1], 
-            '.p'
-            ])
-        print corrdelP2_pickle_file
-        pickle.dump(corrdelP2k_lp[i_lp], open(corrdelP2_pickle_file, 'wb'))
-
     
-    corrdelP2k = np.sum(np.vstack(corrdelP2k_lp), axis=0)
+    for ell in [0, 2]: 
+        # calculate the correlated portion of delP_2(k)
+        lps, corrdelPk_lp = fourier_corr.delP_corr(
+                tr_k,               # k 
+                tr_specs,           # [p0k, p2k, p4k, ..] 
+                ell,                  # ell
+                fs=corrdict['fs'],  # fs 
+                rc=corrdict['rc'],  # rc 
+                extrap_params=tr_extrap_pars, 
+                k_fixed=corrdict['k_fixed'], 
+                lp_comp=True
+                )
+    
+        corrdelPk = np.zeros(len(tr_k))
+        for i_lp, lp in enumerate(lps):     # save l' components to pickle file 
+            corrdelPk_pickle_file = ''.join([
+                '/'.join(pk_file_name.rsplit('/')[:-1]), '/',
+                'corrdelP', str(ell), 'k_lp', str(lp), '_', 
+                pk_file_name.rsplit('/')[-1], 
+                '.p'
+                ])
+            pickle.dump([tr_k, corrdelPk_lp[i_lp]], open(corrdelP2k_pickle_file, 'wb'))
+            corrdelPk += corrdelPk_lp[i_lp]
 
-    # calculate the UNcorrelated portion of delP_2(k)
-    uncorrdelP2k = fourier_corr.delP_uncorr(
-            tr_k,               # k 
-            2,                  # ell 
-            fs=corrdict['fs'],  # fs
-            rc=corrdict['rc']   # rc
-            )
+        corrdelPk_pickle_file = ''.join([
+            '/'.join(pk_file_name.rsplit('/')[:-1]), '/',
+            'corrdelP', str(ell), 'k_', pk_file_name.rsplit('/')[-1], '.p'])
+        pickle.dump([tr_k, corrdelPk], open(corrdelPk_pickle_file, 'wb'))
 
-    corr_p2k = tr_p2k + corrdelP2k + uncorrdelP2k       # corrected P2(k)
+        # calculate the UNcorrelated portion of delP_2(k)
+        uncorrdelPk = fourier_corr.delP_uncorr(
+                tr_k,               # k 
+                ell,                  # ell 
+                fs=corrdict['fs'],  # fs
+                rc=corrdict['rc']   # rc
+                )
+        
+        if ell == 0: 
+            corr_p0k = tr_p0k + corrdelPk + uncorrdelPk
+        elif ell == 2: 
+            corr_p2k = tr_p2k + corrdelPk + uncorrdelPk       # corrected P2(k)
     
     if catdict['name'] == 'nseries': 
-        data_list = [tr_k, tr_p0k, corr_p2k, tr_p4k]
+        data_list = [tr_k, corr_p0k, corr_p2k, tr_p4k]
         data_fmts = ['%10.5f', '%10.5f', '%10.5f', '%10.5f']
     elif catdict['name'] == 'nseriesbox': 
-        data_list = [tr_k, tr_p0k, corr_p2k, tr_p4k, tr_p6k, tr_p0k, tr_p0k]
+        data_list = [tr_k, corr_p0k, corr_p2k, tr_p4k, tr_p6k, tr_p0k, tr_p0k]
         data_fmts = ['%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f', '%10.5f']
 
     np.savetxt(

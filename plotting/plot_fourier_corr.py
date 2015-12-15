@@ -11,13 +11,13 @@ import scipy as sp
 from scipy.interpolate import interp1d
 
 # local ----
-from spec.spec import avgSpec
 from fourier_corr import fourier_corr as tophat
+from corr_spec.corr_average import CorrAvgSpec as AvgSpec
 
 # plotting ----
 from defutility.plotting import prettyplot 
 from defutility.plotting import prettycolors 
-
+"""
 def plot_delP(l, fs=1.0, rc=0.4, n_mocks=84, Ngrid=360, extrap_params=[[3345.0, -1.6], [400.0, -4.]], k_fixed=None, **kwargs):
     '''
     Comparison of delP^corr, delP^uncorr, and P^upw_avg - P^true_avg
@@ -45,7 +45,7 @@ def plot_delP(l, fs=1.0, rc=0.4, n_mocks=84, Ngrid=360, extrap_params=[[3345.0, 
     sub = fig.add_subplot(111)
 
     # uncorrelated delP
-    uncorrdelP = tophat.delP_uncorr(k, l, fs=fs, rc=rc)
+    #uncorrdelP = tophat.delP_uncorr(k, l, fs=fs, rc=rc)
     
     sub.plot(
             k, 
@@ -56,7 +56,7 @@ def plot_delP(l, fs=1.0, rc=0.4, n_mocks=84, Ngrid=360, extrap_params=[[3345.0, 
             )
     
     # correlated delP 
-    corrdelP = tophat.delP_corr(k, Pks, l, fs=fs, rc=rc, extrap_params=extrap_params, k_fixed)
+    #corrdelP = tophat.delP_corr(k, Pks, l, fs=fs, rc=rc, extrap_params=extrap_params, k_fixed)
 
     sub.plot(
             k, 
@@ -117,14 +117,37 @@ def plot_delP(l, fs=1.0, rc=0.4, n_mocks=84, Ngrid=360, extrap_params=[[3345.0, 
     fig.savefig(fig_file, bbox_inches="tight")
     plt.show()
     plt.close()
+"""
 
-def plot_delP_lp_component(l, n_mocks=84, Ngrid=360):
+def plot_delP_lp_component(ell, mock='nseries', n_mocks=84, Ngrid=360):
     '''
-    Compare l' components of delP_l^corr
+    Compare each of the l' components of delP_l^corr. l' components are read from pickle files.
     '''
     # average P_l(k) and P_l^upw(k)
-    k, Pk = pk_extrap.average_Pk(l, n_mocks, Ngrid=Ngrid)
-    k_upw, Pk_upw = pk_extrap.average_Pk_upw(l, n_mocks, Ngrid=Ngrid)
+    specdict = {
+            'P0': 20000,
+            'Lbox': 3600, 
+            'Ngrid': Ngrid, 
+            'ell': ell 
+            }
+    true_cat_corr = {
+            'catalog': {'name': 'nseries', 'n_mock': 1}, 
+            'correction': {'name': 'true'},
+            'spec': specdict
+            }
+    true_spec = AvgSpec(n_mocks, 'pk', true_cat_corr)
+    true_spec.read()
+    k = true_spec.k
+    Pk = getattr(true_spec, 'p'+str(ell)+'k')
+    upw_cat_corr = {
+            'catalog': {'name': 'nseries', 'n_mock': 1}, 
+            'correction': {'name': 'upweight'},
+            'spec': specdict
+            }
+    upw_spec = AvgSpec(n_mocks, 'pk', upw_cat_corr)
+    upw_spec.read()
+    k_upw = upw_spec.k
+    Pk_upw = getattr(upw_spec, 'p'+str(ell)+'k')
 
     prettyplot()
     pretty_colors = prettycolors()
@@ -132,59 +155,210 @@ def plot_delP_lp_component(l, n_mocks=84, Ngrid=360):
     fig = plt.figure(figsize=(10,10))
     sub = fig.add_subplot(111)
     
-    if Ngrid == 960:
-        corrdelP = pickle.load(open('delP'+str(l)+'k_corr_k_fixed0.6_kmax0.8_Ngrid'+str(Ngrid)+'.p', 'rb'))
-    elif Ngrid == 720: 
-        corrdelP = pickle.load(open('delP'+str(l)+'k_corr_estimated_k_fixed0.6_Ngrid'+str(Ngrid)+'.p', 'rb'))
-
-    corrdelP_lp, corrdelP_comp = \
-            pickle.load(open('delP'+str(l)+'k_corr_estimated_lpcomponent_k_fixed0.6_Ngrid'+str(Ngrid)+'.p', 'rb'))
+    for i_mock in range(1,n_mocks+1): 
+        if mock == 'nseries': # this needs to be fixed
+            pass
+            #if Ngrid == 960:
+            #    corrdelP = pickle.load(open('delP'+str(l)+'k_corr_k_fixed0.6_kmax0.8_Ngrid'+str(Ngrid)+'.p', 'rb'))
+            #elif Ngrid == 720: 
+            #    corrdelP = pickle.load(open('delP'+str(l)+'k_corr_estimated_k_fixed0.6_Ngrid'+str(Ngrid)+'.p', 'rb'))
+        elif mock == 'nseriesbox': 
+            lps = [0, 2, 4, 6]
     
-    # del P correlated
+        for i_lp, lp in enumerate(lps):
+            pickle_file = ''.join([
+                '/mount/riachuelo1/hahn/power/Nseries/Box/', 
+                'corrdelP2k_lp', str(lp), '_power3600z_BoxN', str(i_mock), '.fourier_tophat.fs1.0.rc0.43.kfit4.3.kfixed4.34.dat.p'
+                ])
+            k_lpcomp, corrdelP_lpcomp = pickle.load(open(pickle_file, 'rb'))
+
+            sub.plot(
+                k_lpcomp, corrdelP_lpcomp,
+                c = pretty_colors[i_lp+1],
+                lw = 3, 
+                ls = '--',
+                label = "Correlated: "+r"$l' ="+str(lp)+"$"
+                )
+            
+            try: 
+                corrdelP += corrdelP_lpcomp
+            except UnboundLocalError: 
+                corrdelP = corrdelP_lpcomp
+
     sub.plot(
-            k, 
+            k_lpcomp, 
             corrdelP, 
-            c = pretty_colors[1], 
-            lw = 4, 
-            label = "Correlated"
+            c= 'gray',
+            lw=2, 
+            label='Total'
             )
 
-    # del P correlated l' components
-    for i_lp in xrange(len(corrdelP_comp)): 
-    
-        sub.plot(
-                k, corrdelP_comp[i_lp],
-                c = pretty_colors[7+i_lp],
-                lw = 2, 
-                ls = '--',
-                label = "Correlated: "+r"$l' ="+str(corrdelP_lp[i_lp])+"$"
-                )
-    sub.plot(k, 
+    sub.plot(
+            k, 
             Pk_upw - Pk, 
             c= 'k',
             lw=2, 
             label='data'
             )
 
-    sub.set_xlim([10**-3,10**0])
-    if l == 2: 
+    sub.set_xlim([10**-3,10**1])
+    if ell == 2: 
         sub.set_ylim([-50.0, 250.])
-    elif l == 4: 
+    elif ell == 4: 
         sub.set_ylim([-50.0, 1000.])
+
     sub.set_xscale("log") 
     sub.set_xlabel(r"$\mathtt{k}\;\;(\mathtt{Mpc}/h)$", fontsize=30)
-    sub.set_ylabel(r"$\mathtt{\Delta P_{"+str(l)+"}^{corr}(k)}$", fontsize=30)
+    sub.set_ylabel(r"$\mathtt{\Delta P_{"+str(ell)+"}^{corr}(k)}$", fontsize=30)
     
-    if l == 0: 
+    if ell == 0: 
         sub.legend(loc='lower left', scatterpoints = 1)
-    elif l == 2: 
+    elif ell == 2: 
         sub.legend(loc='upper left', scatterpoints = 1)
-    elif l == 4: 
+    elif ell == 4: 
         sub.legend(loc='lower left', scatterpoints = 1)
      
-    fig.savefig('qaplot_delPcorr_'+str(l)+'_lp_components_k_fixed0.6_Ngrid'+str(Ngrid)+'.png', bbox_inches="tight")
+    #fig.savefig(
+    #        'figure/', 
+    #        'qaplot_delP_'+str(l)+'corr_lp_components_', str(n_mocks), mock, 'mocks.png', 
+    #       bbox_inches="tight")
     plt.show()
     plt.close()
+
+
+def plot_delP_lp_comp_nseries(ell, n_mocks=1, Ngrid=960):
+    '''
+    Compare each of the l' components of delP_l^corr. l' components are read from pickle files.
+    '''
+    # average P_l(k) and P_l^upw(k)
+    specdict = {
+            'P0': 20000,
+            'Lbox': 3600, 
+            'Ngrid': Ngrid, 
+            'ell': ell 
+            }
+    true_cat_corr = {
+            'catalog': {'name': 'nseries', 'n_mock': 1}, 
+            'correction': {'name': 'true'},
+            'spec': specdict
+            }
+    true_spec = AvgSpec(75, 'pk', true_cat_corr)
+    true_spec.read()
+    k = true_spec.k
+    Pk = getattr(true_spec, 'p'+str(ell)+'k')
+    upw_cat_corr = {
+            'catalog': {'name': 'nseries', 'n_mock': 1}, 
+            'correction': {'name': 'upweight'},
+            'spec': specdict
+            }
+    upw_spec = AvgSpec(75, 'pk', upw_cat_corr)
+    upw_spec.read()
+    k_upw = upw_spec.k
+    Pk_upw = getattr(upw_spec, 'p'+str(ell)+'k')
+
+    prettyplot()
+    pretty_colors = prettycolors()
+
+    fig = plt.figure(figsize=(14,8))
+    sub = fig.add_subplot(111)
+    
+    for mock in ['nseriesbox', 'nseries']:
+        if mock == 'nseries': # this needs to be fixed
+            lps = [0, 2, 4]
+            lstyle = '--'
+        elif mock == 'nseriesbox': 
+            lps = [0, 2, 4, 6]
+            lstyle = '-'
+
+        for i_lp, lp in enumerate(lps):
+            for i_mock in range(1,n_mocks+1): 
+
+                if mock == 'nseriesbox': 
+                    pickle_file = ''.join([
+                        '/mount/riachuelo1/hahn/power/Nseries/Box/', 
+                        'corrdelP2k_lp', str(lp), '_power3600z_BoxN', str(i_mock), 
+                        '.fourier_tophat.fs1.0.rc0.43.kfit4.3.kfixed4.34.dat.p'
+                        ])
+                    lstyle = '-'
+                    label = "Correlated: "+r"$l' ="+str(lp)+"$"
+
+                elif mock == 'nseries': 
+                    pickle_file = ''.join([
+                        '/mount/riachuelo1/hahn/power/Nseries/', 
+                        'corrdelP2k_lp', str(lp), '_POWER_Q_CutskyN', str(i_mock), 
+                        '.fidcosmo.fourier_tophat.fs1.0.rc0.43.kfit0.7.kfixed0.84.dat.grid960.P020000.box3600.p'
+                        ])
+                    label = None
+
+                k_lpcomp, corrdelP_lpcomp = pickle.load(open(pickle_file, 'rb'))
+                
+                if i_mock == 1: 
+                    avg_corrdelP_lpcomp = corrdelP_lpcomp
+                else: 
+                    avg_corrdelP_lpcomp += corrdelP_lpcomp
+            
+            avg_corrdelP_lpcomp /= np.float(n_mocks)
+
+            sub.plot(
+                k_lpcomp, avg_corrdelP_lpcomp,
+                c = pretty_colors[i_lp+1],
+                lw = 3, 
+                ls = lstyle,
+                label = label
+                )
+            
+            try: 
+                corrdelP += avg_corrdelP_lpcomp
+            except UnboundLocalError: 
+                corrdelP = avg_corrdelP_lpcomp
+
+        if mock == 'nseriesbox': 
+            tot_label = 'Total'
+        else: 
+            tot_label = None
+        sub.plot(
+                k_lpcomp, 
+                corrdelP, 
+                c= 'gray',
+                ls= lstyle,
+                lw=2, 
+                label=tot_label
+                )
+        del corrdelP
+
+    sub.plot(
+            k, 
+            Pk_upw - Pk, 
+            c= 'k',
+            lw=2, 
+            label='data'
+            )
+
+    sub.set_xlim([10**-3,10**1])
+    if ell == 2: 
+        sub.set_ylim([-50.0, 250.])
+    elif ell == 4: 
+        sub.set_ylim([-50.0, 1000.])
+
+    sub.set_xscale("log") 
+    sub.set_xlabel(r"$\mathtt{k}\;\;(\mathtt{Mpc}/h)$", fontsize=30)
+    sub.set_ylabel(r"$\mathtt{\Delta P_{"+str(ell)+"}^{corr}(k)}$", fontsize=30)
+    
+    if ell == 0: 
+        sub.legend(loc='lower left', scatterpoints = 1)
+    elif ell == 2: 
+        sub.legend(loc='upper left', scatterpoints = 1)
+    elif ell == 4: 
+        sub.legend(loc='lower left', scatterpoints = 1)
+     
+    fig.savefig(
+            ''.join([
+                'figure/', 
+                'qaplot_delP_'+str(ell)+'corr_lp_components_', str(n_mocks), 'nseriesbox.png']), 
+            bbox_inches="tight")
+    #plt.show()
+    plt.close()
+
 
 def plot_delP_extrapolation_test(l, type='normal', fs=1.0, rc=0.4, n_mocks=84, Ngrid=360):
     '''
@@ -539,18 +713,11 @@ if __name__=="__main__":
     #plot_delP(4, fs=1.0, rc=0.4, n_mocks=20)
 
     #plot_delP(2, n_mocks=10, Ngrid=960)#, xrange=[0.1, 1.0], yrange=[-100., 1000.])
-    plot_delP_corr_extrapolations(
-            2, 
-            n_mocks=10, 
-            k_fixed=0.84, 
-            k_max=np.arange(0.6, 0.85, 0.05), 
-            Ngrid=960,
-            yrange=[-1500., 2000.]
-            )
     #plot_delP(2, n_mocks=10, Ngrid=720)
     #for l_i in [0,2,4]:
     #    plot_delP(l_i, n_mocks=10, Ngrid=720)
-    #plot_delP_lp_component(2, n_mocks=10, Ngrid=720)
+    plot_delP_lp_comp_nseries(2, n_mocks=7, Ngrid=960)
+    #plot_delP_lp_component(2, mock='nseriesbox', n_mocks=1, Ngrid=960)
     #plot_delP_lp_component(4, n_mocks=10, Ngrid=720)
     #plot_delP_lp_component(2, n_mocks=10, Ngrid=960)
     #plot_delP_lp_component(4, n_mocks=10, Ngrid=960)
@@ -562,227 +729,3 @@ if __name__=="__main__":
     #for l in [0,2]:
     #    for k in [0.0025, 0.05, 0.1, 0.3]: 
     #        plot_fllp(l, k_value=k)
-
-"""
-def plot_delP_uncorr(l, fs=1.0, rc=0.4): 
-    '''
-
-    '''
-    if not isinstance(l, list): 
-        l = [l]
-
-    # import k, Pk data  
-    k, P0k, P2k = np.loadtxt(
-            'POWER_Q_CutskyN1.fidcosmo.dat.grid360.P020000.box3600',
-            unpack = True, 
-            usecols = [0,1,2]
-            ) 
-
-    prettyplot()
-    pretty_colors = prettycolors()
-
-    fig = plt.figure(figsize=(10,10))
-    sub = fig.add_subplot(111)
-
-    for i_l, l_i in enumerate(l):
-        delP = tophat.delP_uncorr(k, l_i, fs=fs, rc=rc)
-
-        sub.plot(
-                k, 
-                delP, 
-                c=pretty_colors[i_l+1], 
-                lw=4, 
-                label=r"$\Delta P_"+str(l_i)+"^{uncorr}(k)$"
-                )
-
-    sub.set_xlim([10**-3,10**0])
-    sub.set_xscale("log") 
-    sub.set_xlabel(r"$\mathtt{k}\;\;(\mathtt{Mpc}/h)$", fontsize=30)
-    sub.set_ylabel(r"$\mathtt{\Delta P_{i}^{uncorr}(k)}$", fontsize=30)
-
-    sub.legend(loc='lower left')
-    fig.savefig('qaplot_delP_uncorr.png', bbox_inches="tight")
-    plt.close()
-
-def plot_delP_corr(l): 
-    '''
-
-    '''
-    if not isinstance(l, list): 
-        l = [l]
-
-    # import k, Pk data  
-    k, P0k, P2k = np.loadtxt(
-            'POWER_Q_CutskyN1.fidcosmo.dat.grid360.P020000.box3600',
-            unpack = True, 
-            usecols = [0,1,2]
-            ) 
-
-    prettyplot()
-    pretty_colors = prettycolors()
-
-    fig = plt.figure(figsize=(10,10))
-    sub = fig.add_subplot(111)
-
-    for i_l, l_i in enumerate(l):
-        #delP = tophat.delP_uncorr(k, l_i, fs=fs, rc=rc)
-
-        delP = pickle.load(open('delP'+str(l_i)+'k_corr.p', 'rb'))
-
-        sub.plot(
-                k, 
-                delP, 
-                c=pretty_colors[i_l+1], 
-                lw=4, 
-                label=r"$\Delta P_"+str(l_i)+"^{corr}(k)$"
-                )
-
-    sub.set_xlim([10**-3,10**0])
-    sub.set_xscale("log") 
-    sub.set_xlabel(r"$\mathtt{k}\;\;(\mathtt{Mpc}/h)$", fontsize=30)
-    sub.set_ylabel(r"$\mathtt{\Delta P_{i}^{corr}(k)}$", fontsize=30)
-
-    sub.legend(loc='upper left')
-    fig.savefig('qaplot_delP_corr.png', bbox_inches="tight")
-    plt.close()
-
-def plot_fllp_diagonal(l, k_value=0.3, rc=0.4): 
-    '''
-
-    plot f_l,l'
-
-    '''
-    # import q values
-    q = np.loadtxt(
-            ''.join([
-                '/mount/riachuelo1/hahn/power/Nseries/', 
-                'POWER_Q_CutskyN1.fidcosmo.dat.grid360.P020000.box3600'
-                ]),
-            unpack = True, 
-            usecols = [0]
-            ) 
-    q = np.arange(0.002, 1.0, 0.005)
-    prettyplot()
-    pretty_colors = prettycolors()
-
-    fig = plt.figure(figsize=(10,10))
-    sub = fig.add_subplot(111)
-    
-    lp = l  # l' = l
-        
-    sub.scatter(
-            q, 
-            [tophat.f_l_lp(q_i*rc, k_value*rc, l, lp, first_order=True) for q_i in q], 
-            c=pretty_colors[3], 
-            s=10,
-            label = r"$\mathtt{f_{l = "+str(l)+",l' = "+str(lp)+"}}$ First order"
-            )
-    
-    def fllp_diagonal(q_in): 
-        
-        if q_in < k_value: 
-            return tophat.W_2d(q_in * rc) * (q_in / k_value)**(l+1)
-        else: 
-            return tophat.W_2d(q_in * rc) * (k_value / q_in)**l
-
-    sub.plot(
-            q, 
-            [fllp_diagonal(q_i) for q_i in q],
-            c=pretty_colors[5], 
-            lw = 4, 
-            ls = '--', 
-            label = r"theoretical estimate"
-            )
-
-    sub.set_xlim([10**-3,10**0])
-    sub.set_xscale("log") 
-    sub.set_xlabel(r"$\mathtt{q}\;\;(\mathtt{Mpc}/h)$", fontsize=30)
-    sub.set_ylabel(r"$\mathtt{f_{l,l'} (q r_{fc}, "+str(round(k_value,1))+"r_{fc}})$", fontsize=30)
-
-    sub.legend(loc='upper left', scatterpoints=1)
-
-    fig_file = ''.join(["qaplot_f_l", str(l), "lp", str(l), '_k', str(k_value), '.png'])
-    fig.savefig(fig_file, bbox_inches='tight')
-    plt.close()
-
-def plot_fllp_offdiagonal(l, k_value=0.3, rc=0.4): 
-    '''
-
-    plot f_l,l'
-
-    '''
-    # import q values
-    q = np.loadtxt(
-            ''.join([
-                '/mount/riachuelo1/hahn/power/Nseries/', 
-                'POWER_Q_CutskyN1.fidcosmo.dat.grid360.P020000.box3600'
-                ]),
-            unpack = True, 
-            usecols = [0]
-            ) 
-    q = np.arange(0.002, 1.0, 0.005)
-    lps = [0,2,4]
-    lps.pop(np.where(np.array(lps) == l)[0])
-    print lps
-    
-    def fllp_offdiagonal(q_in, l_in, lp_in): 
-        
-        if l_in > lp_in: 
-            if q_in < k_value: 
-                return (2.0 * l_in + 1.)/2.0 * (q_in / k_value) * fllp_poly(l_in, lp_in, q_in / k_value) * tophat.W_2d(q_in * rc)
-            else: 
-                return 0.0
-        else: 
-            if q_in > k_value: 
-                return (2.0 * l_in + 1.)/2.0 * fllp_poly(lp_in, l_in, k_value / q_in) * tophat.W_2d(q_in * rc)
-            else: 
-                return 0.0 
-        
-    for i_lp, lp in enumerate(lps): 
-        prettyplot()
-        pretty_colors = prettycolors()
-
-        fig = plt.figure(figsize=(10,10))
-        sub = fig.add_subplot(111)
-    
-        sub.scatter(
-                q, 
-                [tophat.f_l_lp(q_i*rc, k_value*rc, l, lp, first_order=True) for q_i in q], 
-                c=pretty_colors[3], 
-                s=10,
-                label = r"$\mathtt{f_{l = "+str(l)+",l' = "+str(lp)+"}}$ First order"
-                )
-
-        sub.plot(
-                q, 
-                [fllp_offdiagonal(q_i, l, lp) for q_i in q],
-                c=pretty_colors[5], 
-                lw = 4, 
-                ls = '--', 
-                label = r"theoretical estimate"
-                )
-
-        sub.set_xlim([10**-3,10**0])
-        sub.set_xscale("log") 
-        sub.set_xlabel(r"$\mathtt{q}\;\;(\mathtt{Mpc}/h)$", fontsize=30)
-        sub.set_ylabel(r"$\mathtt{f_{l,l'} (q r_{fc}, "+str(round(k_value,1))+"r_{fc}})$", fontsize=30)
-
-        sub.legend(loc='upper left', scatterpoints=1)
-
-        fig_file = ''.join(["qaplot_f_l", str(l), "lp", str(lp), '_k', str(k_value), '.png'])
-        fig.savefig(fig_file, bbox_inches='tight')
-        plt.close()
-
-def fllp_poly(l1_in, l2_in, x):  
-    
-    if (l1_in == 2) and (l2_in == 0): 
-        return x**2 - 1.
-    elif (l1_in == 4) and (l2_in == 0): 
-        return (7./4.)*x**4 - (5./2.)*x**2 + 3./4.
-    elif (l1_in == 4) and (l2_in == 2): 
-        return x**4 - x**2
-    else: 
-        raise ValueError
-
-
-"""

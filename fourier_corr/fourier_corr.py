@@ -137,30 +137,27 @@ def f_l_lp_est(x, y, l, lp):
     Below are estimates of the integral, without actually computing the integral 
     '''
     
-    if l == lp:     # l = l' (diagonal terms)
+    try: 
+        if l == lp:     # l = l' (diagonal terms)
+            if x < y: 
+                return W_2d(x) * (x / y)**(l+1)
+            else: 
+                return W_2d(x) * (y / x)**l
 
-        if x < y: 
-            return W_2d(x) * (x / y)**(l+1)
-        else: 
-            return W_2d(x) * (y / x)**l
-
-    elif l > lp: 
-        if x < y: 
-            if l < 6: 
+        elif l > lp: 
+            if x < y: 
                 return (2.0 * l + 1.)/2.0 * (x / y) * fllp_poly(l, lp, x / y) * W_2d(x)
-            else:
-                return f_l_lp(x, y, l, lp)
-        else: 
-            return 0.0
+            else: 
+                return 0.0
 
-    elif l < lp: 
-        if x > y: 
-            if lp < 6: 
+        elif l < lp: 
+            if x > y: 
                 return (2.0 * l + 1.)/2.0 * fllp_poly(lp, l, y / x) * W_2d(x)
             else: 
-                return f_l_lp(x, y, l, lp)
-        else: 
-            return 0.0 
+                return 0.0 
+    except ValueError: 
+        print 'Integral within integral'
+        return f_l_lp(x, y, l, lp)
 
 def fllp_poly(l1_in, l2_in, x):  
     '''
@@ -173,42 +170,48 @@ def fllp_poly(l1_in, l2_in, x):
         return (7./4.)*x**4 - (5./2.)*x**2 + 3./4.
     elif (l1_in == 4) and (l2_in == 2): 
         return x**4 - x**2
+    elif (l1_in == 6) and (l2_in ==0): 
+        return (33./8.)*x**6 - (63./8.)*x**4 + (35./8.)*x**2 - 5/8
+    elif (l1_in == 6) and (l2_in == 2): 
+        return (11./4.)*x**6 - (9./2.)*x**4 + (7./4.)*x**2
+    elif (l1_in == 6) and (l2_in == 4): 
+        return x**6 - x**4
     else: 
         raise ValueError
+"""
+    def f_l_lp(x, y, l, lp, error=False): 
+        '''
+        Actual integrals of the f_l,l' term in the FC correction equation 
+        '''
+        #start_time = time.time()
+        upper_bound = np.min([1.0, x/y])
+        lower_bound = np.max([-1.0, -1.0*x/y])
+        #print 'upper bound ', upper_bound, ' lower bound ', lower_bound
+        
+        fllp = lambda mu : f_l_lp_integrand(mu, x, y, l, lp)
 
-def f_l_lp(x, y, l, lp, error=False): 
-    '''
-    Actual integrals of the f_l,l' term in the FC correction equation 
-    '''
-    #start_time = time.time()
-    upper_bound = np.min([1.0, x/y])
-    lower_bound = np.max([-1.0, -1.0*x/y])
-    #print 'upper bound ', upper_bound, ' lower bound ', lower_bound
-    
-    fllp = lambda mu : f_l_lp_integrand(mu, x, y, l, lp)
-
-    f_llp = 0.5*(2.*np.float(l) + 1.) * quad_int(fllp, lower_bound,  upper_bound, epsrel=0.01)[0]
-    f_llp_err = 0.5*(2.*np.float(l) + 1.) * quad_int(fllp, lower_bound, upper_bound, epsrel=0.01)[1]
-    
-    #print "f_ll' calculation takes ", time.time() - start_time 
-    if not error: 
+        f_llp = 0.5*(2.*np.float(l) + 1.) * quad_int(fllp, lower_bound,  upper_bound, epsrel=0.05)[0]
+        #f_llp_err = 0.5*(2.*np.float(l) + 1.) * quad_int(fllp, lower_bound, upper_bound, epsrel=0.05)[1]
+        
+        #print "f_ll' calculation takes ", time.time() - start_time 
+        #if not error: 
         return f_llp
-    else: 
-        return [f_llp, f_llp_err]
+        #else: 
+        #    return [f_llp, f_llp_err]
 
-def f_l_lp_integrand(mu, x, y, l, lp): 
-    ''' Integrand of f_l_lp integration 
-    '''
-    Leg_l = legendre(l)     # Legendre polynomial of order l 
-    Leg_lp = legendre(lp)   # Legendre polynomial of order l'
-    
-    if np.abs(mu) > np.abs(x/y): 
-        raise ValueError
+    def f_l_lp_integrand(mu, x, y, l, lp): 
+        ''' Integrand of f_l_lp integration 
+        '''
+        Leg_l = legendre(l)     # Legendre polynomial of order l 
+        Leg_lp = legendre(lp)   # Legendre polynomial of order l'
+        
+        if np.abs(mu) > np.abs(x/y): 
+            raise ValueError
 
-    theta = np.sqrt(x**2 - y**2 * mu**2)
+        theta = np.sqrt(x**2 - y**2 * mu**2)
 
-    return Leg_l(mu) * Leg_lp(y * mu/x) * (W_2d(theta) + y**2 * (1. - mu**2) * W_secorder(theta))
-
+        return Leg_l(mu) * Leg_lp(y * mu/x) * (W_2d(theta) + y**2 * (1. - mu**2) * W_secorder(theta))
+"""
 def W_secorder(x): 
     '''
     J2(x)/x^2 - J1(x)/2x
@@ -223,158 +226,160 @@ def W_2d(x):
     '''
     return 2.*J1(x)/x
 
-def W_1d(x,y): 
-    '''
-    W_1d(x,y) = int^2pi_0 W_2D(sqrt(x^2 + y^2 - 2xy cos(phi))) dphi/2pi
-    '''
-    integrand = lambda phi: W_2d( np.sqrt(x**2 + y**2 - 2*x*y*np.cos(phi)) )
-
-    output = 1./(2.*np.pi) * quad_int(integrand, 0., 2.0 * np.pi, epsrel=0.01)[0]
-    
-    return output
-
 def J2(x): 
     '''
     Spherical Bessel Function of the first kind of order 2 
     '''
     return jv(2, x)
 
-# Specific cases of delP_corr  ----
-def delP_corr_noextrap(k, Pk, l, fs=1.0, rc=0.4): 
-    '''
-    The correlated term of the fiber collision correction to Powerspectrum multipole l but with NO P_l(k) extrapolation.
-    In other words P_l'(k) = 0 for k > k_max. This is most likely not accurate, but used for testing.
-    '''
+"""
+    def W_1d(x,y): 
+        '''
+        W_1d(x,y) = int^2pi_0 W_2D(sqrt(x^2 + y^2 - 2xy cos(phi))) dphi/2pi
+        '''
+        integrand = lambda phi: W_2d( np.sqrt(x**2 + y**2 - 2*x*y*np.cos(phi)) )
 
-    alpha = -0.5 * fs * rc**2
-
-    if not isinstance(Pk, list): 
-        raise ValueError(
-                'Pk input has to be a list containing the multipoles. e.g. [P0k, P2k, P4k]'
-                )
-    
-    lvalues = [0,2,4,6,8]
-
-    sum_delP = np.zeros(len(k))
-
-    lps, delPlp = [], [] 
-
-    for i_lp, lp in enumerate(lvalues[:len(Pk)]):
+        output = 1./(2.*np.pi) * quad_int(integrand, 0., 2.0 * np.pi, epsrel=0.05)[0]
         
-        # Cubic Spline interpolated function of P(k)
-        Pk_interp = interp1d(k, Pk[i_lp], kind='cubic')
-        # Extrapolated power law for P(k) k > k_max
-        Pk_kplus_extrap = lambda q_or_k: 0.0 * q_or_k
+        return output
 
-        delP = np.zeros(len(k))
+    # Specific cases of delP_corr  ----
+    def delP_corr_noextrap(k, Pk, l, fs=1.0, rc=0.4): 
+        '''
+        The correlated term of the fiber collision correction to Powerspectrum multipole l but with NO P_l(k) extrapolation.
+        In other words P_l'(k) = 0 for k > k_max. This is most likely not accurate, but used for testing.
+        '''
 
-        start_time = time.time()
-        
-        # loop through k values and evaluate delta P for all ks 
-        for i_k, k_i in enumerate(k): 
+        alpha = -0.5 * fs * rc**2
 
-            dPq_integrand = lambda q_var: delPq_integrand(
-                    q_var, 
-                    k_i, 
-                    l, 
-                    lp, 
-                    Pk_interp, 
-                    Pk_kplus_extrap, 
-                    rc=rc, 
-                    k_min=k[0], 
-                    k_max=k[-1], 
-                    noextrap=True
+        if not isinstance(Pk, list): 
+            raise ValueError(
+                    'Pk input has to be a list containing the multipoles. e.g. [P0k, P2k, P4k]'
                     )
-            delP_int, delP_int_err = quad_int(dPq_integrand, 0., np.inf, epsrel=0.01)
-            delP[i_k] = alpha * delP_int
-
-        sum_delP += delP
-    return sum_delP 
-
-# save to pickle files  ----
-def delPcorr_estimated(n_mocks=10, k_fixed=0.6, lpcomponent=True, noextrap=False, Ngrid=360):
-    '''
-    Wrapper function to calculate delta P^corr
-    '''
-    
-    # average P_l(k)
-    k0, avg_P0k = pk_extrap.average_Pk(0, n_mocks=n_mocks, Ngrid=Ngrid)
-    k2, avg_P2k = pk_extrap.average_Pk(2, n_mocks=n_mocks, Ngrid=Ngrid)
-    k4, avg_P4k = pk_extrap.average_Pk(4, n_mocks=n_mocks, Ngrid=Ngrid)
-    k = k0
-
-    Pk = [avg_P0k, avg_P2k, avg_P4k]
-    
-    for l in [0, 2, 4]: 
-
-        delp = delP_corr(
-                k, Pk, l, fs=1.0, rc=0.4, 
-                extrap_params=[[1009., -2.1], [-524., -0.251], [443., 0.72]],
-                k_fixed=k_fixed,
-                lpcomponent=lpcomponent, 
-                noextrap=noextrap
-                )
-
-        if lpcomponent: 
-            lpcomponent_str = '_lpcomponent'
-        else: 
-            lpcomponent_str = ''
-
-        if noextrap: 
-            noextrap_str = '_noextrap'
-        else: 
-            noextrap_str = ''
         
-        pickle_file = ''.join([
-            'delP', str(l), 'k_corr_estimated', 
-            lpcomponent_str, noextrap_str, 
-            '_k_fixed', str(round(k_fixed, 1)), 
-            '_Ngrid', str(Ngrid), '.p'
-            ])
-        pickle.dump(delp, open(pickle_file, 'wb'))
+        lvalues = [0,2,4,6,8]
 
-def delPcorr_extrapolation(n_mocks=10, k_fixed=0.6, k_max=0.5, Ngrid=360):
-    '''
-    Wrapper function to calculate delta P^corr
-    '''
-    # average P_l(k)
-    k0, avg_P0k = pk_extrap.average_Pk(0, n_mocks=n_mocks, Ngrid=Ngrid)
-    k2, avg_P2k = pk_extrap.average_Pk(2, n_mocks=n_mocks, Ngrid=Ngrid)
-    k4, avg_P4k = pk_extrap.average_Pk(4, n_mocks=n_mocks, Ngrid=Ngrid)
+        sum_delP = np.zeros(len(k))
 
-    Pk = [avg_P0k, avg_P2k, avg_P4k]
-    k = k0
+        lps, delPlp = [], [] 
 
-    if isinstance(k_max, list) or isinstance(k_max, np.ndarray):  
-        pass
-    else: 
-        k_max = [k_max]
-
-    for k_max_i in k_max: 
-
-        bestfit_params = [] 
-        for i_l, l in enumerate([0, 2, 4]):
-
-            bestfit_params.append(
-                    pk_extrap.pk_bestfit(k0, Pk[i_l], k_max=k_max_i, k_fixed=k_fixed)
-                    )
-        print k_max_i
-        print bestfit_params 
-    
-        for i_l, l in enumerate([0, 2, 4]): 
+        for i_lp, lp in enumerate(lvalues[:len(Pk)]):
             
+            # Cubic Spline interpolated function of P(k)
+            Pk_interp = interp1d(k, Pk[i_lp], kind='cubic')
+            # Extrapolated power law for P(k) k > k_max
+            Pk_kplus_extrap = lambda q_or_k: 0.0 * q_or_k
+
+            delP = np.zeros(len(k))
+
+            start_time = time.time()
+            
+            # loop through k values and evaluate delta P for all ks 
+            for i_k, k_i in enumerate(k): 
+
+                dPq_integrand = lambda q_var: delPq_integrand(
+                        q_var, 
+                        k_i, 
+                        l, 
+                        lp, 
+                        Pk_interp, 
+                        Pk_kplus_extrap, 
+                        rc=rc, 
+                        k_min=k[0], 
+                        k_max=k[-1], 
+                        noextrap=True
+                        )
+                delP_int, delP_int_err = quad_int(dPq_integrand, 0., np.inf, epsrel=0.01)
+                delP[i_k] = alpha * delP_int
+
+            sum_delP += delP
+        return sum_delP 
+
+    # save to pickle files  ----
+    def delPcorr_estimated(n_mocks=10, k_fixed=0.6, lpcomponent=True, noextrap=False, Ngrid=360):
+        '''
+        Wrapper function to calculate delta P^corr
+        '''
+        
+        # average P_l(k)
+        k0, avg_P0k = pk_extrap.average_Pk(0, n_mocks=n_mocks, Ngrid=Ngrid)
+        k2, avg_P2k = pk_extrap.average_Pk(2, n_mocks=n_mocks, Ngrid=Ngrid)
+        k4, avg_P4k = pk_extrap.average_Pk(4, n_mocks=n_mocks, Ngrid=Ngrid)
+        k = k0
+
+        Pk = [avg_P0k, avg_P2k, avg_P4k]
+        
+        for l in [0, 2, 4]: 
+
             delp = delP_corr(
-                    k, Pk, l, 
-                    fs=1.0, 
-                    rc=0.4, 
-                    extrap_params=bestfit_params,
-                    k_fixed=k_fixed
+                    k, Pk, l, fs=1.0, rc=0.4, 
+                    extrap_params=[[1009., -2.1], [-524., -0.251], [443., 0.72]],
+                    k_fixed=k_fixed,
+                    lpcomponent=lpcomponent, 
+                    noextrap=noextrap
                     )
 
+            if lpcomponent: 
+                lpcomponent_str = '_lpcomponent'
+            else: 
+                lpcomponent_str = ''
+
+            if noextrap: 
+                noextrap_str = '_noextrap'
+            else: 
+                noextrap_str = ''
+            
             pickle_file = ''.join([
-                'delP', str(l), 'k_corr', 
-                '_k_fixed', str(round(k_fixed, 1)),
-                '_kmax', str(round(k_max_i, 2)), 
+                'delP', str(l), 'k_corr_estimated', 
+                lpcomponent_str, noextrap_str, 
+                '_k_fixed', str(round(k_fixed, 1)), 
                 '_Ngrid', str(Ngrid), '.p'
                 ])
             pickle.dump(delp, open(pickle_file, 'wb'))
+
+    def delPcorr_extrapolation(n_mocks=10, k_fixed=0.6, k_max=0.5, Ngrid=360):
+        '''
+        Wrapper function to calculate delta P^corr
+        '''
+        # average P_l(k)
+        k0, avg_P0k = pk_extrap.average_Pk(0, n_mocks=n_mocks, Ngrid=Ngrid)
+        k2, avg_P2k = pk_extrap.average_Pk(2, n_mocks=n_mocks, Ngrid=Ngrid)
+        k4, avg_P4k = pk_extrap.average_Pk(4, n_mocks=n_mocks, Ngrid=Ngrid)
+
+        Pk = [avg_P0k, avg_P2k, avg_P4k]
+        k = k0
+
+        if isinstance(k_max, list) or isinstance(k_max, np.ndarray):  
+            pass
+        else: 
+            k_max = [k_max]
+
+        for k_max_i in k_max: 
+
+            bestfit_params = [] 
+            for i_l, l in enumerate([0, 2, 4]):
+
+                bestfit_params.append(
+                        pk_extrap.pk_bestfit(k0, Pk[i_l], k_max=k_max_i, k_fixed=k_fixed)
+                        )
+            print k_max_i
+            print bestfit_params 
+        
+            for i_l, l in enumerate([0, 2, 4]): 
+                
+                delp = delP_corr(
+                        k, Pk, l, 
+                        fs=1.0, 
+                        rc=0.4, 
+                        extrap_params=bestfit_params,
+                        k_fixed=k_fixed
+                        )
+
+                pickle_file = ''.join([
+                    'delP', str(l), 'k_corr', 
+                    '_k_fixed', str(round(k_fixed, 1)),
+                    '_kmax', str(round(k_max_i, 2)), 
+                    '_Ngrid', str(Ngrid), '.p'
+                    ])
+                pickle.dump(delp, open(pickle_file, 'wb'))
+"""

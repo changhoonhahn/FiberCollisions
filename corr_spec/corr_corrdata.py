@@ -16,7 +16,6 @@ from corrections.photoz_corr import PhotozCorr
 from corrections.fourier_tophat import FourierTophatCorr
 
 class CorrCorrData(CorrData): 
-
     def __init__(self, cat_corr, **kwargs): 
 
         self.corrclass_dict = { 

@@ -771,9 +771,10 @@ def plot_bispec_fibcolcorr_comparison(BorQ='B', x_axis='triangles', triangle='al
 if __name__=='__main__': 
 
     cat_corrs = [ 
-            {'catalog': {'name': 'nseries'}, 'correction': {'name': 'true'}},
-            {'catalog': {'name': 'nseriesbox'}, 'correction': {'name': 'true'}}
+            {'catalog': {'name': 'nseriesbox'}, 'correction': {'name': 'true'}}, 
+            {'catalog': {'name': 'nseriesbox'}, 'correction': {'name': 'fourier_tophat', 'fs': 1.0, 'rc': 0.43, 'k_fit': 4.3, 'k_fixed': 4.34}}
             ]
+    plot_pk_comp(cat_corrs, 7, Ngrid=960, ell=2, type='Pk_err', xrange=[10**-1, 10**1.], yrange=[10., 10.**4], figsize=[14,8])
     #{
     #    'catalog': {'name': 'nseries'}, 
     #    'correction': {'name': 'upweight'}
@@ -782,56 +783,19 @@ if __name__=='__main__':
     #'catalog': {'name': 'nseries', 'n_mock': 1}, 
     #'correction': {'name': 'fourier_tophat', 'fs': 1.0, 'rc': 0.43, 'k_fit': 0.7, 'k_fixed': 0.84}
     #}
-    for ell in [0, 2, 4]: 
-        if ell == 0: 
-            yrange = [10., 10.**5.]
-        elif ell == 2: 
-            yrange = [10., 10.**4.]
-        elif ell == 4: 
-            yrange = [10., 10.**3.]
-        plot_pk_comp(cat_corrs, [20, 7], Ngrid=960, ell=ell, type='Pk_err', xrange=[10**-1, 10**1.], yrange=yrange, figsize=[14,8])
-
-    plot_pk_comp([{'catalog': {'name': 'nseriesbox'}, 'correction': {'name': 'true'}}],
-            7, Ngrid=960, ell=6, type='Pk_err', xrange=[10**-1, 10**1.], yrange=[10., 10.**3.], figsize=[14,8])
+    #for ell in [0, 2, 4]: 
+    #    if ell == 0: 
+    #        yrange = [10., 10.**5.]
+    #    elif ell == 2: 
+    #        yrange = [10., 10.**4.]
+    #    elif ell == 4: 
+    #        yrange = [10., 10.**3.]
+    #    plot_pk_comp(cat_corrs, [20, 7], Ngrid=960, ell=ell, type='Pk_err', xrange=[10**-1, 10**1.], yrange=yrange, figsize=[14,8]) 
+    #plot_pk_comp([{'catalog': {'name': 'nseriesbox'}, 'correction': {'name': 'true'}}],
+    #        7, Ngrid=960, ell=6, type='Pk_err', xrange=[10**-1, 10**1.], yrange=[10., 10.**3.], figsize=[14,8])
     #plot_pk_comp(cat_corrs, [20, 7], Ngrid=960, ell=2, type='Pk', yrange=[0.0, 2.0], figsize=[14,8])#, xrange=[10**-1, 10**0.])
     #plot_delpoverp_comp(cat_corrs, 84, ell=0, Ngrid=960)
     #plot_delpoverp_comp(cat_corrs, 84, ell=2, Ngrid=960, xrange=[0.1, 1.0], yrange=[0.0, 1.0])
     #plot_delpoverp_comp(cat_corrs, 84, ell=4, Ngrid=960, xrange=[0.1, 1.0], yrange=[0.0, 1.0])
     #plot_pk_comp(cat_corrs, 20, Ngrid=960, ell=2, type='Pk_err')
     #plot_pk_comp(cat_corrs, 20, Ngrid=960, ell=4, type='l1_norm')
-    
-    cat_corrs = [
-            {
-                'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'true'}
-                },
-            {
-                'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'upweight'}
-                }] 
-
-    for f_peakcorr in np.arange(0.0, 1.1, 0.1): 
-        cat_corrs.append({
-                    'catalog': {'name': 'nseries'}, 
-                    'correction': {'name': 'dlospeak.tailonly', 'sigma': 3.8, 'f_peakcorr': f_peakcorr}
-                    })
-    #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='Pk')
-    #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='ratio')
-    #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='l1_norm')
-
-    cat_corrs = [
-            {
-                'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'true'}
-                },
-            {
-                'catalog': {'name': 'nseries'}, 
-                'correction': {'name': 'upweight'}
-                }] 
-    #for f_peakcorr in np.arange(0.0, 1.1, 0.1): 
-    #    cat_corrs.append({
-    #                'catalog': {'name': 'nseries'}, 
-    #                'correction': {'name': 'dlospeak.peakonly', 'sigma': 3.8, 'f_peakcorr': f_peakcorr}
-    #                })
-    #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='Pk')
-    #plot_pk_comp(cat_corrs, 20, Ngrid=360, quad=True, type='ratio')

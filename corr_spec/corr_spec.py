@@ -6,6 +6,7 @@ from corr_fft import CorrFft
 from corr_corrdata import CorrCorrData
     
 from fourier_corr.pk_corr import fourier_tophat_Pk
+#from pk_corr import fourier_tophat_Pk
 
 class CorrSpec(Spec): 
     def __init__(self, spectype, cat_corr, ell=None, **kwargs): 
@@ -35,17 +36,18 @@ class CorrSpec(Spec):
 
         if self.cat_corr['catalog']['name'].lower() == 'nseriesbox': 
             spec_dir = '/mount/riachuelo1/hahn/power/Nseries/Box/'
-            
             if self.cat_corr['correction']['name'].lower() == 'true': 
                 corr_str = ''
-            else: 
-                corr = self.cat_corr['correction']
+            elif self.cat_corr['correction']['name'].lower() == 'fourier_tophat': 
+                corr = self.cat_corr['correction'].copy()
                 corr_str = ''.join([
                     '.', corr['name'].lower(), 
                     '.fs', str(round(corr['fs'], 1)), 
                     '.rc', str(round(corr['rc'], 2)), 
                     '.kfit', str(round(corr['k_fit'], 2)), 
                     '.kfixed', str(round(corr['k_fixed'], 2))])
+            else: 
+                raise NotImplementedError
 
             file_name = ''.join([
                 spec_dir, 
@@ -84,15 +86,15 @@ class CorrSpec(Spec):
         '''
         '''
         if self.cat_corr['correction']['name'].lower() == 'fourier_tophat': 
-            if self.ell != 2: 
-                raise ValueError("Only implemented for the quadrupole") 
             fourier_tophat_cat_corr = self.cat_corr.copy()
 
             self.cat_corr = {
-                    'catalog': self.cat_corr['catalog'], 
+                    'catalog': self.cat_corr['catalog'].copy(), 
                     'correction': {'name': 'true'},
-                    'spec': self.cat_corr['spec']
+                    'spec': self.cat_corr['spec'].copy()
                     }
+            if self.cat_corr['catalog']['name'] != 'nseriesbox': 
+                self.gal_data = CorrCorrData(self.cat_corr)
             tr_file_name = self.file()
             self.cat_corr = fourier_tophat_cat_corr.copy()
             fourier_tophat_Pk(self.cat_corr, self.file_name, tr_file_name)
@@ -107,7 +109,7 @@ if __name__=='__main__':
                 'catalog': {'name': 'nseriesbox', 'n_mock': i_mock}, 
                 'correction': {'name': 'fourier_tophat', 'fs': 1.0, 'rc': 0.43, 'k_fit': 4.3, 'k_fixed': 4.34}
                 }
-        spectrum = CorrSpec('pk', cat_corr, ell=2, Ngrid=960)
+        spectrum = CorrSpec('pk', cat_corr, ell=0, Ngrid=960)
         print spectrum.file()
         spectrum.build()
         #'correction': {'name': 'fourier_tophat', 'fs': 1.0, 'rc': 0.43, 'k_fit': 4.0, 'k_fixed': 4.34}, 
