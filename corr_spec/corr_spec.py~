@@ -95,7 +95,6 @@ class CorrSpec(Spec):
                     }
             if self.cat_corr['spec']['ell'] < 2:  
                 self.cat_corr['spec']['ell'] = 2
-                self.ell = 2
             if self.cat_corr['catalog']['name'] != 'nseriesbox': 
                 self.gal_data = CorrCorrData(self.cat_corr)
             tr_file_name = self.file()
@@ -116,7 +115,7 @@ if __name__=='__main__':
     #    print spectrum.file()
     #    spectrum.build()
     #    #'correction': {'name': 'fourier_tophat', 'fs': 1.0, 'rc': 0.43, 'k_fit': 4.0, 'k_fixed': 4.34}, 
-    for i_mock in range(1,11): 
+    for i_mock in range(1,2): 
         cat_corr = {
                 'catalog': {'name': 'nseries', 'n_mock': i_mock}, 
                 'correction': {'name': 'fourier_tophat', 'fs': 1.0, 'rc': 0.43, 'k_fit': 0.7, 'k_fixed': 0.84}
