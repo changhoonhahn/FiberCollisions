@@ -242,7 +242,7 @@ def plot_delP_lp_comp_nseries(ell, n_mocks=1, Ngrid=960):
             'correction': {'name': 'true'},
             'spec': specdict
             }
-    true_spec = AvgSpec(75, 'pk', true_cat_corr)
+    true_spec = AvgSpec(20, 'pk', true_cat_corr)
     true_spec.read()
     k = true_spec.k
     Pk = getattr(true_spec, 'p'+str(ell)+'k')
@@ -251,7 +251,7 @@ def plot_delP_lp_comp_nseries(ell, n_mocks=1, Ngrid=960):
             'correction': {'name': 'upweight'},
             'spec': specdict
             }
-    upw_spec = AvgSpec(75, 'pk', upw_cat_corr)
+    upw_spec = AvgSpec(20, 'pk', upw_cat_corr)
     upw_spec.read()
     k_upw = upw_spec.k
     Pk_upw = getattr(upw_spec, 'p'+str(ell)+'k')
@@ -276,21 +276,28 @@ def plot_delP_lp_comp_nseries(ell, n_mocks=1, Ngrid=960):
                 if mock == 'nseriesbox': 
                     pickle_file = ''.join([
                         '/mount/riachuelo1/hahn/power/Nseries/Box/', 
-                        'corrdelP2k_lp', str(lp), '_power3600z_BoxN', str(i_mock), 
+                        'corrdelP', str(ell), 'k_lp', str(lp), '_power3600z_BoxN', str(i_mock), 
                         '.fourier_tophat.fs1.0.rc0.43.kfit4.3.kfixed4.34.dat.p'
                         ])
                     lstyle = '-'
                     label = "Correlated: "+r"$l' ="+str(lp)+"$"
 
                 elif mock == 'nseries': 
+                    if ell == 0: 
+                        q_str = ''
+                    else: 
+                        q_str = 'Q_'
                     pickle_file = ''.join([
                         '/mount/riachuelo1/hahn/power/Nseries/', 
-                        'corrdelP2k_lp', str(lp), '_POWER_Q_CutskyN', str(i_mock), 
+                        'corrdelP', str(ell), 'k_lp', str(lp), '_POWER_', q_str, 'CutskyN', str(i_mock), 
                         '.fidcosmo.fourier_tophat.fs1.0.rc0.43.kfit0.7.kfixed0.84.dat.grid960.P020000.box3600.p'
                         ])
                     label = None
 
                 k_lpcomp, corrdelP_lpcomp = pickle.load(open(pickle_file, 'rb'))
+                if mock == 'nseriesbox': 
+                    print 'lp = ', lp
+                    print corrdelP_lpcomp.min(), corrdelP_lpcomp.max()
                 
                 if i_mock == 1: 
                     avg_corrdelP_lpcomp = corrdelP_lpcomp
@@ -312,18 +319,38 @@ def plot_delP_lp_comp_nseries(ell, n_mocks=1, Ngrid=960):
             except UnboundLocalError: 
                 corrdelP = avg_corrdelP_lpcomp
 
+        # del P^uncorr
+        if mock == 'nseries': 
+            uncorrdelPk_pickle_file = ''.join([
+                '/mount/riachuelo1/hahn/power/Nseries/',
+                'uncorrdelP', str(ell), 
+                'k_POWER_CutskyN1.fidcosmo.fourier_tophat.fs1.0.rc0.43.kfit0.7.kfixed0.84.dat.grid960.P020000.box3600.p'])
+        
+        elif mock == 'nseriesbox': 
+            uncorrdelPk_pickle_file = ''.join([
+                '/mount/riachuelo1/hahn/power/Nseries/Box/', 
+                'uncorrdelP', str(ell), 
+                'k_power3600z_BoxN1.fourier_tophat.fs1.0.rc0.43.kfit4.3.kfixed4.34.dat.p'
+                ])
+
+        k, uncorrdelP = pickle.load(open(uncorrdelPk_pickle_file, 'rb'))
+
         if mock == 'nseriesbox': 
+            uncorr_label = 'Uncorrelated'
             tot_label = 'Total'
+            tot_lstyle = '-'
         else: 
+            uncorr_label = None
             tot_label = None
-        sub.plot(
-                k_lpcomp, 
-                corrdelP, 
+            tot_lstyle = '--'
+        sub.plot(k, uncorrdelP, c= 'red', label = uncorr_label, ls= tot_lstyle, lw=2)
+        sub.plot(k_lpcomp, corrdelP + uncorrdelP, 
                 c= 'gray',
-                ls= lstyle,
+                ls= tot_lstyle,
                 lw=2, 
                 label=tot_label
                 )
+        
         del corrdelP
 
     sub.plot(
@@ -335,7 +362,9 @@ def plot_delP_lp_comp_nseries(ell, n_mocks=1, Ngrid=960):
             )
 
     sub.set_xlim([10**-3,10**1])
-    if ell == 2: 
+    if ell == 0: 
+        sub.set_ylim([-1000., 100.])
+    elif ell == 2: 
         sub.set_ylim([-50.0, 250.])
     elif ell == 4: 
         sub.set_ylim([-50.0, 1000.])
@@ -345,7 +374,7 @@ def plot_delP_lp_comp_nseries(ell, n_mocks=1, Ngrid=960):
     sub.set_ylabel(r"$\mathtt{\Delta P_{"+str(ell)+"}^{corr}(k)}$", fontsize=30)
     
     if ell == 0: 
-        sub.legend(loc='lower left', scatterpoints = 1)
+        sub.legend(loc='lower right', scatterpoints = 1)
     elif ell == 2: 
         sub.legend(loc='upper left', scatterpoints = 1)
     elif ell == 4: 
@@ -716,7 +745,8 @@ if __name__=="__main__":
     #plot_delP(2, n_mocks=10, Ngrid=720)
     #for l_i in [0,2,4]:
     #    plot_delP(l_i, n_mocks=10, Ngrid=720)
-    plot_delP_lp_comp_nseries(2, n_mocks=7, Ngrid=960)
+    plot_delP_lp_comp_nseries(0, n_mocks=4, Ngrid=960)
+    #plot_delP_lp_comp_nseries(2, n_mocks=3, Ngrid=960)
     #plot_delP_lp_component(2, mock='nseriesbox', n_mocks=1, Ngrid=960)
     #plot_delP_lp_component(4, n_mocks=10, Ngrid=720)
     #plot_delP_lp_component(2, n_mocks=10, Ngrid=960)
