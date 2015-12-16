@@ -52,7 +52,7 @@ def delP_corr(k, Pk, l, fs=1.0, rc=0.4, extrap_params=[[3345.0, -1.6], [400.0, -
     if len(Pk) != len(extrap_params): 
         raise ValueError('Extrapolation parameters need to be specified for each multipole') 
     
-    lvalues = [0,2,4,6,8]
+    lvalues = [0,2,4,6,8, 10, 12, 14]
 
     sum_delP = np.zeros(len(k))
     
@@ -171,7 +171,7 @@ def fllp_poly(l1_in, l2_in, x):
     elif (l1_in == 4) and (l2_in == 2): 
         return x**4 - x**2
     elif (l1_in == 6) and (l2_in ==0): 
-        return (33./8.)*x**6 - (63./8.)*x**4 + (35./8.)*x**2 - 5/8
+        return (33./8.)*x**6 - (63./8.)*x**4 + (35./8.)*x**2 - 5./8.
     elif (l1_in == 6) and (l2_in == 2): 
         return (11./4.)*x**6 - (9./2.)*x**4 + (7./4.)*x**2
     elif (l1_in == 6) and (l2_in == 4): 
@@ -205,40 +205,36 @@ def fllp_poly(l1_in, l2_in, x):
         return x**10 - x**8
     else: 
         raise ValueError
-"""
-    def f_l_lp(x, y, l, lp, error=False): 
-        '''
-        Actual integrals of the f_l,l' term in the FC correction equation 
-        '''
-        #start_time = time.time()
-        upper_bound = np.min([1.0, x/y])
-        lower_bound = np.max([-1.0, -1.0*x/y])
-        #print 'upper bound ', upper_bound, ' lower bound ', lower_bound
-        
-        fllp = lambda mu : f_l_lp_integrand(mu, x, y, l, lp)
 
-        f_llp = 0.5*(2.*np.float(l) + 1.) * quad_int(fllp, lower_bound,  upper_bound, epsrel=0.05)[0]
-        #f_llp_err = 0.5*(2.*np.float(l) + 1.) * quad_int(fllp, lower_bound, upper_bound, epsrel=0.05)[1]
-        
-        #print "f_ll' calculation takes ", time.time() - start_time 
-        #if not error: 
-        return f_llp
-        #else: 
-        #    return [f_llp, f_llp_err]
+def f_l_lp(x, y, l, lp): #, error=False): 
+    '''
+    Actual integrals of the f_l,l' term in the FC correction equation 
+    '''
+    #start_time = time.time()
+    upper_bound = np.min([1.0, x/y])
+    lower_bound = np.max([-1.0, -1.0*x/y])
+    
+    fllp = lambda mu : f_l_lp_integrand(mu, x, y, l, lp)
 
-    def f_l_lp_integrand(mu, x, y, l, lp): 
-        ''' Integrand of f_l_lp integration 
-        '''
-        Leg_l = legendre(l)     # Legendre polynomial of order l 
-        Leg_lp = legendre(lp)   # Legendre polynomial of order l'
-        
-        if np.abs(mu) > np.abs(x/y): 
-            raise ValueError
+    f_llp_integral = quad_int(fllp, lower_bound,  upper_bound, epsrel=0.01)
+    f_llp = 0.5*(2.*np.float(l) + 1.) * f_llp_integral[0]
+    
+    #print "f_ll' calculation takes ", time.time() - start_time 
+    return f_llp
 
-        theta = np.sqrt(x**2 - y**2 * mu**2)
+def f_l_lp_integrand(mu, x, y, l, lp): 
+    ''' Integrand of f_l_lp integration 
+    '''
+    Leg_l = legendre(l)     # Legendre polynomial of order l 
+    Leg_lp = legendre(lp)   # Legendre polynomial of order l'
+    
+    if np.abs(mu) > np.abs(x/y): 
+        raise ValueError
 
-        return Leg_l(mu) * Leg_lp(y * mu/x) * (W_2d(theta) + y**2 * (1. - mu**2) * W_secorder(theta))
-"""
+    theta = np.sqrt(x**2 - y**2 * mu**2)
+
+    return Leg_l(mu) * Leg_lp(y * mu/x) * (W_2d(theta) + y**2 * (1. - mu**2) * W_secorder(theta))
+
 def W_secorder(x): 
     '''
     J2(x)/x^2 - J1(x)/2x
