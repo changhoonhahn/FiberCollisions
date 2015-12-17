@@ -195,7 +195,7 @@ def fourier_tophat_lp_component(mock, fs=1.0, rc=0.43):
 
     elif mock == 'nseriesbox': 
         n_mock = 7
-        k_fit = 4.3
+        k_fit = 4.
         k_fixed = 4.34
         data_dir = '/mount/riachuelo1/hahn/power/Nseries/Box/'
         for i_mock in xrange(1, n_mock+1):
