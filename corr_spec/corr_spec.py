@@ -65,8 +65,8 @@ class CorrSpec(Spec):
         Read bispectrum/powerspectrum file
         '''
         if self.cat_corr['catalog']['name'].lower() == 'nseriesbox': 
-            col_index = [0, 6, 2, 3, 4]
-            data_cols = ['k', 'p0k', 'p2k', 'p4k', 'p6k']
+            col_index = [0, -1, 2, 3, 4, 5, 6]
+            data_cols = ['k', 'p0k', 'p2k', 'p4k', 'p6k', 'p8k', 'p10k']
 
             spec_data = np.loadtxt(
                         self.file_name, 
