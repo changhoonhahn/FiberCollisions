@@ -32,7 +32,7 @@ def delP_uncorr(k, l, fs=1.0, rc=0.4):
 
     return delP
 
-def delP_corr(k, Pk, l, fs=1.0, rc=0.4, extrap_params=[[3345.0, -1.6], [400.0, -4.]], k_fixed=None, lp_comp=False): 
+def delP_corr(k, Pk, l, fs=1.0, rc=0.4, extrap_params=[[3345.0, -1.6], [400.0, -4.]], k_fixed=None, lp_comp=False, noextrap=False): 
     '''
     Fiber collision correction term to Powerspectrum multipole l. The correlated term.
     
@@ -58,6 +58,8 @@ def delP_corr(k, Pk, l, fs=1.0, rc=0.4, extrap_params=[[3345.0, -1.6], [400.0, -
     
     if lp_comp: 
         lps, delPlp = [], [] 
+    if noextrap: 
+        print 'no extrapolation'
 
     for i_lp, lp in enumerate(lvalues[:len(Pk)]):
         print 'delP^corr( l = ', l, ", l'= ", lp, ')'
@@ -86,9 +88,14 @@ def delP_corr(k, Pk, l, fs=1.0, rc=0.4, extrap_params=[[3345.0, -1.6], [400.0, -
                     Pk_kplus_extrap, 
                     rc=rc, 
                     k_min=k[0], 
-                    k_max=k[-1]
+                    k_max=k[-1], 
+                    noextrap=noextrap
                     )
-            delP_int, delP_int_err = quad_int(dPq_integrand, 0., np.inf, epsrel=0.01)
+            if not noextrap: 
+                delP_int, delP_int_err = quad_int(dPq_integrand, 0., np.inf, epsrel=0.01)
+            else: 
+                delP_int, delP_int_err = quad_int(dPq_integrand, 0., k[-1], epsrel=0.01)
+
             delP[i_k] = alpha * delP_int
 
         #print "delP(k) calculation takes ", time.time() - start_time 

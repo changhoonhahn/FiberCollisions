@@ -155,7 +155,7 @@ def fourier_tophat_Pk(cat_corr, pk_file_name, true_pk_file_name):
             )
     return None
 
-def fourier_tophat_lp_component(mock, fs=1.0, rc=0.43):
+def fourier_tophat_lp_component(mock, fs=1.0, rc=0.43, noextrap=''):
     '''
     Fourier tophat del P values calculated from the true average power spectrum.
     Hacked together. 
@@ -255,7 +255,8 @@ def fourier_tophat_lp_component(mock, fs=1.0, rc=0.43):
                 rc=rc,              # rc 
                 extrap_params=tr_extrap_pars, 
                 k_fixed=k_fixed, 
-                lp_comp=True
+                lp_comp=True, 
+                noextrap=noextrap
                 )
     
         corrdelPk = np.zeros(len(tr_k))
@@ -266,7 +267,7 @@ def fourier_tophat_lp_component(mock, fs=1.0, rc=0.43):
                 avgpk_name = 'AVG_power3600z_BoxN.dat'
 
             corrdelPk_pickle_file = ''.join([
-                data_dir, 'corrdelP', str(ell), 'k_lp', str(lp), '_', avgpk_name, '.p'
+                data_dir, 'corrdelP', str(ell), 'k_lp', str(lp), noextrap, '_', avgpk_name, '.p'
                 ])
             pickle.dump([tr_k, corrdelPk_lp[i_lp]], open(corrdelPk_pickle_file, 'wb'))
             corrdelPk += corrdelPk_lp[i_lp]
@@ -292,4 +293,4 @@ def fourier_tophat_lp_component(mock, fs=1.0, rc=0.43):
 
 
 if __name__=='__main__':
-    fourier_tophat_lp_component('nseriesbox', fs=1.0, rc=0.43)
+    fourier_tophat_lp_component('nseriesbox', fs=1.0, rc=0.43, noextrap='_noextrap')

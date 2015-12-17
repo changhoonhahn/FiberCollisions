@@ -93,10 +93,8 @@ def test_qPqfllp(l, lp, rc=0.43):
 
     Notes
     -----
-    - Consistent for l, lp < 6
-    - Possible break-down in the estimates for l or lp = 10? 
     '''
-    q_arr = np.logspace(-3, 3, num=10)
+    q_arr = np.logspace(-3, 3, num=100)
 
     n_mock = 7
     k_fit = 4.
@@ -121,7 +119,11 @@ def test_qPqfllp(l, lp, rc=0.43):
 
     tr_pk /= 7.
     tr_specs =  (2.0*np.pi)**3 * tr_pk
-
+    
+    # interpolation function 
+    Pk_interp = interp1d(tr_k, tr_pk, kind='cubic')
+    
+    # extrapolation parameter
     tr_extrap_par = pk_extrap.pk_powerlaw_bestfit(tr_k, tr_specs, k_fit=4., k_fixed=4.34)
 
     prettyplot()
@@ -135,9 +137,11 @@ def test_qPqfllp(l, lp, rc=0.43):
 
         qPqfllp = [] 
         for q in q_arr:
+            #start_time = time.time()
             qPqfllp.append(
-                    q * pq(q, tr_k, tr_pk, tr_extrap_par, k_fixed=4.34) * fourier_corr.f_l_lp(q*rc, krc, l, lp)
+                    q * pq(q, Pk_interp, tr_extrap_par, k_min=tr_k[0], k_max=tr_k[-1], k_fixed=4.34) * fourier_corr.f_l_lp(q*rc, krc, l, lp)
                     )
+            #print 'Extrap and fllp takes ', time.time() - start_time
         
         int_label = '$ k = '+str(round(k, 2))+ '$'
         
@@ -145,29 +149,30 @@ def test_qPqfllp(l, lp, rc=0.43):
 
         maxmax = np.max([np.max(qPqfllp), maxmax])
         minmin = np.min([np.min(qPqfllp), minmin])
-
+    
     sub.set_xscale('log')
     sub.set_xlabel(r"$\mathtt{q}$", fontsize=25)
     sub.set_ylabel(r"$\mathtt{q P(q) f_{l, l'}(q r_c, k r_c)}$", fontsize=25)
-    #sub.set_ylim([-1.1, 1.1])
+    if ell == 0: 
+        sub.vlines(tr_k[-1], -20., 100., color='k', linestyles='--', linewidth=2)
+        sub.set_ylim([-20, 100])
+    elif ell == 2: 
+        sub.vlines(tr_k[-1], -25., 5., color='k', linestyles='--', linewidth=2)
+        sub.set_ylim([-25, 5])
 
     sub.text(2.*10**-3, 1.01*maxmax, r"l = "+str(l)+", l' = "+str(lp), fontsize=20)
     sub.legend(loc='upper right')
     
-    plt.show()
-    #fig.savefig(''.join([
-    #    'figure/', 
-    #    'f_l_lp_estimate', 
-    #    '.l', str(l), '.lp', str(lp), '.png'
-    #    ]), bbox_inches='tight')
+    #plt.show()
+    fig.savefig(''.join([
+        'figure/', 
+        'qPqfllp', '.l', str(l), '.lp', str(lp), '.png'
+        ]), bbox_inches='tight')
     plt.close()
 
-def pq(q, k, Pk, extrap_param, k_fixed=4.34): 
-    k_min = k[0] 
-    k_max = k[-1]
-    Pk_interp = interp1d(k, Pk, kind='cubic')
+def pq(q, f_interp, extrap_param, k_min=0.0003, k_max=4.34, k_fixed=4.34): 
     if (q > k_min) and (q <= k_max): 
-        return Pk_interp(q)
+        return f_interp(q)
     elif (q <= k_min): 
         return 0.0
     elif (q > k_max): 
@@ -176,7 +181,7 @@ def pq(q, k, Pk, extrap_param, k_fixed=4.34):
 
 
 if __name__=='__main__':
-    test_qPqfllp(0,0, rc=0.43)
-    #for ell in [0,2]:
-    #    for ellp in range(1,6):  
+    for ell in [0,2]:
+        for ellp in range(6):  
+            test_qPqfllp(ell, 2*ellp, rc=0.43)
     #        test_f_l_lp_est(ell, 2*ellp, rc=0.43)
