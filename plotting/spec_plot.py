@@ -772,9 +772,9 @@ if __name__=='__main__':
 
     cat_corrs = [ 
             {'catalog': {'name': 'nseriesbox'}, 'correction': {'name': 'true'}}, 
-            {'catalog': {'name': 'nseriesbox'}, 'correction': {'name': 'fourier_tophat', 'fs': 1.0, 'rc': 0.43, 'k_fit': 4.3, 'k_fixed': 4.34}}
             ]
-    plot_pk_comp(cat_corrs, 7, Ngrid=960, ell=2, type='Pk_err', xrange=[10**-1, 10**1.], yrange=[10., 10.**4], figsize=[14,8])
+    plot_pk_comp(cat_corrs, 7, Ngrid=960, ell=8, type='Pk_err', xrange=[10**-1, 10**1.], yrange=[10., 10.**3], figsize=[14,8])
+    plot_pk_comp(cat_corrs, 7, Ngrid=960, ell=10, type='Pk_err', xrange=[10**-1, 10**1.], yrange=[10., 10.**3], figsize=[14,8])
     #{
     #    'catalog': {'name': 'nseries'}, 
     #    'correction': {'name': 'upweight'}
