@@ -266,7 +266,66 @@ def test_qPqfllp_k(k, l, rc=0.43, noextrap=''):
         'qPqfllp', noextrap, '.l', str(l), '.k', str(round(k,2)), '.png'
         ]), bbox_inches='tight')
     plt.close()
+
+def test_fllp_k(k, l, rc=0.43):
+    '''
+    plot f_l_l' for l = 0, 2 and l' = 0, 2, 4, 6, 8, 10 in order to determine how it behaves
+
+    Parameter
+    ---------
+    - l : ell value 
+
+    Notes
+    -----
+    '''
+    q_arr = np.logspace(-3, 3, num=100)
+
+    n_mock = 7
+    krc = k * rc
+    k_fit = 4.
+    k_fixed = 4.34
+    data_dir = '/mount/riachuelo1/hahn/power/Nseries/Box/'
     
+    prettyplot()
+    pretty_colors = prettycolors()
+
+    fig = plt.figure(1, figsize=(14,8))
+    sub = fig.add_subplot(111)
+
+    maxmax, minmin = 0., 0.
+
+    for i_lp, ellp in enumerate(range(6)):
+        lp = 2 * ellp
+        
+        true_pk_file = ''.join([data_dir, 'power3600z_BoxN1.dat'])
+        tr_k = np.loadtxt(true_pk_file, unpack=True, usecols =[0])
+
+        fllp = [] 
+        for q in q_arr:
+            fllp.append(fourier_corr.f_l_lp(q*rc, krc, l, lp))
+        
+        int_label = "$ l' = "+str(lp)+ "$"
+        
+        sub.plot(q_arr, np.array(fllp), c=pretty_colors[i_lp+1], lw=4, ls='-', label=int_label)
+
+        maxmax = np.max([np.max(fllp), maxmax])
+        minmin = np.min([np.min(fllp), minmin])
+    
+    sub.set_xscale('log')
+    sub.set_xlabel(r"$\mathtt{q}$", fontsize=25)
+    sub.set_ylabel(r"$\mathtt{f_{l, l'}(q r_c, k r_c)}$", fontsize=25)
+
+    sub.vlines(tr_k[-1], minmin, maxmax, color='k', linestyles='--', linewidth=2)
+
+    sub.text(2.*10**-3, 1.01*maxmax, r"k = "+str(round(k,2)), fontsize=20)
+    sub.legend(loc='upper right')
+    
+    fig.savefig(''.join([
+        'figure/', 
+        'fllp.l', str(l), '.k', str(round(k,2)), '.png'
+        ]), bbox_inches='tight')
+    plt.close()
+
 def test_Pq_extrap():
     '''
     Test the extrapolation of P_l'(q)
@@ -359,8 +418,10 @@ if __name__=='__main__':
     for k_i in [0.1, 0.3, 0.5, 0.7]: 
         #test_qPqfllp_k(k_i, 0, rc=0.43, noextrap='_noextrap')
         #test_qPqfllp_k(k_i, 2, rc=0.43, noextrap='_noextrap')
-        test_qPqfllp_k(k_i, 0, rc=0.43)
-        test_qPqfllp_k(k_i, 2, rc=0.43)
+        test_fllp_k(k_i, 0, rc=0.43)
+        test_fllp_k(k_i, 2, rc=0.43)
+        #test_qPqfllp_k(k_i, 0, rc=0.43)
+        #test_qPqfllp_k(k_i, 2, rc=0.43)
 
     '''
     for ell in [0,2]:

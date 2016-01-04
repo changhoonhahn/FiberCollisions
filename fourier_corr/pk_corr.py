@@ -158,7 +158,9 @@ def fourier_tophat_Pk(cat_corr, pk_file_name, true_pk_file_name):
 def fourier_tophat_lp_component(mock, fs=1.0, rc=0.43, noextrap=''):
     '''
     Fourier tophat del P values calculated from the true average power spectrum.
-    Hacked together. 
+    Hacked together. Writes out delP values to pickle files. 
+
+    Calculates delP_0^corr and del P_2^corr
 
     Parameters
     ----------
@@ -194,13 +196,15 @@ def fourier_tophat_lp_component(mock, fs=1.0, rc=0.43, noextrap=''):
         tr_specs = [tr_p0k, tr_p2k, tr_p4k]
 
     elif mock == 'nseriesbox': 
+        # default parameters for nseries box 
         n_mock = 7
         k_fit = 4.
         k_fixed = 4.34
+    
+        # loop through mock realizations
         data_dir = '/mount/riachuelo1/hahn/power/Nseries/Box/'
         for i_mock in xrange(1, n_mock+1):
-            true_pk_file = ''.join([
-                data_dir,
+            true_pk_file = ''.join([data_dir,
                 'power3600z_BoxN', str(i_mock), '.dat'])
 
             tr_k, tr_p0k_i, tr_p2k_i, tr_p4k_i, tr_p6k_i, tr_p8k_i, tr_p10k_i = np.loadtxt(
@@ -237,7 +241,7 @@ def fourier_tophat_lp_component(mock, fs=1.0, rc=0.43, noextrap=''):
         raise NotImplemented
 
     # calculate extrapolation parameters for the 
-    # true P0(k), P2(k), P4(k), etc used for the integration.
+    # true P0(k), P2(k), P4(k), ... etc used for the integration.
     ells = (2. * np.arange(len(tr_specs))).astype(int)
     print 'ells = ', ells
     tr_extrap_pars = [] 
@@ -247,6 +251,7 @@ def fourier_tophat_lp_component(mock, fs=1.0, rc=0.43, noextrap=''):
                 )
     
     for ell in [0, 2]: # calculate the correlated portion of delP_ell(k)
+
         lps, corrdelPk_lp = fourier_corr.delP_corr(
                 tr_k,               # k 
                 tr_specs,           # [p0k, p2k, p4k, ..] 

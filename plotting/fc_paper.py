@@ -194,7 +194,121 @@ def fig_p0k_p2k_mock_catalogs(catalogs=['nseries'], n_mocks=[84], Ngrid=960):
             bbox_inches="tight")
     plt.close()
 
+def fig_nn_upw_p0k_p2k_mock_catalogs(catalogs=['nseries'], n_mocks=[84], Ngrid=960): 
+    '''
+    Figure that compares P_l(k)^nn / P_l(k)^true for l = 0, 2 for mock catalogs  
+
+    Parameters
+    ----------
+    catalogs : 
+        List of strings that specify the mock catalogs to include. (e.g. ['nseries', 'qpm', 'bigmultidark', 'tilingmock'])
+    '''
+    prettyplot()
+    pretty_colors = prettycolors()
+    
+    fig = plt.figure(1, figsize=(14,8))
+
+    if len(catalogs) < 3: 
+        catalogs = list(np.repeat(catalogs[0], 3))
+        n_mocks = list(np.repeat(n_mocks[0], 3))
+    
+    for i_ell, ell in enumerate([0, 2]):  # monopole or quadrupole
+
+        for i_cat, cat in enumerate(catalogs):
+            if cat == 'qpm': 
+                cat_label = 'QPM' 
+                cat_color = pretty_colors[3]
+            elif cat == 'tilingmock': 
+                cat_label = 'Tiling Mock' 
+                cat_color = pretty_colors[5]
+            elif cat == 'nseries': 
+                cat_label = 'Nseries'
+                cat_color = pretty_colors[7]
+            else: 
+                raise NotImplementedError 
+
+            sub = fig.add_subplot(2, 3, 3*i_ell + i_cat+1)
+
+            tru_catdict = {'name': cat, 'n_mock': 1}
+            tru_corrdict = {'name': 'true'}
+            upw_corrdict = {'name': 'upweight'}
+            tru_specdict = {
+                    'P0': 20000,
+                    'Lbox': 3600, 
+                    'Ngrid': Ngrid, 
+                    'ell': ell 
+                    }
+            tru_cat_corr = {
+                    'catalog': {'name': tru_catdict['name'], 'n_mock': 1}, 
+                    'correction': tru_corrdict, 
+                    'spec': tru_specdict
+                    }
+            upw_cat_corr = {
+                    'catalog': {'name': tru_catdict['name'], 'n_mock': 1}, 
+                    'correction': upw_corrdict, 
+                    'spec': tru_specdict
+                    }
+            tru_avg_spec = AvgSpec(n_mocks[i_cat], 'pk', tru_cat_corr)
+            tru_avg_spec.read()
+            
+            upw_avg_spec = AvgSpec(n_mocks[i_cat], 'pk', upw_cat_corr)
+            upw_avg_spec.read()
+        
+            k_arr = tru_avg_spec.k
+            tru_avg_pk = getattr(tru_avg_spec, ''.join(['p', str(ell), 'k']))
+            upw_avg_pk = getattr(upw_avg_spec, ''.join(['p', str(ell), 'k']))
+
+            #pk_err = tru_avg_spec.stddev()
+            #pk_err_lower = pk_err 
+            #pk_err_lower[np.abs(pk_err) > np.abs(avg_pk)] = avg_pk[np.abs(pk_err) > np.abs(avg_pk)] * 0.99
+            
+            if ell == 0: 
+                sub.scatter(k_arr, upw_avg_pk/tru_avg_pk, lw=0, color=cat_color, label = None)
+            elif ell == 2: 
+                sub.scatter(k_arr, upw_avg_pk/tru_avg_pk, lw=0, color=cat_color, label = cat_label)
+            sub.plot((10**-3, 10**0), (1.0,1.0), 'k--')
+
+            # Axes 
+            sub.set_xlim([10**-3,10**0])
+            sub.set_xscale('log')
+
+            if ell == 0: 
+                sub.set_xticklabels([])
+                sub.set_ylim([0.65,1.1])
+                plt.sca(sub)
+                plt.yticks(list(np.arange(0.7, 1.2, 0.1)) )
+            elif ell == 2: 
+                sub.set_ylim([0.9,2.0])
+                #sub.set_yscale('log')
+
+                if i_cat == len(catalogs)-1: 
+                    sub.legend(loc='upper left', scatterpoints=1, prop={'size':20}) 
+                elif i_cat == 0: 
+                    plt.sca(sub)
+                    plt.yticks(list(np.arange(1.0, 2.0, 0.2)) )
+                    plt.xticks([10**-3, 10**-2, 10**-1])
+                else: 
+                    sub.set_xlabel('k (h/Mpc)', fontsize=24)
+                    plt.sca(sub)
+                    plt.xticks([10**-3, 10**-2, 10**-1])
+
+            if i_cat == 0:
+                sub.set_ylabel(r"$\mathtt{\overline{P_{"+str(ell)+"}^{NN}}/\overline{P_{"+str(ell)+"}^{true}}(k)}$", fontsize=24)
+            else: 
+                sub.set_yticklabels([])
+
+    fig.subplots_adjust(wspace=0.0, hspace=0.0)
+    fig.savefig(
+            ''.join([
+                'figure/fc_paper/', 
+                'mock_catalog_NN_true_Plk.png'
+                ]), 
+            bbox_inches="tight")
+    plt.close()
+
+
 
 if __name__ == "__main__": 
-    fig_p0k_p2k_mock_catalogs(catalogs=['nseries'], n_mocks=[5], Ngrid=960)
+    fig_nn_upw_p0k_p2k_mock_catalogs(catalogs=['nseries'], n_mocks=[5], Ngrid=960)
+    #fig_p0k_p2k_mock_catalogs(catalogs=['nseries'], n_mocks=[5], Ngrid=960)
     #fig_mock_catalogs(catalogs=['nseries'], n_mocks=[5])
