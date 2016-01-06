@@ -80,6 +80,45 @@ class TrueCorr(Corrections):
             # write to file 
             data_list = [orig_ra, orig_dec, orig_z, true_wfc, orig_wcomp, orig_zupw, orig_upw_index]
 
+        elif catalog['name'].lower() == 'qpm': 
+
+            # import original true data 
+            orig_file = ''.join([
+                '/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/data/', 
+                'a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.rdz']) 
+            orig_data = np.loadtxt(orig_file) 
+
+            orig_info_file = orig_file+'.info'
+            orig_info = np.loadtxt(orig_info_file)    # gal_id, comp, z_real, z_red, mass_halo, flag_sta, id_halo
+        
+            # consistency issue with #46
+            if catalog['n_mock'] in (46, 52, 53, 54, 56, 61, 707, 756, 794, 819, 831, 835, 838): 
+                orig_veto_file = ''.join(['/mount/riachuelo1/hahn/data/QPM/dr12d/', 
+                    'a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.veto']) 
+            else:
+                orig_veto_file = ''.join(['/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/data/', 
+                    'a0.6452_', str("%04d" % catalog['n_mock']), '.dr12d_cmass_ngc.veto']) 
+            orig_veto = np.loadtxt(orig_veto_file) 
+            n_gal = len(orig_veto)
+       
+            # assign RA, Dec, z, and w_veto 
+            true_ra     = orig_data[:,0]
+            true_dec    = orig_data[:,1]
+            true_z      = orig_data[:,2]
+            true_wfkp   = orig_data[:,3]
+            true_wfc = np.repeat(1.0, n_gal)    # fiber collisions weights are all 1 for true
+
+            # check to make sure that the redshifts correspond btw rdz file and rdz.info file 
+            if np.max(np.abs(orig_info[:,3]/true_z-1.0)) > 10**-5: 
+                raise ValueError('redshifts between the data file and info file dont match') 
+
+            true_comp = orig_info[:,1]         # completness weights
+
+            # remove veto mask 
+            # Only keep galaxies with veto = 0 (for veto values in .veto file) 
+            vetomask = np.where(orig_veto == 0)            
+            data_list = [true_ra[vetomask], true_dec[vetomask], true_z[vetomask], true_wfc[vetomask], true_comp[vetomask]]
+
         elif catalog['name'].lower() == 'lasdamasgeo':          
             
             orig_true_file = ''.join(['/mount/chichipio2/rs123/MOCKS/LRGFull_zm_geo/gaussian/zspace/', 

@@ -163,34 +163,24 @@ class CorrAvgSpec(CorrSpec):
         spec_file_core = spec_file_name.split('.')[0]
         spec_file_ending = '.'.join(spec_file_name.split('.')[1:])
 
-        if self.cat_corr['catalog']['name'] == 'nseries': 
-            if self.type == 'pk': 
-                avg_file = ''.join([
-                    '/'.join(spec_file.split('/')[:-1]), '/', 
-                    'AVG_P', str(specdict['ell']), 'K_', 
-                    spec_file_core.split('1')[0], '.', 
-                    str(self.n_mocks), 'mocks.', 
-                    spec_file_ending
-                    ])
-            elif self.type == 'bk': 
-                avg_file = ''.join([
-                    '/'.join(spec_file.split('/')[:-1]), '/', 
-                    'AVG_BK_', 
-                    spec_file_core.split('1')[0], '.', 
-                    str(self.n_mocks), 'mocks.', 
-                    spec_file_ending
-                    ])
-        elif self.cat_corr['catalog']['name'] == 'nseriesbox': 
-            if self.type == 'pk': 
-                avg_file = ''.join([
-                    '/'.join(spec_file.split('/')[:-1]), '/', 
-                    'AVG_P', str(specdict['ell']), 'K_', 
-                    spec_file_core.split('1')[0], '.', 
-                    str(self.n_mocks), 'mocks.', 
-                    spec_file_ending
-                    ])
-        else: 
-            raise NotImplementedError
+        #if self.cat_corr['catalog']['name'] == 'nseries': 
+        if self.type == 'pk': 
+            avg_file = ''.join([
+                '/'.join(spec_file.split('/')[:-1]), '/', 
+                'AVG_P', str(specdict['ell']), 'K_', 
+                spec_file_core.split('1')[0], '.', 
+                str(self.n_mocks), 'mocks.', 
+                spec_file_ending
+                ])
+        elif self.type == 'bk': 
+            avg_file = ''.join([
+                '/'.join(spec_file.split('/')[:-1]), '/', 
+                'AVG_BK_', 
+                spec_file_core.split('1')[0], '.', 
+                str(self.n_mocks), 'mocks.', 
+                spec_file_ending
+                ])
+
         return avg_file
     
     def build(self):

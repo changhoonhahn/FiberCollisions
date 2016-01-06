@@ -294,7 +294,7 @@ def test_fllp_k(k, l, rc=0.43):
 
     maxmax, minmin = 0., 0.
 
-    for i_lp, ellp in enumerate(range(6)):
+    for i_lp, ellp in enumerate(range(20)):
         lp = 2 * ellp
         
         true_pk_file = ''.join([data_dir, 'power3600z_BoxN1.dat'])
@@ -382,17 +382,17 @@ def test_Pq_extrap():
             pq(q, Pk_interp, tr_extrap_par, k_min=tr_k[0], k_max=tr_k[-1], k_fixed=4.34) 
             for q in q_arr])
         int_label = "$ l' = "+str(lp)+ "$"
-        sub.plot(q_arr, np.abs(np.array(Pqs)), c=pretty_colors[i_lp+1], lw=4, ls='-', label=int_label)
+        sub.plot(q_arr, np.array(Pqs), c=pretty_colors[i_lp+1], lw=4, ls='-', label=int_label)
     
     sub.set_xscale('log')
-    sub.set_yscale('log')
+    #sub.set_yscale('log')
     sub.set_xlabel(r"$\mathtt{q}$", fontsize=25)
     sub.set_ylabel(r"$\mathtt{P(q)}$", fontsize=25)
     sub.legend(loc='upper right')
     
     fig.savefig(''.join([
         'figure/', 
-        'Pq_lp.png'
+        'Pq_lp_noabs.png'
         ]), bbox_inches='tight')
     plt.close()
 
@@ -415,14 +415,15 @@ def pq_noextrap(q, f_interp, k_min=0.0003, k_max=4.34, k_fixed=4.34):
         return 0.0
 
 if __name__=='__main__':
-    for k_i in [0.1, 0.3, 0.5, 0.7]: 
-        #test_qPqfllp_k(k_i, 0, rc=0.43, noextrap='_noextrap')
-        #test_qPqfllp_k(k_i, 2, rc=0.43, noextrap='_noextrap')
-        test_fllp_k(k_i, 0, rc=0.43)
-        test_fllp_k(k_i, 2, rc=0.43)
-        #test_qPqfllp_k(k_i, 0, rc=0.43)
-        #test_qPqfllp_k(k_i, 2, rc=0.43)
 
+    test_Pq_extrap()
+    #for k_i in [0.3, 0.7]: 
+    #    #test_qPqfllp_k(k_i, 0, rc=0.43, noextrap='_noextrap')
+    #    #test_qPqfllp_k(k_i, 2, rc=0.43, noextrap='_noextrap')
+    #    test_fllp_k(k_i, 0, rc=0.43)
+    #    test_fllp_k(k_i, 2, rc=0.43)
+    #    #test_qPqfllp_k(k_i, 0, rc=0.43)
+    #    #test_qPqfllp_k(k_i, 2, rc=0.43)
     '''
     for ell in [0,2]:
         for ellp in range(6):  

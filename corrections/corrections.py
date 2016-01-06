@@ -5,7 +5,7 @@ Corrections class
 '''
 import cosmolopy as cosmos
 
-from util.catalog import Catalog
+from Spectrum.util.catalog import Catalog
 
 class Corrections(object): 
 

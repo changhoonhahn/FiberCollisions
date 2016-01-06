@@ -309,6 +309,6 @@ def fig_nn_upw_p0k_p2k_mock_catalogs(catalogs=['nseries'], n_mocks=[84], Ngrid=9
 
 
 if __name__ == "__main__": 
-    fig_nn_upw_p0k_p2k_mock_catalogs(catalogs=['nseries'], n_mocks=[5], Ngrid=960)
-    #fig_p0k_p2k_mock_catalogs(catalogs=['nseries'], n_mocks=[5], Ngrid=960)
+    #fig_nn_upw_p0k_p2k_mock_catalogs(catalogs=['nseries'], n_mocks=[5], Ngrid=960)
+    fig_p0k_p2k_mock_catalogs(catalogs=['nseries', 'qpm'], n_mocks=[5,5], Ngrid=960)
     #fig_mock_catalogs(catalogs=['nseries'], n_mocks=[5])

@@ -92,6 +92,40 @@ class UpweightCorr(Corrections):
                 if len(wrong_index) > 0: 
                     for i_data, datum in enumerate(data_list): 
                         data_list[i_data] = np.delete(datum, wrong_index)
+    
+        elif catalog_name == 'qpm': 
+
+            orig_file = ''.join([
+                '/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/data/', 
+                'a0.6452_', str("%04d" % catdict['n_mock']), '.dr12d_cmass_ngc.rdz']) 
+            ra, dec, z, wfc  = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,4]) 
+        
+            orig_info_file = ''.join([
+                '/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/data/', 
+                'a0.6452_', str("%04d" % catdict['n_mock']), '.dr12d_cmass_ngc.rdz.info']) 
+            # gal_id, comp, z_real, z_red, mass_halo, flag_sta, id_halo
+            comp = np.loadtxt(orig_info_file, unpack=True, skiprows=3, usecols=[1])    
+
+            if catdict['n_mock'] in (44, 46, 52, 53, 54, 56, 61, 707, 756, 794, 819, 831, 835, 838):
+                orig_veto_file = ''.join([
+                    '/mount/riachuelo1/hahn/data/QPM/dr12d/', 
+                    'a0.6452_', str("%04d" % catdict['n_mock']), '.dr12d_cmass_ngc.veto']) 
+            else:
+                orig_veto_file = ''.join([
+                    '/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/data/', 
+                    'a0.6452_', str("%04d" % catdict['n_mock']), '.dr12d_cmass_ngc.veto']) 
+
+            veto = np.loadtxt(orig_veto_file) 
+            n_gal = len(veto)
+
+            if len(ra) != n_gal: 
+                print orig_file
+                print orig_veto_file 
+                raise ValueError('veto mask doesnt match') 
+
+            vetomask = np.where(veto == 0)
+            
+            data_list = [ra[vetomask], dec[vetomask], z[vetomask], wfc[vetomask], comp[vetomask]]   # data column list 
 
         elif 'cmass' in catalog_name: 
 

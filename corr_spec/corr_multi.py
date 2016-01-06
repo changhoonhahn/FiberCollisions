@@ -28,8 +28,7 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, ell=2, Ng
         n_mock_list = range(1, n_mocks + 1)
 
     corrdict = {} 
-    if catalog_name == 'nseries':
-        
+    if catalog_name == 'nseries':               # Nseries
         if isinstance(corr_name, dict): 
             corrdict = corr_name
         else:
@@ -56,6 +55,15 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, ell=2, Ng
                 corrdict['rc'] = 0.43 
                 corrdict['k_fit'] = 0.7 
                 corrdict['k_fixed'] = 0.84
+
+    elif catalog_name == 'qpm': 
+        if isinstance(corr_name, dict): 
+            corrdict = corr_name
+        else:
+            corrdict['name'] = corr_name
+
+    else: 
+        raise NotImplementedError
     
     if type == 'bk':
         arglist = [ 
@@ -65,7 +73,7 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, ell=2, Ng
                     'spec': {'P0': 20000, 'Lbox': 3600, 'Ngrid': Ngrid} 
                     }, kwargs]
                 for i_mock in n_mock_list]
-    else:
+    elif type == 'pk':
         arglist = [ [{
                     'catalog': {'name': catalog_name, 'n_mock': i_mock}, 
                     'correction': corrdict, 
@@ -73,6 +81,15 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, ell=2, Ng
                     }, ell, kwargs]
                 for i_mock in n_mock_list
                 ]
+    elif type == 'data': 
+        arglist = [ [{
+                    'catalog': {'name': catalog_name, 'n_mock': i_mock}, 
+                    'correction': corrdict, 
+                    'spec': { 'P0': 20000, 'Lbox': 3600, 'Ngrid': Ngrid, 'ell': ell} 
+                    }, kwargs]
+                for i_mock in n_mock_list]
+    else: 
+        raise NameError
     
     if Nthreads > 1: 
         pool = Pewl(processes=Nthreads)
@@ -152,6 +169,9 @@ def build_bk_wrapper(params):
 
 # --- Multiprocessing --- 
 if __name__=="__main__":
+    build_multipro('pk', 'qpm', 'true', range(1,11), ell=2, Nthreads=1, clobber=True, Ngrid=960)
+    build_multipro('pk', 'qpm', 'upweight', range(1,11), ell=2, Nthreads=1, clobber=True, Ngrid=960)
+    #build_multipro('data', 'qpm', 'upweight', range(1,51), Nthreads=5, clobber=True)
     #build_multipro('bk', 'nseries', 'upweight', range(2, 85), Nthreads=1, clobber=True, Ngrid=360)
     #build_multipro('bk', 'nseries', 'true', range(2, 85), Nthreads=1, clobber=True, Ngrid=360)
-    build_multipro('pk', 'nseries', 'fourier_tophat', [1], Nthreads=1, clobber=True, Ngrid=960)
+    #build_multipro('pk', 'nseries', 'fourier_tophat', [1], Nthreads=1, clobber=True, Ngrid=960)
