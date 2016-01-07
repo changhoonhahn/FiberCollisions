@@ -9,7 +9,7 @@ import numpy as np
 import scipy as sp 
 import os 
 
-from spec.data import Data
+from corr_spec.corr_corrdata import CorrCorrData
 from util.direc import direc
 from util.idl import Idl
 from util import util
@@ -43,7 +43,7 @@ class Dlos(object):
         dlos_dir = direc('data', self.cat_corr)
         dlos_str = 'DLOS_'
 
-        dataclass = Data('data', self.cat_corr, **self.kwargs)  # data class 
+        dataclass = CorrCorrData(self.cat_corr, **self.kwargs)  # data class 
         data_file = dataclass.file_name # galaxy data file
         self.data_file = data_file
 
@@ -191,7 +191,7 @@ class Dlos(object):
         return fd_binsize 
 
 if __name__=="__main__":
-    cat_corr = {'catalog': {'name': 'nseries', 'n_mock': 1}, 'correction': {'name': 'upweight'}}
+    cat_corr = {'catalog': {'name': 'cmass', 'n_mock': 1}, 'correction': {'name': 'upweight'}}
     deelos = Dlos(cat_corr)
     print deelos.file_name
     print deelos.read()

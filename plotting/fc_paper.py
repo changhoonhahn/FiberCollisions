@@ -11,6 +11,7 @@ from matplotlib.collections import LineCollection
 from matplotlib.backends.backend_pdf import PdfPages
 
 # --- Local --- 
+from dlos.dlos import Dlos
 from corr_spec.corr_corrdata import CorrCorrData
 from corr_spec.corr_average import CorrAvgSpec as AvgSpec
 
@@ -306,9 +307,63 @@ def fig_nn_upw_p0k_p2k_mock_catalogs(catalogs=['nseries'], n_mocks=[84], Ngrid=9
             bbox_inches="tight")
     plt.close()
 
+def fig_mock_dlos(catalogs=['nseries'], n_mocks=[84], peak_range=[-15.0, 15.0]): 
+    '''
+    dLOS distribution plot for fc_paper
+    '''
+    prettyplot()
+    pretty_colors = prettycolors()
+    fig = plt.figure(1, figsize=[14, 5])
+    sub = fig.add_subplot(111)
 
+    catalogs = ['cmass'] + catalogs
+    n_mocks = [1] + n_mocks
+
+    for i_cat, cat in enumerate(catalogs): 
+
+        cat_dlos = [] 
+        for i_mock in xrange(1, n_mocks[i_cat]+1): 
+            cat_corr = {
+                    'catalog': {'name': cat, 'n_mock': i_mock}, 
+                    'correction': {'name': 'upweight'}
+                    }
+            deelos = Dlos(cat_corr)
+            deelos.read()
+            cat_dlos += list(deelos.dlos)
+
+        cat_deelos = Dlos(cat_corr)
+        cat_deelos.dlos = np.array(cat_dlos)
+
+        # Freedman Diaconis binsize
+        fd_binsize = cat_deelos.fd_binsize(peak_range = peak_range)
+        
+        dlos_mid, dlos_dist = cat_deelos.dlos_dist(binsize = fd_binsize, normed=True)
+
+        if cat == 'qpm': 
+            cat_label = 'QPM' 
+            cat_color = pretty_colors[3]
+        elif cat == 'tilingmock': 
+            cat_label = 'Tiling Mock' 
+            cat_color = pretty_colors[5]
+        elif cat == 'nseries': 
+            cat_label = 'Nseries'
+            cat_color = pretty_colors[7]
+        elif cat == 'cmass': 
+            cat_label = 'CMASS'
+            cat_color = pretty_colors[0]
+        else: 
+            raise NotImplementedError 
+
+        sub.plot(dlos_mid, dlos_dist, lw=4, color=cat_color, label=cat_label)
+    
+    sub.set_xlim([-45.0, 45.0])
+    sub.set_xlabel('$\mathtt{d_{LOS}}$ (Mpc)')
+    sub.legend(loc='upper left')
+
+    plt.show()
 
 if __name__ == "__main__": 
     #fig_nn_upw_p0k_p2k_mock_catalogs(catalogs=['nseries'], n_mocks=[5], Ngrid=960)
-    fig_p0k_p2k_mock_catalogs(catalogs=['nseries', 'qpm'], n_mocks=[5,5], Ngrid=960)
+    #fig_p0k_p2k_mock_catalogs(catalogs=['nseries', 'qpm'], n_mocks=[5,5], Ngrid=960)
     #fig_mock_catalogs(catalogs=['nseries'], n_mocks=[5])
+    fig_mock_dlos(catalogs=['nseries'], n_mocks=[5])
