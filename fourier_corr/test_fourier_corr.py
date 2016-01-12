@@ -396,8 +396,6 @@ def test_Pq_extrap():
         ]), bbox_inches='tight')
     plt.close()
 
-
-
 def pq(q, f_interp, extrap_param, k_min=0.0003, k_max=4.34, k_fixed=4.34): 
     if (q > k_min) and (q <= k_max): 
         return f_interp(q)
@@ -414,8 +412,10 @@ def pq_noextrap(q, f_interp, k_min=0.0003, k_max=4.34, k_fixed=4.34):
     elif (q > k_max): 
         return 0.0
 
-if __name__=='__main__':
 
+
+
+if __name__=='__main__':
     test_Pq_extrap()
     #for k_i in [0.3, 0.7]: 
     #    #test_qPqfllp_k(k_i, 0, rc=0.43, noextrap='_noextrap')

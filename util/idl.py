@@ -6,6 +6,7 @@ Interface with IDL code
 '''
 
 import os 
+import subprocess
 
 class Idl(object): 
 
@@ -43,7 +44,9 @@ class Idl(object):
     def run(self): 
         """ Run IDL command 
         """
-        print self.cmd 
+        print self.cmd
+        #subprocess.Popen([self.cmd], cwd='pro/')
+        #p.wait()
         os.system(self.cmd)
 
         return None

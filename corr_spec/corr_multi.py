@@ -62,6 +62,12 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, ell=2, Ng
         else:
             corrdict['name'] = corr_name
 
+    elif catalog_name == 'cmass': 
+        if isinstance(corr_name, dict): 
+            corrdict = corr_name
+        else:
+            corrdict['name'] = corr_name
+
     else: 
         raise NotImplementedError
     
@@ -169,8 +175,9 @@ def build_bk_wrapper(params):
 
 # --- Multiprocessing --- 
 if __name__=="__main__":
-    build_multipro('pk', 'qpm', 'true', range(1,11), ell=2, Nthreads=1, clobber=True, Ngrid=960)
-    build_multipro('pk', 'qpm', 'upweight', range(1,11), ell=2, Nthreads=1, clobber=True, Ngrid=960)
+    #build_multipro('data', 'cmass', 'upweight', [1], Nthreads=1, clobber=True)
+    build_multipro('pk', 'qpm', 'true', range(1,11), ell=2, Nthreads=1, clobber=True, Ngrid=480)
+    build_multipro('pk', 'qpm', 'upweight', range(1,11), ell=2, Nthreads=1, clobber=True, Ngrid=480)
     #build_multipro('data', 'qpm', 'upweight', range(1,51), Nthreads=5, clobber=True)
     #build_multipro('bk', 'nseries', 'upweight', range(2, 85), Nthreads=1, clobber=True, Ngrid=360)
     #build_multipro('bk', 'nseries', 'true', range(2, 85), Nthreads=1, clobber=True, Ngrid=360)

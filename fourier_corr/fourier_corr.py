@@ -112,6 +112,74 @@ def delP_corr(k, Pk, l, fs=1.0, rc=0.4, extrap_params=[[3345.0, -1.6], [400.0, -
     else:  
         return sum_delP 
 
+def delP_corr_qmax(k, Pk, l, q_max=None, fs=1.0, rc=0.4, lp_comp=False): 
+    '''
+    Fiber collision correction term to Powerspectrum multipole l. The correlated term.
+    
+    delP_corr(k)_l = - (2 pi f_s) (2 pi^2 rc^2) Sum_l' [int^inf_0 q Pl'(q) f_ll'(q*rc,k*rc) dq]
+    
+    Leg_l(0) W_2d(k*rc)/k
+
+    No extrapolation is assumed. q_max, the upper limit of the dq integral must be specified
+    as keyword argument. 
+    '''
+
+    if q_max is None:
+        raise ValueError
+    if q_max > k[-1]: 
+        raise ValueError
+
+    alpha = -0.5 * fs * rc**2
+
+    if not isinstance(Pk, list): 
+        raise ValueError(
+                'Pk input has to be a list containing the multipoles. e.g. [P0k, P2k, P4k]'
+                )
+    
+    lvalues = [0, 2, 4, 6, 8, 10, 12, 14]
+
+    sum_delP = np.zeros(len(k))
+    
+    if lp_comp: 
+        lps, delPlp = [], [] 
+
+    for i_lp, lp in enumerate(lvalues[:len(Pk)]):
+        print 'delP^corr( l = ', l, ", l'= ", lp, ')'
+
+        # Cubic Spline interpolated function of P(k)
+        Pk_interp = interp1d(k, Pk[i_lp], kind='cubic')
+
+        delP = np.zeros(len(k))
+
+        # loop through k values and evaluate delta P for all ks 
+        for i_k, k_i in enumerate(k): 
+            dPq_integrand = lambda q_var: delPq_integrand(
+                    q_var, 
+                    k_i, 
+                    l, 
+                    lp, 
+                    Pk_interp, 
+                    None, 
+                    rc=rc, 
+                    k_min=k[0], 
+                    k_max=k[-1], 
+                    noextrap=True
+                    )
+            delP_int, delP_int_err = quad_int(dPq_integrand, 0., q_max, epsrel=0.01)
+
+            delP[i_k] = alpha * delP_int
+
+        sum_delP += delP
+         
+        if lp_comp: 
+            lps.append(lp)
+            delPlp.append(delP)
+
+    if lp_comp: 
+        return [lps, delPlp]
+    else:  
+        return sum_delP 
+
 def delPq_integrand(q, k, l, lp, f_interp, f_extrap, rc=0.4, k_min=0.002, k_max=0.3, noextrap=False):
     '''
     Integrand for del P_l^corr correction 

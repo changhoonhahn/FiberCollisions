@@ -6,6 +6,7 @@ Interfaces with spec modules in order to actually calculate P_l(k) for mocks/dat
 '''
 import numpy as np
 import pickle
+import cosmolopy as cosmos
 
 import pk_extrap
 import fourier_corr
@@ -296,6 +297,140 @@ def fourier_tophat_lp_component(mock, fs=1.0, rc=0.43, noextrap=''):
 
     return None
 
+def fourier_tophat_lp_component_qmaxtest(mock, q_max, fs=1.0, rc=0.43):
+    '''
+    Calculate Fourier tophat del P values from the true average power spectrum
+    for specified q_max value. This is the next step test after 'no extrapolation'
+    in order to determine what q_max value is necessary to calculate a delP, within
+    sample variance. 
+
+    delP_uncorr is constant
+    delP_corr = \sum_lp \int\limits_0^{q_max}
+    Writes out delP values to pickle files. 
+
+    Calculates delP_0^corr and del P_2^corr
+
+    Parameters
+    ----------
+    '''
+    # calculate average true power spectrum
+    if mock == 'nseries': 
+        n_mock = 84
+        k_fit = 0.7
+        data_dir = '/mount/riachuelo1/hahn/power/Nseries/'
+        for i_mock in xrange(1, n_mock+1):
+            true_pk_file = ''.join([
+                data_dir, 
+                'POWER_Q_CutskyN', str(i_mock), '.fidcosmo.dat.grid960.P020000.box3600'])
+
+            tr_k, tr_p0k_i, tr_p2k_i, tr_p4k_i = np.loadtxt(
+                        true_pk_file, 
+                        unpack = True, 
+                        usecols =[0,1,2,3] 
+                        )
+            if i_mock == 1: 
+                tr_p0k = tr_p0k_i
+                tr_p2k = tr_p2k_i
+                tr_p4k = tr_p4k_i
+            else: 
+                tr_p0k += tr_p0k_i
+                tr_p2k += tr_p2k_i
+                tr_p4k += tr_p4k_i 
+        tr_p0k /= np.float(n_mock)
+        tr_p2k /= np.float(n_mock)
+        tr_p4k /= np.float(n_mock)
+
+        tr_specs = [tr_p0k, tr_p2k, tr_p4k]
+
+    elif mock == 'nseriesbox': 
+        # default parameters for nseries box 
+        n_mock = 7
+        k_fit = 4.
+    
+        # loop through mock realizations
+        data_dir = '/mount/riachuelo1/hahn/power/Nseries/Box/'
+        for i_mock in xrange(1, n_mock+1):
+            true_pk_file = ''.join([data_dir,
+                'power3600z_BoxN', str(i_mock), '.dat'])
+
+            tr_k, tr_p0k_i, tr_p2k_i, tr_p4k_i, tr_p6k_i, tr_p8k_i, tr_p10k_i = np.loadtxt(
+                        true_pk_file, 
+                        unpack = True, 
+                        usecols =[0,-1,2,3,4,5,6] 
+                        )
+
+            if i_mock == 1: 
+                tr_p0k = tr_p0k_i
+                tr_p2k = tr_p2k_i
+                tr_p4k = tr_p4k_i
+                tr_p6k = tr_p6k_i
+                tr_p8k = tr_p8k_i
+                tr_p10k = tr_p10k_i
+            else: 
+                tr_p0k += tr_p0k_i
+                tr_p2k += tr_p2k_i
+                tr_p4k += tr_p4k_i
+                tr_p6k += tr_p6k_i
+                tr_p8k += tr_p8k_i
+                tr_p10k += tr_p10k_i
+
+        tr_p0k /= np.float(n_mock)
+        tr_p2k /= np.float(n_mock)
+        tr_p4k /= np.float(n_mock)
+        tr_p6k /= np.float(n_mock)
+        tr_p8k /= np.float(n_mock)
+        tr_p10k /= np.float(n_mock)
+
+        notnorm_tr_specs = [tr_p0k, tr_p2k, tr_p4k, tr_p6k, tr_p8k, tr_p10k]
+        tr_specs =  [(2.0*np.pi)**3 * tr_spec for tr_spec in notnorm_tr_specs]
+    else: 
+        raise NotImplemented
+
+    if q_max > tr_k[-1]: 
+        raise ValueError("For this test, q_max can't be greater than max(k)")
+    
+    for ell in [0, 2]: # calculate the correlated portion of delP_ell(k)
+        lps, corrdelPk_lp = fourier_corr.delP_corr_qmax(
+                tr_k,               # k 
+                tr_specs,           # [p0k, p2k, p4k, ..] 
+                ell,                # ell
+                q_max=q_max, 
+                fs=fs,              # fs 
+                rc=rc,              # rc 
+                lp_comp=True
+                )
+    
+        corrdelPk = np.zeros(len(tr_k))
+        for i_lp, lp in enumerate(lps):     # save l' components to pickle file 
+            if mock == 'nseries': 
+                avgpk_name = 'AVG_POWER_Q_CutskyN.fidcosmo.dat.grid960.P020000.box3600'
+            elif mock == 'nseriesbox':
+                avgpk_name = 'AVG_power3600z_BoxN.dat'
+
+            corrdelPk_pickle_file = ''.join([
+                data_dir, 'corrdelP', str(ell), 'k_lp', str(lp), 
+                '_qmax', str(round(q_max,2)), '_', avgpk_name, '.p'
+                ])
+            pickle.dump([tr_k, corrdelPk_lp[i_lp]], open(corrdelPk_pickle_file, 'wb'))
+            corrdelPk += corrdelPk_lp[i_lp]
+
+        corrdelPk_pickle_file = ''.join([
+            data_dir, 'corrdelP', str(ell), 'k', 
+            '_qmax', str(round(q_max,2)),'_',avgpk_name, '.p'
+            ])
+        pickle.dump([tr_k, corrdelPk], open(corrdelPk_pickle_file, 'wb'))
+
+    return None
+
+
 
 if __name__=='__main__':
-    fourier_tophat_lp_component('nseriesbox', fs=1.0, rc=0.43, noextrap='_noextrap')
+
+    for qmax in [0.2, 0.3, 0.4, 0.5, 0.7, 1.0, 2.0, 3.0, 4.0]: 
+        print 'q_max = ', qmax
+        fourier_tophat_lp_component_qmaxtest('nseriesbox', qmax, fs=1.0, rc=0.43)
+    #print fibcoll_angularscale(redshift='min', omega_m=0.31) 
+    #print fibcoll_angularscale(redshift='median', omega_m=0.31)
+    #print fibcoll_angularscale(redshift='max', omega_m=0.31)
+
+    #fourier_tophat_lp_component('nseriesbox', fs=1.0, rc=0.43, noextrap='_noextrap')

@@ -151,6 +151,8 @@ def test_delPk_corr_scatter(ell, n_mocks, Ngrid=960, k_fit=0.25, k_fixed=0.6, fs
     fig.savefig(fig_file, bbox_inches="tight")
     plt.close()
 
+
+
 if __name__=='__main__':
     #for k_fit in np.arange(3.5, 4.5, 0.25):
     test_pk_extrap_scatter(6, 7, Ngrid=960, k_fit=4.0, k_fixed=4.3)

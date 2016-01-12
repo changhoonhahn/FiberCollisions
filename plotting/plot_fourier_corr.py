@@ -17,6 +17,7 @@ from corr_spec.corr_average import CorrAvgSpec as AvgSpec
 # plotting ----
 from defutility.plotting import prettyplot 
 from defutility.plotting import prettycolors 
+
 """
 def plot_delP(l, fs=1.0, rc=0.4, n_mocks=84, Ngrid=360, extrap_params=[[3345.0, -1.6], [400.0, -4.]], k_fixed=None, **kwargs):
     '''
@@ -225,7 +226,6 @@ def plot_delP_lp_component(ell, mock='nseries', n_mocks=84, Ngrid=360):
     plt.show()
     plt.close()
 
-
 def plot_delP_lp_comp_nseries(ell, Ngrid=960, noextrap=''):
     '''
     Compare each of the l' components of delP_l^corr. l' components are read from pickle files.
@@ -377,7 +377,6 @@ def plot_delP_lp_comp_nseries(ell, Ngrid=960, noextrap=''):
     #plt.show()
     plt.close()
 
-
 def plot_delP_extrapolation_test(l, type='normal', fs=1.0, rc=0.4, n_mocks=84, Ngrid=360):
     '''
     Comparison of delP^corr, delP^uncorr, and P^upw_avg - P^true_avg
@@ -442,54 +441,175 @@ def plot_delP_extrapolation_test(l, type='normal', fs=1.0, rc=0.4, n_mocks=84, N
     plt.show()
     plt.close()
 
-def plot_corrected_Pk(l, fs=1.0, rc=0.4):
+def plot_corrected_Pk(ell, mock='nseriesbox', noextrap='', Ngrid=960):
     '''
+    Compare the Top-Hat Convolvution Corrected P_ell(k) with the true P(k) 
+    (P_corr/P_true). Compare to delP/P 
     '''
-
-    if l == 0: 
-        l_cols = [0, 1]
-    else: 
-        l_cols = [0, 2]
-    
-    # true P_l(k)
-    k, Pk = np.loadtxt(
-            'POWER_Q_CutskyN1.fidcosmo.dat.grid360.P020000.box3600',
-            unpack = True, 
-            usecols = l_cols
-            ) 
-    
-    # Upweighted P_l(k)
-    k, Pk_upw= np.loadtxt(
-            'POWER_Q_CutskyN1.fidcosmo.fibcoll.dat.grid360.P020000.box3600',
-            unpack = True, 
-            usecols = l_cols
-            ) 
-
-    corrdelP = pickle.load(open('delP'+str(l)+'k_corr.p', 'rb'))
-    uncorrdelP = tophat.delP_uncorr(k, l, fs=fs, rc=rc)
-
-    # FC P_l(k)
-    fc_Pk = Pk + uncorrdelP + corrdelP
-    
     prettyplot()
     pretty_colors = prettycolors()
+    
+    # average P_l(k) and P_l^upw(k)
+    specdict = {
+            'P0': 20000,
+            'Lbox': 3600, 
+            'Ngrid': Ngrid, 
+            'ell': ell 
+            }
+    true_cat_corr = {
+            'catalog': {'name': 'nseries', 'n_mock': 1}, 
+            'correction': {'name': 'true'},
+            'spec': specdict
+            }
+    true_spec = AvgSpec(20, 'pk', true_cat_corr)
+    true_spec.read()
+    k_true = true_spec.k
+    Pk_true = getattr(true_spec, 'p'+str(ell)+'k')  # P^true
+    upw_cat_corr = {
+            'catalog': {'name': 'nseries', 'n_mock': 1}, 
+            'correction': {'name': 'upweight'},
+            'spec': specdict
+            }
+    upw_spec = AvgSpec(20, 'pk', upw_cat_corr)
+    upw_spec.read()
+    k_upw = upw_spec.k
+    Pk_upw = getattr(upw_spec, 'p'+str(ell)+'k')    # P^upw
 
-    fig = plt.figure(figsize=(10,10))
+    fig = plt.figure(figsize=(17,8))
     sub = fig.add_subplot(111)
+    
+    for mock in ['nseriesbox']:#, 'nseries']:
+        if mock == 'nseries': # this needs to be fixed
+            lps = [0, 2, 4]
+            lstyle = '--'
+        elif mock == 'nseriesbox': 
+            lps = [0, 2, 4, 6, 8, 10]
+            lstyle = '-'
 
-    sub.plot(k, fc_Pk, color=pretty_colors[3], label='FC TopHat')
-    sub.plot(k, Pk_upw, color=pretty_colors[5], label='Upweighted (data)')
-    sub.plot(k, Pk, color=pretty_colors[1], label='True (data)')
+        for i_lp, lp in enumerate(lps):
 
-    sub.set_xlim([10**-3,10**0])
+            if mock == 'nseriesbox': 
+                pickle_file = ''.join([
+                    '/mount/riachuelo1/hahn/power/Nseries/Box/', 
+                    'corrdelP', 
+                    str(ell), 
+                    'k_lp', 
+                    str(lp), 
+                    noextrap, 
+                    '_AVG_power3600z_BoxN.dat.p'
+                    ])
+            elif mock == 'nseries': 
+                pickle_file = ''.join([
+                    '/mount/riachuelo1/hahn/power/Nseries/', 
+                    'corrdelP', 
+                    str(ell), 
+                    'k_lp', 
+                    str(lp), 
+                    noextrap, 
+                    '_AVG_POWER_Q_CutskyN.fidcosmo.dat.grid960.P020000.box3600.p'
+                    ])
+
+            k_lpcomp, corrdelP_lpcomp = pickle.load(open(pickle_file, 'rb'))
+            if mock == 'nseriesbox': 
+                print 'lp = ', lp
+                print pickle_file 
+                print corrdelP_lpcomp.min(), corrdelP_lpcomp.max()
+                
+            if i_lp == 0: 
+                corrdelP = corrdelP_lpcomp
+            else: 
+                corrdelP += corrdelP_lpcomp
+
+        # del P^uncorr
+        if mock == 'nseries': 
+            uncorrdelPk_pickle_file = ''.join([
+                '/mount/riachuelo1/hahn/power/Nseries/',
+                'uncorrdelP', str(ell), 'k_AVG_POWER_Q_CutskyN.fidcosmo.dat.grid960.P020000.box3600.p'
+                ])
+        elif mock == 'nseriesbox': 
+            uncorrdelPk_pickle_file = ''.join([
+                '/mount/riachuelo1/hahn/power/Nseries/Box/', 
+                'uncorrdelP', str(ell), 'k_AVG_power3600z_BoxN.dat.p'
+                ])
+
+        uncorr_k, uncorrdelP = pickle.load(open(uncorrdelPk_pickle_file, 'rb'))
+
+        if mock == 'nseriesbox': 
+            uncorr_label = 'Uncorrelated'
+            uncorr_lstyle = '-.'
+            tot_lstyle = '-'
+        else: 
+            uncorr_label = None
+            tot_label = None
+            tot_lstyle = '--'
+            
+        corr_label = 'Tophat Conv.'
+        delpoverp_label = "Sample Variance"
+        
+        delP_interp = interp1d(k_lpcomp, corrdelP + uncorrdelP, kind='cubic')
+        krange = np.where(k_upw > k_lpcomp.min())
+        Pk_corr = Pk_true[krange] + delP_interp(k_upw[krange])
+        
+        #sub.scatter(k_upw, Pk_true/Pk_upw, c= pretty_colors[2], lw=0, label="True")
+        sub.scatter(k_upw, Pk_upw/Pk_true, c= pretty_colors[2], lw=0,
+                label="Upweighted")
+
+        #sub.scatter(k_upw[krange], Pk_corr/Pk_upw[krange], 
+        #        c= pretty_colors[3],
+        #        lw=0, 
+        #        label=corr_label
+        #        )
+        sub.scatter(k_upw[krange], (Pk_upw[krange] - (Pk_corr-Pk_true[krange]))/Pk_true[krange], 
+                c= pretty_colors[3],
+                lw=0, 
+                label=corr_label
+                )
+
+        Pk_err = true_spec.stddev()
+
+        sub.plot(k_true, 1+Pk_err/Pk_true, 
+                c= 'black',
+                ls= '--',
+                lw=2,
+                label=delpoverp_label
+                )
+        if ell == 0:
+            sub.plot(k_true, 1-Pk_err/Pk_true, c= 'black', ls= '--', lw=2, label=None)
+        
+        del corrdelP
+
+    if ell == 0: 
+        sub.set_ylim([0.6, 1.4])
+        sub.set_xlim([10**-3,10**0])
+    elif ell == 2: 
+        sub.set_ylim([0.0, 2.0])
+        sub.set_xlim([10**-3,10**0])
+    else: 
+        raise NotImplementedError
     sub.set_xscale("log") 
     sub.set_xlabel(r"$\mathtt{k}\;\;(\mathtt{Mpc}/h)$", fontsize=30)
-
-    sub.set_yscale('log')
-    sub.set_ylabel(r"$\mathtt{P_{"+str(l)+"}(k)}$", fontsize=30)
-
-    sub.legend(loc='upper left')
-    fig.savefig('qaplot_P_'+str(l)+'_tophat.png', bbox_inches="tight")
+    sub.set_ylabel(
+            r"$\mathtt{P_{"+str(ell)+"}^{corr}(k)/P_{"+str(ell)+"}^{true}(k)}$", 
+            fontsize=30)
+    
+    if ell == 0: 
+        sub.legend(loc='lower right', scatterpoints = 1)
+    elif ell == 2: 
+        sub.legend(loc='upper left', scatterpoints = 1)
+    elif ell == 4: 
+        sub.legend(loc='lower left', scatterpoints = 1)
+     
+    fig.savefig(
+            ''.join([
+                'figure/', 
+                'qaplot_P_', 
+                str(ell), 
+                'corr_over_Ptrue', 
+                noextrap, 
+                '_', 
+                mock, 
+                '.png']), 
+            bbox_inches="tight")
     plt.close()
 
 def plot_delP_integrand(l, k_value=0.3, k_fixed=0.6, n_mocks=20, Ngrid=360): 
@@ -721,6 +841,10 @@ def plot_delP_corr_extrapolations(l, n_mocks=10, k_fixed=0.6, k_max=0.5, Ngrid=3
     plt.close()
 
 if __name__=="__main__": 
+    plot_corrected_Pk(0)
+    plot_corrected_Pk(2)
+    plot_corrected_Pk(0, noextrap='_noextrap')
+    plot_corrected_Pk(2, noextrap='_noextrap')
     #for k in [0.0025]:#, 0.05, 0.1, 0.3]: 
     #    plot_fllp(0, k_value=k, rc=0.4)
     #    plot_fllp(2, k_value=k, rc=0.4)
@@ -734,10 +858,10 @@ if __name__=="__main__":
     #plot_delP(2, n_mocks=10, Ngrid=720)
     #for l_i in [0,2,4]:
     #    plot_delP(l_i, n_mocks=10, Ngrid=720)
-    plot_delP_lp_comp_nseries(0, Ngrid=960, noextrap='')
-    plot_delP_lp_comp_nseries(2, Ngrid=960, noextrap='')
-    plot_delP_lp_comp_nseries(0, Ngrid=960, noextrap='_noextrap')
-    plot_delP_lp_comp_nseries(2, Ngrid=960, noextrap='_noextrap')
+    #plot_delP_lp_comp_nseries(0, Ngrid=960, noextrap='')
+    #plot_delP_lp_comp_nseries(2, Ngrid=960, noextrap='')
+    #plot_delP_lp_comp_nseries(0, Ngrid=960, noextrap='_noextrap')
+    #plot_delP_lp_comp_nseries(2, Ngrid=960, noextrap='_noextrap')
     #plot_delP_lp_comp_nseries(2, n_mocks=3, Ngrid=960)
     #plot_delP_lp_component(2, mock='nseriesbox', n_mocks=1, Ngrid=960)
     #plot_delP_lp_component(4, n_mocks=10, Ngrid=720)
