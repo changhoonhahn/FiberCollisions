@@ -3,6 +3,8 @@ import fourier_corr
 from corr_spec.corr_spec import CorrSpec
 from corr_spec.corr_average import CorrAvgSpec
 
+import mpfit
+
 from defutility.plotting import prettyplot 
 from defutility.plotting import prettycolors 
 
@@ -150,6 +152,81 @@ def test_delPk_corr_scatter(ell, n_mocks, Ngrid=960, k_fit=0.25, k_fixed=0.6, fs
         ])
     fig.savefig(fig_file, bbox_inches="tight")
     plt.close()
+
+def test_delPk_corr_ktrust_polyfit(ell, k_trust=0.5, Ngrid=960):
+    '''
+    Fit polynomials to the contribution of delPcorr from q range k_trust to 
+    infinity. delPcorr is being divided into two parts:
+        - 0 to k_trust, which can be reliably calculated 
+        - k_trust to infinity, which cannot be reliably calculated because 
+        we do not trust the models or the extrapolations beyound this point.
+        However they it may be possible to have a polynomial fit. 
+    '''
+    # average P_l(k) and P_l^upw(k)
+    specdict = {'P0': 20000, 'Lbox': 3600, 'Ngrid': Ngrid, 'ell': ell}
+    true_cat_corr = {
+            'catalog': {'name': 'nseries', 'n_mock': 1}, 
+            'correction': {'name': 'true'},
+            'spec': specdict
+            }
+    true_spec = AvgSpec(20, 'pk', true_cat_corr)
+    true_spec.read()
+    k = true_spec.k
+    Pk = getattr(true_spec, 'p'+str(ell)+'k')
+    upw_cat_corr = {
+            'catalog': {'name': 'nseries', 'n_mock': 1}, 
+            'correction': {'name': 'upweight'},
+            'spec': specdict
+            }
+    upw_spec = AvgSpec(20, 'pk', upw_cat_corr)
+    upw_spec.read()
+    k_upw = upw_spec.k
+    Pk_upw = getattr(upw_spec, 'p'+str(ell)+'k')
+    
+    for mock in ['nseriesbox']:
+        if mock == 'nseries': # this needs to be fixed
+            lps = [0, 2, 4]
+        elif mock == 'nseriesbox': 
+            lps = [0, 2, 4, 6, 8, 10]
+
+        for i_lp, lp in enumerate(lps):
+            # total delP^corr integrated from 0 to infinity 
+            if mock == 'nseriesbox': 
+                pickle_file = ''.join([
+                    '/mount/riachuelo1/hahn/power/Nseries/Box/', 
+                    'corrdelP', str(ell), 'k_lp', str(lp), 
+                    '_AVG_power3600z_BoxN.dat.p'
+                    ])
+            elif mock == 'nseries': 
+                pickle_file = ''.join([
+                    '/mount/riachuelo1/hahn/power/Nseries/', 
+                    'corrdelP', str(ell), 'k_lp', str(lp), 
+                    '_AVG_POWER_Q_CutskyN.fidcosmo.dat.grid960.P020000.box3600.p'
+                    ])
+            print pickle_file
+            k_lp, corrdelP_lp = pickle.load(open(pickle_file, 'rb'))
+            
+            # delP^corr 0 to k_trust
+            if mock == 'nseriesbox': 
+                pickle_file = ''.join([
+                    '/mount/riachuelo1/hahn/power/Nseries/Box/', 
+                    'corrdelP', str(ell), 'k_lp', str(lp), 
+                    '_qmax', 
+                    str(round(k_trust,2)),
+                    '_AVG_power3600z_BoxN.dat.p'
+                    ])
+            print pickle_file
+
+            k_lp_0_ktrust, corrdelP_lp_0_ktrust = pickle.load(open(pickle_file, 'rb'))
+
+            corrdelP_lp_ktrust_inf = corrdelP_lp - corrdelP_lp_0_ktrust
+
+            if i_lp == 0: 
+                corrdelP = corrdelP_lp
+                corrdelP_ktrust_inf = corrdelP_lp_ktrust_inf
+            else: 
+                corrdelP += corrdelP_lp
+                corrdelP_ktrust_inf += corrdelP_lp_ktrust_inf
 
 
 

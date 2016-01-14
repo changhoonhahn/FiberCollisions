@@ -4,10 +4,16 @@ Tests for the fourier_corr.py module
 
 '''
 import time 
+import numpy as np
+
+import mpfit
+import pickle 
 import pk_extrap
 import fourier_corr
 
+from scipy.special import j1 as J1
 from scipy.interpolate import interp1d
+from scipy.integrate import quad as quad_int 
 
 # --- plotting ---
 from defutility.plotting import prettyplot 
@@ -412,11 +418,546 @@ def pq_noextrap(q, f_interp, k_min=0.0003, k_max=4.34, k_fixed=4.34):
     elif (q > k_max): 
         return 0.0
 
+def test_B_lp_integrand_nseriesbox(lp, rc=0.43, ktrust=0.5):
+    '''
+    *** THIS TEST IS INCORRECT; CODE IS LEFT AS REFERENCE ONLY ***
+    
+    Test the coefficient B_lp of the k^lp term of the polynomial 
+    decomposition of delP_corr. Only coded for NseriesBox.
+
+    B_lp integrand = P_lp(q)/q^lp J_1(q_lp * rc)
+
+    Parameter
+    ---------
+    - lp : 
+
+    Notes
+    -----
+    '''
+    q_arr = np.logspace(-3, 3, num=100)
+
+    n_mock = 7
+    k_fit = 4.
+    k_fixed = 4.34
+    data_dir = '/mount/riachuelo1/hahn/power/Nseries/Box/'
+    for i_mock in xrange(1, 8):
+        true_pk_file = ''.join([data_dir, 'power3600z_BoxN', str(i_mock), '.dat'])
+        if lp == 0: 
+            l_index = -1
+        else:
+            l_index = 1 + int(lp/2)
+
+        tr_k, tr_pk_i = np.loadtxt(
+                    true_pk_file, 
+                    unpack = True, 
+                    usecols =[0,l_index] 
+                    )
+        if i_mock == 1: 
+            tr_pk = tr_pk_i
+        else: 
+            tr_pk += tr_pk_i
+
+    tr_pk /= 7.
+    tr_specs =  (2.0*np.pi)**3 * tr_pk
+    
+    # interpolation function 
+    Pk_interp = interp1d(tr_k, tr_pk, kind='cubic')
+    # extrapolation parameter
+    tr_extrap_par = pk_extrap.pk_powerlaw_bestfit(tr_k, tr_specs, k_fit=4., k_fixed=4.34)
+
+    prettyplot()
+    pretty_colors = prettycolors()
+
+    fig = plt.figure(figsize=(14,8))
+    sub = fig.add_subplot(111)
+
+    B_lp_integrand = [] 
+    for q in q_arr:
+        Pq = pq(q, Pk_interp, tr_extrap_par, k_min=tr_k[0], k_max=tr_k[-1], k_fixed=4.34)
+
+        B_lp_integrand.append(Pq / (q**lp) * J1(q * rc))
+    
+    ktrust_inf = np.where(q_arr > ktrust)
+    sub.plot(
+            q_arr[ktrust_inf], 
+            np.array(B_lp_integrand)[ktrust_inf], 
+            c=pretty_colors[lp+1], 
+            lw=4, ls='-', label=r"$l' = "+str(lp)+"$")
+
+    sub.set_xscale('log')
+    sub.set_xlabel(r"$\mathtt{q}$", fontsize=25)
+    sub.set_ylabel(r"$\mathtt{B_{l'}}$ integrand", fontsize=25)
+
+    sub.vlines(ktrust, -5000, 5000, color='k', 
+            linestyles='--', linewidth=2, label=r"$\mathtt{k_{trust}}$")
+    sub.set_ylim([-10., 10.])
+    sub.legend(loc='upper right')
+    
+    #plt.show()
+    fig.savefig(''.join([
+        'figure/', 
+        'B_', str(lp), '_integrand_ktrust', str(round(ktrust,2)), '.png'
+        ]), bbox_inches='tight')
+    plt.close()
+
+def test_k_n_coeff_integrand_nseriesbox(n_k, rc=0.43, ktrust=0.5):
+    '''
+    Test the coefficient of the k^n term of the polynomial 
+    decomposition of delP_corr. Only coded for NseriesBox.
+
+    Parameter
+    ---------
+    - n_k : 
+
+    Notes
+    -----
+    '''
+    q_arr = np.logspace(-3, 3, num=100)
+
+    n_mock = 7
+    k_fit = 4.
+    k_fixed = 4.34
+    data_dir = '/mount/riachuelo1/hahn/power/Nseries/Box/'
+
+    for i_mock in xrange(1, 8):
+        true_pk_file = ''.join([data_dir, 'power3600z_BoxN', str(i_mock), '.dat'])
+        tr_k, tr_pk0_i, tr_pk2_i, tr_pk4_i, tr_pk6_i, tr_pk8_i, tr_pk10_i = np.loadtxt(
+                    true_pk_file, 
+                    unpack = True, 
+                    usecols =[0,-1,2,3,4,5,6] 
+                    )
+        if i_mock == 1: 
+            tr_pk0 = tr_pk0_i
+            tr_pk2 = tr_pk2_i
+            tr_pk4 = tr_pk4_i
+            tr_pk6 = tr_pk6_i
+            tr_pk8 = tr_pk8_i
+            tr_pk10= tr_pk10_i
+        else: 
+            tr_pk0 += tr_pk0_i
+            tr_pk2 += tr_pk2_i
+            tr_pk4 += tr_pk4_i
+            tr_pk6 += tr_pk6_i
+            tr_pk8 += tr_pk8_i
+            tr_pk10+= tr_pk10_i
+
+    tr_pk0 *= (2.0*np.pi)**3/7.
+    tr_pk2 *= (2.0*np.pi)**3/7.
+    tr_pk4 *= (2.0*np.pi)**3/7.
+    tr_pk6 *= (2.0*np.pi)**3/7.
+    tr_pk8 *= (2.0*np.pi)**3/7.
+    tr_pk10*= (2.0*np.pi)**3/7.
+    tr_specs = [tr_pk0 ,tr_pk2 ,tr_pk4 ,tr_pk6 ,tr_pk8 ,tr_pk10]
+    
+    Pk_interps = [] 
+    tr_extrap_pars = [] 
+    for i_spec, tr_spec in enumerate(tr_specs):
+        # interpolation function 
+        Pk_interps.append(interp1d(tr_k, tr_spec, kind='cubic'))
+        tr_extrap_pars.append(pk_extrap.pk_powerlaw_bestfit(tr_k, tr_spec, k_fit=4., k_fixed=4.34))
+
+    prettyplot()
+    pretty_colors = prettycolors()
+
+    fig = plt.figure(figsize=(14,8))
+    sub = fig.add_subplot(111)
+    
+    alpha = -1.0 * rc**2
+
+    if n_k == 2: 
+        Clp = [0., 1., -2.5, 2.5*7./4., 2.5*(-21./8.), 2.5*(231./64.)]
+    elif n_k == 4: 
+        Clp = [0., 0., 2.5, 2.5*(-9./2.), 2.5*(99./8.), 2.5*(-429./16.)]
+    elif n_k == 6: 
+        Clp = [0., 0., 0., 2.5*(11./4.), 2.5*(-143./8.), 2.5*(2145./32.)]
+    elif n_k == 8: 
+        Clp = [0., 0., 0., 0., 2.5*(65./8.), 2.5*(-1105./16.)]
+    print Clp
+
+    ktrust_inf = np.where(q_arr > ktrust)
+    q_krange = q_arr[ktrust_inf]
+    
+    # plot the integrands of the coefficients to get an idea of 
+    # what they look like 
+    for i_spec, tr_spec in enumerate(tr_specs):
+        coeff = np.zeros(len(q_krange))
+        for i_q, q in enumerate(q_krange):
+            Pq = pq(q, Pk_interps[i_spec], tr_extrap_pars[i_spec], 
+                    k_min=tr_k[0], k_max=tr_k[-1], k_fixed=4.34)
+            coeff[i_q] = (Clp[i_spec] * Pq) * (J1(q * rc) / (q**n_k))
+
+        sub.plot(
+                q_krange, 
+                alpha * coeff, 
+                c=pretty_colors[i_spec+1], 
+                lw=2, ls='--', label=str(2*i_spec))
+        
+        if i_spec == 0: 
+            integrand = coeff
+        else: 
+            integrand += coeff
+    
+    sub.plot(
+            q_arr[ktrust_inf], 
+            alpha * integrand, 
+            c=pretty_colors[n_k+1], 
+            lw=4, ls='-', label=r"$l = 2$")
+    
+    # actually integrate to calculate the coefficients 
+    coeff = 0.
+    for i_spec, tr_spec in enumerate(tr_specs):
+        Pq = pq(q, Pk_interps[i_spec], tr_extrap_pars[i_spec], 
+                k_min=tr_k[0], k_max=tr_k[-1], k_fixed=4.34)
+    
+        if Clp[i_spec] != 0.: 
+            coeff_integ = lambda qq: \
+                    Clp[i_spec] * \
+                    pq(qq, Pk_interps[i_spec], tr_extrap_pars[i_spec], k_min=tr_k[0], k_max=tr_k[-1], k_fixed=4.34) / \
+                    (qq**n_k)
+
+            coeff_int, coeff_int_err = quad_int(coeff_integ, ktrust, np.inf, epsrel=0.01)
+        else: 
+            coeff_int = 0.
+
+        coeff += coeff_int
+
+    coeff *= alpha
+
+    sub.text(10., 10., str(round(coeff, 2))+r"$\mathtt{k^{"+str(n_k)+"}}$", fontsize=25)
+    sub.set_xscale('log')
+    sub.set_xlabel(r"$\mathtt{q}$", fontsize=25)
+    sub.set_ylabel(
+            r"$\mathtt{\Delta P^{corr}}$, $\mathtt{k^{"+str(n_k)+"}}$ Coefficient Integrand", 
+            fontsize=25)
+
+    #sub.vlines(ktrust, 1.1*np.min(integrand), 1.1*np.max(integrand), color='k', 
+    #        linestyles='--', linewidth=2, label=r"$\mathtt{k_{trust}}$")
+    #sub.set_ylim([-10., 10.])
+    sub.legend(loc='upper right')
+    
+    #plt.show()
+    fig.savefig(''.join([
+        'figure/', 
+        'k^', str(n_k), '_coeff_integrand.ktrust', str(round(ktrust,2)), '.png'
+        ]), bbox_inches='tight')
+    plt.close()
+
+def test_k_n_coeff(ktrust, rc=0.43, ell=2):
+    '''
+    Calculate the coefficient of the k^n term of the polynomial 
+    decomposition of delP_corr. Only coded for NseriesBox.
+
+    Parameter
+    ---------
+
+    Notes
+    -----
+    '''
+    n_mock = 7
+    k_fit = 4.
+    k_fixed = 4.34
+    data_dir = '/mount/riachuelo1/hahn/power/Nseries/Box/'
+    for i_mock in xrange(1, 8):
+        true_pk_file = ''.join([data_dir, 'power3600z_BoxN', str(i_mock), '.dat'])
+        tr_k, tr_pk0_i, tr_pk2_i, tr_pk4_i, tr_pk6_i, tr_pk8_i, tr_pk10_i = np.loadtxt(
+                    true_pk_file, 
+                    unpack = True, 
+                    usecols =[0,-1,2,3,4,5,6] 
+                    )
+        if i_mock == 1: 
+            tr_pk0 = tr_pk0_i
+            tr_pk2 = tr_pk2_i
+            tr_pk4 = tr_pk4_i
+            tr_pk6 = tr_pk6_i
+            tr_pk8 = tr_pk8_i
+            tr_pk10= tr_pk10_i
+        else: 
+            tr_pk0 += tr_pk0_i
+            tr_pk2 += tr_pk2_i
+            tr_pk4 += tr_pk4_i
+            tr_pk6 += tr_pk6_i
+            tr_pk8 += tr_pk8_i
+            tr_pk10+= tr_pk10_i
+
+    tr_pk0 *= (2.0*np.pi)**3/7.
+    tr_pk2 *= (2.0*np.pi)**3/7.
+    tr_pk4 *= (2.0*np.pi)**3/7.
+    tr_pk6 *= (2.0*np.pi)**3/7.
+    tr_pk8 *= (2.0*np.pi)**3/7.
+    tr_pk10*= (2.0*np.pi)**3/7.
+    tr_specs = [tr_pk0 ,tr_pk2 ,tr_pk4 ,tr_pk6 ,tr_pk8 ,tr_pk10]
+    
+    Pk_interps = [] 
+    tr_extrap_pars = [] 
+    for i_spec, tr_spec in enumerate(tr_specs):
+        # interpolation function 
+        Pk_interps.append(interp1d(tr_k, tr_spec, kind='cubic'))
+        tr_extrap_pars.append(pk_extrap.pk_powerlaw_bestfit(tr_k, tr_spec, k_fit=4., k_fixed=4.34))
+
+    alpha = -1.0 * rc**2
+    
+    n_ks = [] 
+    n_k_coeff = [] 
+    for n_k in [2, 4, 6, 8, 10]: 
+        if ell == 2: 
+            if n_k == 2: 
+                Clp = [0., 1., -2.5, 2.5*7./4., 2.5*(-21./8.), 2.5*(231./64.)]
+            elif n_k == 4: 
+                Clp = [0., 0., 2.5, 2.5*(-9./2.), 2.5*(99./8.), 2.5*(-429./16.)]
+            elif n_k == 6: 
+                Clp = [0., 0., 0., 2.5*(11./4.), 2.5*(-143./8.), 2.5*(2145./32.)]
+            elif n_k == 8: 
+                Clp = [0., 0., 0., 0., 2.5*(65./8.), 2.5*(-1105./16.)]
+            elif n_k == 10: 
+                Clp = [0., 0., 0., 0., 0., 2.5*(1615./64.)]
+            else: 
+                raise NotImplementedError
+        else:
+            raise NotImplementedError('Only quadrupole correction implemented') 
+
+        # actually integrate to calculate the coefficients 
+        coeff = 0.
+        for i_spec, tr_spec in enumerate(tr_specs):
+
+            if Clp[i_spec] != 0.: 
+                coeff_integ = lambda qq: \
+                        Clp[i_spec] * \
+                        pq(qq, Pk_interps[i_spec], tr_extrap_pars[i_spec], k_min=tr_k[0], k_max=tr_k[-1], k_fixed=4.34) / \
+                        (qq**n_k)
+
+                coeff_int, coeff_int_err = quad_int(coeff_integ, ktrust, np.inf, epsrel=0.01)
+            else: 
+                coeff_int = 0.
+
+            coeff += coeff_int
+
+        coeff *= alpha
+
+        n_ks.append(n_k)
+        n_k_coeff.append(coeff)
+    
+    data_list = [np.array(n_ks), np.array(n_k_coeff)]
+
+    coeff_file = ''.join([
+        data_dir, 
+        'k^n_coeff',
+        '.ell', str(ell), 
+        '.ktrust', str(round(ktrust,2)), 
+        '.dat'])
+    np.savetxt(coeff_file, 
+            (np.vstack(np.array(data_list))).T, 
+            fmt=['%10.5f', '%10.5f'], 
+            delimiter='\t', 
+            header='Columns : n_k, coeff'
+            )
+
+    return None
+
+def test_k_n_coeff_noextrap(ktrust, rc=0.43, ell=2):
+    '''
+    Calculate the coefficient of the k^n term of the polynomial 
+    decomposition of delP_corr. Only coded for NseriesBox.
+
+    Parameter
+    ---------
+
+    Notes
+    -----
+    '''
+    n_mock = 7
+    k_fit = 4.
+    k_fixed = 4.34
+    data_dir = '/mount/riachuelo1/hahn/power/Nseries/Box/'
+    for i_mock in xrange(1, 8):
+        true_pk_file = ''.join([data_dir, 'power3600z_BoxN', str(i_mock), '.dat'])
+        tr_k, tr_pk0_i, tr_pk2_i, tr_pk4_i, tr_pk6_i, tr_pk8_i, tr_pk10_i = np.loadtxt(
+                    true_pk_file, 
+                    unpack = True, 
+                    usecols =[0,-1,2,3,4,5,6] 
+                    )
+        if i_mock == 1: 
+            tr_pk0 = tr_pk0_i
+            tr_pk2 = tr_pk2_i
+            tr_pk4 = tr_pk4_i
+            tr_pk6 = tr_pk6_i
+            tr_pk8 = tr_pk8_i
+            tr_pk10= tr_pk10_i
+        else: 
+            tr_pk0 += tr_pk0_i
+            tr_pk2 += tr_pk2_i
+            tr_pk4 += tr_pk4_i
+            tr_pk6 += tr_pk6_i
+            tr_pk8 += tr_pk8_i
+            tr_pk10+= tr_pk10_i
+
+    tr_pk0 *= (2.0*np.pi)**3/7.
+    tr_pk2 *= (2.0*np.pi)**3/7.
+    tr_pk4 *= (2.0*np.pi)**3/7.
+    tr_pk6 *= (2.0*np.pi)**3/7.
+    tr_pk8 *= (2.0*np.pi)**3/7.
+    tr_pk10*= (2.0*np.pi)**3/7.
+    tr_specs = [tr_pk0 ,tr_pk2 ,tr_pk4 ,tr_pk6 ,tr_pk8 ,tr_pk10]
+    
+    Pk_interps = [] 
+    for i_spec, tr_spec in enumerate(tr_specs):
+        # interpolation function 
+        Pk_interps.append(interp1d(tr_k, tr_spec, kind='cubic'))
+
+    alpha = -1.0 * rc**2
+    
+    n_ks = [] 
+    n_k_coeff = [] 
+    for n_k in [2, 4, 6, 8, 10]: 
+        if ell == 2: 
+            if n_k == 2: 
+                Clp = [0., 1., -2.5, 2.5*7./4., 2.5*(-21./8.), 2.5*(231./64.)]
+            elif n_k == 4: 
+                Clp = [0., 0., 2.5, 2.5*(-9./2.), 2.5*(99./8.), 2.5*(-429./16.)]
+            elif n_k == 6: 
+                Clp = [0., 0., 0., 2.5*(11./4.), 2.5*(-143./8.), 2.5*(2145./32.)]
+            elif n_k == 8: 
+                Clp = [0., 0., 0., 0., 2.5*(65./8.), 2.5*(-1105./16.)]
+            elif n_k == 10: 
+                Clp = [0., 0., 0., 0., 0., 2.5*(1615./64.)]
+            else: 
+                raise NotImplementedError
+        else:
+            raise NotImplementedError('Only quadrupole correction implemented') 
+
+        # actually integrate to calculate the coefficients 
+        coeff = 0.
+        for i_spec, tr_spec in enumerate(tr_specs):
+
+            if Clp[i_spec] != 0.: 
+                coeff_integ = lambda qq: \
+                        Clp[i_spec] * \
+                        pq_noextrap(qq, Pk_interps[i_spec], k_min=tr_k[0], k_max=tr_k[-1], k_fixed=4.34) / \
+                        (qq**n_k)
+
+                coeff_int, coeff_int_err = quad_int(coeff_integ, ktrust, np.inf, epsrel=0.01)
+            else: 
+                coeff_int = 0.
+
+            coeff += coeff_int
+
+        coeff *= alpha
+
+        n_ks.append(n_k)
+        n_k_coeff.append(coeff)
+    
+    data_list = [np.array(n_ks), np.array(n_k_coeff)]
+
+    coeff_file = ''.join([
+        data_dir, 
+        'k^n_coeff',
+        '.ell', str(ell), 
+        '.ktrust', str(round(ktrust,2)), 
+        '.noextrap', 
+        '.dat'])
+    np.savetxt(coeff_file, 
+            (np.vstack(np.array(data_list))).T, 
+            fmt=['%10.5f', '%10.5f'], 
+            delimiter='\t', 
+            header='Columns : n_k, coeff'
+            )
+
+    return None
+
+def delPcorr_ktrust_inf_bestfit(ell, k_trust=0.5, Ngrid=960):
+    '''
+    Investigate the contribution of delPcorr integrated over the q range 
+    k_trust to infinity. Fit this contribution to a polynomial of the form
+    
+    C_2 * k^2 + C_4 * k^4 + C_6 * k^6 + ...
+
+    delPcorr is being divided into two parts:
+        - 0 to k_trust, which can be reliably calculated 
+        - k_trust to infinity, which cannot be reliably calculated because 
+        we do not trust the models or the extrapolations beyound this point.
+        However they it may be possible to have a polynomial fit. 
+    '''
+    # total DelP calculated from Nseries mocks (NOT THE BOX MOCKS)
+    DelP_tot_file = ''.join([
+        '/mount/riachuelo1/hahn/power/Nseries/Box/', 
+        'DelP_', str(ell), 'k_tot.nseries.p'])
+    k_upw, DelP_tot = pickle.load(open(DelP_tot_file, 'rb'))
+    DelP_tot_k = interp1d(k_upw, DelP_tot)
+
+    # subtract out DelP_uncorr 
+    DelP_uncorr_file = ''.join([
+        '/mount/riachuelo1/hahn/power/Nseries/Box/', 
+        'uncorrdelP', str(ell), 'k_AVG_power3600z_BoxN.dat.p'
+        ])
+    k_uncorr, DelP_uncorr = pickle.load(open(DelP_uncorr_file, 'rb'))
+    
+    krange = np.where(
+            (k_uncorr > k_upw[0]) & (k_uncorr < k_upw[-1])
+            )
+    k_val = k_uncorr[krange]
+
+    DelP_corr = DelP_tot_k(k_val) - DelP_uncorr[krange]
+
+    lps = [0, 2, 4, 6, 8, 10]
+    for i_lp, lp in enumerate(lps):
+        # delP^corr integrated over q = 0 - k_trust
+        pickle_file = ''.join([
+            '/mount/riachuelo1/hahn/power/Nseries/Box/', 
+            'corrdelP', str(ell), 'k_lp', str(lp), 
+            '_qmax', 
+            str(round(k_trust,2)),
+            '_AVG_power3600z_BoxN.dat.p'
+            ])
+        k_lp_0_ktrust, corrdelP_lp_0_ktrust = pickle.load(open(pickle_file, 'rb'))
+        
+        if i_lp == 0: 
+            DelP_corr_0_ktrust = corrdelP_lp_0_ktrust
+        else: 
+            DelP_corr_0_ktrust += corrdelP_lp_0_ktrust
+    
+    DelP_corr_ktrust_inf = DelP_corr - DelP_corr_0_ktrust[krange]
+
+    fa = {'x': k_val, 'y': DelP_corr_ktrust_inf}
+
+    coeff_file = ''.join([
+        '/mount/riachuelo1/hahn/power/Nseries/Box/',
+        'k^n_coeff',
+        '.ell', str(ell), 
+        '.ktrust', str(round(k_trust,2)), 
+        '.noextrap.dat'])
+    n_ks, n_ks_coeff = np.loadtxt(coeff_file, skiprows=1, unpack=True, usecols=[0, 1])
+    param_guess = n_ks_coeff
+    bestfit = mpfit.mpfit(delp_poly_mpfit, param_guess, functkw=fa, quiet=True)
+
+    return [n_ks, bestfit.params]
+
+def delp_poly(k, coeff): 
+    ''' 
+    Generic polynomial (starts with k^2 instead of k^0 because there 
+    shouldn't be a k^0 term). 
+    '''
+    n_coeff = len(coeff)
+    poly = [coeff[ii] * k**(2 * (ii+1)) for ii in range(n_coeff)]
+    
+    return np.sum(np.vstack(np.array(poly)).T, axis=1)
+
+def delp_poly_mpfit(coeff, fjac=None, x=None, y=None): 
+    '''
+    Mpfit wrapper
+    '''
+    model = delp_poly(x, coeff)
+    status = 0 
+    return ([status, y-model])
+
 
 
 
 if __name__=='__main__':
-    test_Pq_extrap()
+    print delPcorr_ktrust_inf_bestfit(2, k_trust=0.5, Ngrid=960)
+
+    #for ktrust in [0.2, 0.3, 0.4, 0.5, 0.7, 1.0, 2.0, 3.0, 4.0]:
+    #    test_k_n_coeff_noextrap(ktrust)
+    #test_k_n_coeff_integrand_nseriesbox(h, rc=0.43, ktrust=0.5)
+    #test_Pq_extrap()
     #for k_i in [0.3, 0.7]: 
     #    #test_qPqfllp_k(k_i, 0, rc=0.43, noextrap='_noextrap')
     #    #test_qPqfllp_k(k_i, 2, rc=0.43, noextrap='_noextrap')

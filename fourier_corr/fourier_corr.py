@@ -44,7 +44,7 @@ def delP_corr(k, Pk, l, fs=1.0, rc=0.4, extrap_params=[[3345.0, -1.6], [400.0, -
 
     '''
 
-    alpha = -0.5 * fs * rc**2
+    alpha = -0.5 * fs * rc**2       # this is to deal with the normalization 
 
     if not isinstance(Pk, list): 
         raise ValueError('Pk input has to be a list containing the multipoles. e.g. [P0k, P2k, P4k]')
@@ -207,7 +207,7 @@ def f_l_lp_est(x, y, l, lp):
 
     f_l,l'(x,y) = (2*l+1)/2 * int_-1^min(x/y, 1) du L_l(u) L_l'(y/x*u) * (W_2d(theta) + y^2(1-u^2) (J2(theta)/theta^2 - 1/4 W_2d(theta))
 
-    where theta = sqrt(x^2 - y^2*u^2). In this convention, x = q * rc and y = q * rc. 
+    where theta = sqrt(x^2 - y^2*u^2). In this convention, x = q * rc and y = k * rc. 
 
     Below are estimates of the integral, without actually computing the integral 
     '''
