@@ -61,6 +61,26 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, ell=2, Ng
             corrdict = corr_name
         else:
             corrdict['name'] = corr_name
+            
+            if 'dlospeak' in corr_name: 
+                # hardcoded values for bestfit dlos peak
+                # parameters
+                corrdict['fit'] = 'gauss'
+                corrdict['sigma'] = 4.4 
+                corrdict['fpeak'] = 0.62
+    
+    elif catalog_name == 'bigmd': 
+        if isinstance(corr_name, dict): 
+            corrdict = corr_name
+        else:
+            corrdict['name'] = corr_name
+            
+            if 'dlospeak' in corr_name: 
+                # hardcoded values for bestfit dlos peak
+                # parameters
+                corrdict['fit'] = 'gauss'
+                corrdict['sigma'] = 5.5 
+                corrdict['fpeak'] = 0.6
 
     elif catalog_name == 'cmass': 
         if isinstance(corr_name, dict): 
@@ -174,11 +194,67 @@ def build_bk_wrapper(params):
     return None 
 
 # --- Multiprocessing --- 
+
 if __name__=="__main__":
-    #build_multipro('data', 'cmass', 'upweight', [1], Nthreads=1, clobber=True)
-    build_multipro('pk', 'qpm', 'true', range(1,11), ell=2, Nthreads=1, clobber=True, Ngrid=480)
-    build_multipro('pk', 'qpm', 'upweight', range(1,11), ell=2, Nthreads=1, clobber=True, Ngrid=480)
-    #build_multipro('data', 'qpm', 'upweight', range(1,51), Nthreads=5, clobber=True)
-    #build_multipro('bk', 'nseries', 'upweight', range(2, 85), Nthreads=1, clobber=True, Ngrid=360)
-    #build_multipro('bk', 'nseries', 'true', range(2, 85), Nthreads=1, clobber=True, Ngrid=360)
-    #build_multipro('pk', 'nseries', 'fourier_tophat', [1], Nthreads=1, clobber=True, Ngrid=960)
+    '''
+    # Done Harmattan 9:07AM
+    build_multipro('pk', 'nseries', 'dlospeakknown', range(8,11), Nthreads=1, ell=2, Ngrid=960)
+
+    # Running March 13, 12:06pm on Harmattan
+    build_multipro('pk', 'nseries', 'noweight', range(11,21), Nthreads=1, clobber=True, ell=2, Ngrid=960)
+    build_multipro('pk', 'qpm', 'noweight', range(11,21), Nthreads=1, clobber=True, ell=2, Ngrid=960)
+    build_multipro('pk', 'nseries', 'noweight', range(21,31), Nthreads=1, clobber=True, ell=2, Ngrid=960)
+    build_multipro('pk', 'qpm', 'noweight', range(21,31), Nthreads=1, clobber=True, ell=2, Ngrid=960)
+
+    # Running March 13, 12:04pm on Masa
+    build_multipro('pk', 'nseries', 'true', [9], Nthreads=1, ell=2, Ngrid=960)
+    build_multipro('pk', 'nseries', 'upweight', range(31,51), Nthreads=4, clobber=True, ell=2, Ngrid=960)
+    build_multipro('pk', 'nseries', 'dlospeak', range(31,51), Nthreads=4, clobber=True, ell=2, Ngrid=960)
+
+    build_multipro('pk', 'qpm', 'true', range(21,51), Nthreads=4, ell=2, Ngrid=960)
+    build_multipro('pk', 'qpm', 'upweight', range(11,51), Nthreads=4, clobber=True, ell=2, Ngrid=960)
+    build_multipro('pk', 'qpm', 'dlospeak', range(11,51), Nthreads=4, clobber=True, ell=2, Ngrid=960)
+
+    # Finish March 15, 6:25pm on Masa 
+    #build_multipro('pk', 'nseries', 'true', [10, 12, 20, 84], Nthreads=4, ell=2, Ngrid=960)
+
+    # Running on March 15, 10:03pm on Masa
+    build_multipro('pk', 'nseries', 'upweight', range(51,61), Nthreads=5, clobber=True, ell=2, Ngrid=960)
+    build_multipro('pk', 'nseries', 'dlospeak', range(51,61), Nthreads=5, clobber=True, ell=2, Ngrid=960)
+    build_multipro('pk', 'qpm', 'true', range(51,61), Nthreads=4, ell=2, Ngrid=960)
+    build_multipro('pk', 'qpm', 'upweight', range(51,61), Nthreads=4, clobber=True, ell=2, Ngrid=960)
+    build_multipro('pk', 'qpm', 'dlospeak', range(51,61), Nthreads=4, clobber=True, ell=2, Ngrid=960)
+
+    build_multipro('pk', 'nseries', 'upweight', range(61,71), Nthreads=5, clobber=True, ell=2, Ngrid=960)
+
+    # Running on March 16 10:50pm on Masa
+    build_multipro('pk', 'nseries', 'dlospeak', range(66,71), Nthreads=4, clobber=True, ell=2, Ngrid=960)
+    build_multipro('pk', 'qpm', 'true', range(61,73), Nthreads=4, ell=2, Ngrid=960)
+    build_multipro('pk', 'qpm', 'upweight', range(61,73), Nthreads=4, clobber=True, ell=2, Ngrid=960)
+
+    build_multipro('pk', 'nseries', 'upweight', range(71,85), Nthreads=4, clobber=True, ell=2, Ngrid=960)
+    build_multipro('pk', 'nseries', 'dlospeak', range(71,85), Nthreads=4, clobber=True, ell=2, Ngrid=960)
+    build_multipro('pk', 'qpm', 'true', range(73,81), Nthreads=4, ell=2, Ngrid=960)
+    build_multipro('pk', 'qpm', 'upweight', range(73,81), Nthreads=4, clobber=True, ell=2, Ngrid=960)
+    build_multipro('pk', 'qpm', 'dlospeak', range(73,81), Nthreads=4, clobber=True, ell=2, Ngrid=960)
+
+    build_multipro('pk', 'qpm', 'true', range(81,101), Nthreads=4, ell=2, Ngrid=960)
+    build_multipro('pk', 'qpm', 'upweight', range(81,101), Nthreads=4, clobber=True, ell=2, Ngrid=960)
+    build_multipro('pk', 'qpm', 'dlospeak', range(81,101), Nthreads=4, clobber=True, ell=2, Ngrid=960)
+    '''
+
+    #build_multipro('pk', 'qpm', 'dlospeak', range(61,73), Nthreads=4, clobber=True, ell=2, Ngrid=960)
+    #build_multipro('pk', 'nseries', 'noweight', range(51,63), Nthreads=4, clobber=True, ell=2, Ngrid=960)
+    #build_multipro('pk', 'qpm', 'noweight', range(51,63), Nthreads=4, clobber=True, ell=2, Ngrid=960)
+    #build_multipro('pk', 'nseries', 'noweight', range(63,75), Nthreads=4, clobber=True, ell=2, Ngrid=960)
+    #build_multipro('pk', 'qpm', 'noweight', range(63,75), Nthreads=4, clobber=True, ell=2, Ngrid=960)
+    #build_multipro('pk', 'nseries', 'noweight', range(75,85), Nthreads=4, clobber=True, ell=2, Ngrid=960)
+    build_multipro('pk', 'qpm', 'noweight', range(75,101), Nthreads=4, clobber=True, ell=2, Ngrid=960)
+    
+    '''
+    # Finished March 15, 10:04pm on Harmattan
+    build_multipro('pk', 'nseries', 'noweight', range(31,41), Nthreads=1, clobber=True, ell=2, Ngrid=960)
+    build_multipro('pk', 'qpm', 'noweight', range(31,41), Nthreads=1, clobber=True, ell=2, Ngrid=960)
+    build_multipro('pk', 'nseries', 'noweight', range(41,51), Nthreads=1, clobber=True, ell=2, Ngrid=960)
+    build_multipro('pk', 'qpm', 'noweight', range(41,51), Nthreads=1, clobber=True, ell=2, Ngrid=960)
+    '''
