@@ -4,9 +4,10 @@ Fitting the peak of the line-of-sight displacement distribution
 
 
 """
-import numpy as np
-import math 
 import os 
+import math 
+import pickle 
+import numpy as np
 
 import mpfit
 from dlos import Dlos
@@ -14,10 +15,19 @@ from util.direc import direc
 from dlos_env import DlosEnv
 from dlos_photoz import DlosPhotoz
 
-def dlospeak_fit(dlos, fit = 'gauss', peak_range = [-15.0, 15.0], **kwargs): 
-    """ Fit the peak of the dLOS distribution to specified 
-    fit type. Function uses MPfit. 
-    """
+def dlospeak_fit(dlos, fit='gauss', peak_range=[-15.0, 15.0], **kwargs): 
+    ''' Fit the peak of the dLOS distribution, specified by the peak_range argument, 
+    to some specified functional form (gaussian or exponential) using MPfit. 
+
+    Parameter
+    ---------
+    dlos : array
+        Array of input dlos values. The dLOS distribution is calculated form 
+
+    fit : string
+        String that specifies the functional form that will be fit to the 
+        peak of the line of sight displacement distribution.
+    '''
     
     # dummy catalog correction dictionary
     dum_cat_corr = {
@@ -55,8 +65,11 @@ def dlospeak_fit(dlos, fit = 'gauss', peak_range = [-15.0, 15.0], **kwargs):
         mpfit_func = mpfit_peak_gauss
     else: 
         raise NotImplementedError("Fit not yet coded") 
-
-    fit_param = mpfit.mpfit(mpfit_func, p0, functkw=fa)
+    
+    if 'quiet' in kwargs.keys(): 
+        fit_param = mpfit.mpfit(mpfit_func, p0, functkw=fa, quiet=kwargs['quiet'])
+    else: 
+        fit_param = mpfit.mpfit(mpfit_func, p0, functkw=fa)
         
     best_amp = fit_param.params[0]
     best_sigma = fit_param.params[1]
@@ -82,40 +95,54 @@ def dlospeak_fit(dlos, fit = 'gauss', peak_range = [-15.0, 15.0], **kwargs):
             (dlos > -3.0 * best_sigma) & 
             (dlos < 3.0 * best_sigma)
             )
+    #dlos_inpeak = np.where(
+    #        (dlos > peak_range[0]) & 
+    #        (dlos < peak_range[1])
+    #        ) 
     fpeak_dlos_dist = np.float(len(dlos[dlos_inpeak]))/np.float(len(dlos))  # computed from the distribution
     
-    print 'fpeak from best-fit = ', fpeak_bestfit_func
-    print 'fpeak from dlosdist = ', fpeak_dlos_dist  
-
     #return [fpeak_bestfit_func, best_sigma, best_amp]
     return [fpeak_dlos_dist, best_sigma, best_amp]
 
-def catalog_dlospeak_fit(catalog_name, fit='gauss', **kwargs): 
-    """ Fit peak of the dLOS distribution for catalog
+def catalog_dlospeak_fit(catalog_name, fit='gauss', peak_range=[-15.,15.], quiet=True, **kwargs): 
+    ''' Fit peak of the dLOS distribution calculated from multiple 
+    realizations of mock catalogs to a specified functional form. 
 
     Parameters
     ----------
+    catalog_name : string 
+        String that specifies the name of the catalog. Depending 
+        on the catalog name, there are pre-specified (hardcoded)
+        choices for the number of mock catalogs and etc. 
+    fit : string 
+        String that specifies what functional form to fit to 
+        the peak of the dLOS distribution  
 
     Returns 
     ------- 
     sigma : sigma value of gaussian/exponential function  
     fpeak : peak fraction of the dLOS distribution 
-
-    """
+    ''' 
     
     # depends on catalog 
     if catalog_name in ('nseries'): 
         n_mocks = 84 
-        catdict_list = [ 
-                {'name': catalog_name, 'n_mock': i_mock} for i_mock in range(1, n_mocks+1)
-                ]
-        corrdict = {'name': 'upweight'}
+    elif catalog_name == 'bigmd': 
+        n_mocks = 1 
+    elif catalog_name == 'qpm': 
+        n_mocks = 100 
+    elif catalog_name == 'cmass': 
+        n_mocks = 1
+    else: 
+        raise ValueError("Catalog Name is not supported yet")
+
+    catdict_list = [{'name': catalog_name, 'n_mock': i_mock} for i_mock in range(1, n_mocks+1)]
+    corrdict = {'name': 'upweight'}
 
     if 'combined_dlos' in kwargs.keys(): 
         combined_dlos = kwargs['combined_dlos'] 
 
     for catdict in catdict_list: 
-
         i_cat_corr = { 
                 'catalog': catdict, 
                 'correction': corrdict
@@ -132,7 +159,8 @@ def catalog_dlospeak_fit(catalog_name, fit='gauss', **kwargs):
         except NameError: 
             combined_dlos = list(dlos_i)
 
-    fpeak, sigma, amp = dlospeak_fit(np.array(combined_dlos), fit = fit, peak_range = [-15.0, 15.0])   
+    fpeak, sigma, amp = dlospeak_fit(np.array(combined_dlos), fit=fit, 
+            peak_range=peak_range, quiet=quiet)   
 
     return fpeak, sigma, amp
 
@@ -578,27 +606,35 @@ def mpfit_peak_gauss(p, fjac=None, x=None, y=None):
     status = 0 
     return([status, (y-model)]) 
 
-if __name__=="__main__":
-    print catalog_dlospeak_fit('nseries', fit='expon')
-    #print catalog_dlospeak_photoz_fit('nseries', fit='gauss', dlos_photoz_tailcut = 200)
-    
-    """
-    cat_corr = {
-            'catalog': {'name': 'nseries', 'n_mock':1}, 
-            'correction': {'name': 'dlospeak', 'fit': 'gauss', 'sigma': 4.0, 'fpeak':0.69}
-            }
-    
-    for nNN in [5]: 
-        fpeak_slope, fpeak_yint = dlosenv_peakfit_fpeak_env_fit(
-                cat_corr, 
-                n_NN=nNN, 
-                fit='gauss', 
-                writeout=True
-                )
+def catalog_dlospeak_fits_save(catalogs, fit='gauss', peak_range=[-15., 15.], quiet=True): 
+    ''' Save the dlos best fits of specified catalogs to pickle file for 
+    easy future access. 
 
-        sigma_slope, sigma_yint = dlosenv_peakfit_sigma_env_fit(
-                cat_corr, n_NN=nNN, 
-                fit='gauss', 
-                writeout=True
-                )
-    """
+    Parameters
+    ----------
+    catalogs : list 
+        List of strings that specify the catalogs to fit 
+    fit : string
+        String that specifies the functional form of the fit to the dLOS distribution 
+    quiet : boolean 
+        True to shut mpfit up. False to make it talk
+    '''
+
+    for cat in catalogs: 
+        fpeak, sigma, amp = catalog_dlospeak_fit(cat, fit=fit, peak_range=peak_range, quiet=quiet)
+        print cat
+        print 'fpeak = ', fpeak, ', sigma = ', sigma, ', amp = ', amp 
+        
+        save_file = ''.join(['dlos_fit', '.', cat, '.', fit, '_fit',  '.p'])
+            
+        save_dict = {'fpeak': fpeak, 'sigma': sigma, 'amp': amp}
+        #pickle.dump(save_dict, open(save_file, 'wb'))
+
+    return None 
+
+
+
+if __name__=="__main__":
+    catalog_dlospeak_fits_save(['nseries', 'qpm', 'bigmd'], fit='gauss', peak_range=[-15., 15.], quiet=True)
+    #catalog_dlospeak_fits_save(['bigmd'], fit='gauss', peak_range=[-15., 15.], quiet=True)
+    #catalog_dlospeak_fits_save(['cmass'], fit='gauss', peak_range=[-15., 15.], quiet=True)

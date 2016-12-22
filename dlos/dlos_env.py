@@ -14,8 +14,8 @@ import cosmolopy as cosmos
 
 # --- Local ---
 from dlos import Dlos
-from spec.data import Data
 from galenv.galenv import d_NN
+from corr_spec.corr_corrdata import CorrCorrData
 
 class DlosEnv(Dlos): 
 

@@ -15,7 +15,6 @@ from util.idl import Idl
 from util import util
 
 class Dlos(object): 
-
     def __init__(self, cat_corr, **kwargs):
         """ Class describing line-of-sight displacement 
         """
@@ -60,8 +59,8 @@ class Dlos(object):
         return file_name 
 
     def read(self): 
-        """ Read dLOS data 
-        """
+        ''' Read dLOS data 
+        '''
 
         if not os.path.isfile(self.dlos_file):
             self.build()
@@ -120,7 +119,7 @@ class Dlos(object):
         """ Calculate dLOS distribution using numpy histogram 
         """
 
-        if self.dlos == None: 
+        if self.dlos is None: 
             print 'Reading dLOS data from ', self.file_name
             self.read()
 
@@ -145,7 +144,7 @@ class Dlos(object):
         """ Freedman-Diaconis binsize for dLOS distribution *peak*
         """
 
-        if self.dlos == None: 
+        if self.dlos is None: 
             print 'Reading dLOS data from ', self.file_name
             self.read()
 
@@ -190,9 +189,14 @@ class Dlos(object):
 
         return fd_binsize 
 
+
+
 if __name__=="__main__":
-    cat_corr = {'catalog': {'name': 'cmass', 'n_mock': 1}, 'correction': {'name': 'upweight'}}
+    #cat_corr = {'catalog': {'name': 'cmass', 'n_mock': 1}, 'correction': {'name': 'upweight'}}
+    cat_corr = {'catalog': {'name': 'bigmd', 'n_mock': 1}, 'correction': {'name': 'upweight'}}
     deelos = Dlos(cat_corr)
+    print deelos.data_file
     print deelos.file_name
-    print deelos.read()
-    print deelos.fd_binsize(peak_range=[-20.0, 20.0])
+    deelos.build()
+    #print deelos.read()
+    #print deelos.fd_binsize(peak_range=[-20.0, 20.0])

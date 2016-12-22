@@ -14,7 +14,7 @@ import cosmolopy as cosmos
 
 # --- Local ---
 from dlos import Dlos
-from spec.data import Data
+from corr_spec.corr_corrdata import CorrCorrData
 
 class DlosPhotoz(Dlos): 
 

@@ -5,8 +5,8 @@ in parallel
 
 '''
 from dlos import Dlos
-from dlos_env import DlosEnv
-from dlos_photoz import DlosPhotoz
+#from dlos_env import DlosEnv
+#from dlos_photoz import DlosPhotoz
 from util.interruptible_pool import InterruptiblePool as Pewl
 
 def build_dlos_wrapper(params): 
@@ -82,7 +82,7 @@ def build_dlos_multipro(catalog_name, n_mocks, Nthreads=8):
     mapfn = pool.map
     
     arglist = [ [{
-                'catalog': {'name': 'nseries', 'n_mock': i_mock}, 
+                'catalog': {'name': catalog_name, 'n_mock': i_mock}, 
                 'correction': {'name': 'upweight'}
                 }]
             for i_mock in n_mock_list]
@@ -160,6 +160,7 @@ def build_dlosphotoz_multipro(catalog_name, n_mocks, Nthreads=8):
     return None 
 
 if __name__=="__main__":
+    build_dlos_multipro('qpm', 50, Nthreads=10)
     #build_dlosenv_multipro('nseries', 1, Nthreads=1)
     #build_dlosenv_multipro('nseries', 84, Nthreads=10)
-    build_dlosphotoz_multipro('nseries', 84, Nthreads=10)
+    #build_dlosphotoz_multipro('nseries', 84, Nthreads=10)
