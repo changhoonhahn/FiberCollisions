@@ -2,3 +2,4 @@ fortran/*
 figure/*
 *.f
 *.png
+*.pyc
