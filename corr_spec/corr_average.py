@@ -277,14 +277,25 @@ class CorrAvgSpec(CorrSpec):
 
         #if self.cat_corr['catalog']['name'] == 'nseries': 
         if self.type == 'pk': 
-            avg_file = ''.join([
-                '/'.join(spec_file.split('/')[:-1]), '/', 
-                'AVG_P', str(specdict['ell']), 'K_', 
-                spec_file_core.split('1')[0], '.', 
-                str(self.n_mocks), 'mocks', 
-                rebin_str, '.', 
-                spec_file_ending
-                ])
+            if self.n_mocks != 1: 
+                avg_file = ''.join([
+                    '/'.join(spec_file.split('/')[:-1]), '/', 
+                    'AVG_P', str(specdict['ell']), 'K_', 
+                    spec_file_core.split('1')[0], '.', 
+                    str(self.n_mocks), 'mocks', 
+                    rebin_str, '.', 
+                    spec_file_ending
+                    ])
+            else: 
+                avg_file = ''.join([
+                    '/'.join(spec_file.split('/')[:-1]), '/', 
+                    'AVG_P', str(specdict['ell']), 'K_', 
+                    spec_file_core, '.', 
+                    str(self.n_mocks), 'mocks', 
+                    rebin_str, '.', 
+                    spec_file_ending
+                    ])
+
         elif self.type == 'bk': 
             avg_file = ''.join([
                 '/'.join(spec_file.split('/')[:-1]), '/', 

@@ -96,7 +96,7 @@ def build_multipro(type, catalog_name, corr_name, n_mocks, Nthreads=8, ell=2, Ng
                 [{ 
                     'catalog': {'name': catalog_name, 'n_mock': i_mock}, 
                     'correction': corrdict, 
-                    'spec': {'P0': 20000, 'Lbox': 3600, 'Ngrid': Ngrid} 
+                    'spec': {'P0': 20000, 'Lbox': 3600, 'Ngrid': Ngrid, 'ell':2} 
                     }, kwargs]
                 for i_mock in n_mock_list]
     elif type == 'pk':
@@ -196,6 +196,9 @@ def build_bk_wrapper(params):
 # --- Multiprocessing --- 
 
 if __name__=="__main__":
+
+    build_multipro('bk', 'nseries', 'true', [1], Nthreads=1, Ngrid=360)
+
     '''
     # Done Harmattan 9:07AM
     build_multipro('pk', 'nseries', 'dlospeakknown', range(8,11), Nthreads=1, ell=2, Ngrid=960)

@@ -1,3 +1,4 @@
 fortran/*
+figure/*
 *.f
 *.png

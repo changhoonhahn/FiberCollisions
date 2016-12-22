@@ -16,6 +16,7 @@ from fourier_corr import fourier_corr as fourcorr
 from fourier_corr.pk_corr import fourier_tophat_Pk
 #from pk_corr import fourier_tophat_Pk
 
+
 class CorrSpec(Spec): 
     def __init__(self, spectype, cat_corr, ell=None, **kwargs): 
         '''
@@ -268,7 +269,52 @@ class CorrSpec(Spec):
         return [k_pkmu, delPcorr_pkmu]
 
 if __name__=='__main__': 
-    pass
+    #cat_corr = { 
+    #        'catalog': {'name': 'qso_bigmd', 'version': 'evo'}, 
+    #        'correction': {'name': 'true'}, 
+    #        'spec':{
+    #            'P0': 20000, #P0 
+    #            'Lbox': 8000, 
+    #            'Ngrid':960, 
+    #            'ell': 2 
+    #            }
+    #        }
+    #peek = CorrSpec('pk', cat_corr)
+    #peek.build()
+    #cat_corr = {'catalog': {'name': 'qso_bigmd', 'version': 'ebossv1.5'}, 
+    cat_corr = {'catalog': {'name': 'qso_bigmd', 'version': 'v2'}, 
+            'correction': {'name': 'true'}, 
+            'spec':{'P0': 6000, 'Lbox': 8000, 'Ngrid':960, 'ell': 0}}
+    peek = CorrSpec('pk', cat_corr)
+    peek.build()
+    '''
+    for vers in ['v2-z', 'v2-nsat']: 
+        for ell in [0]:#, 2]: 
+            cat_corr = { 
+                    'catalog': {'name': 'qso_bigmd', 'version': vers}, 
+                    'correction': {'name': 'true'}, 
+                    'spec':{
+                        'P0': 6000, #P0 
+                        'Lbox': 8000, 
+                        'Ngrid':360, 
+                        'ell': ell}}
+            peek = CorrSpec('pk', cat_corr)
+            peek.build()
+    '''
+    #for n_jack in range(1, 51): 
+    #    cat_corr = { 
+    #            'catalog': {'name': 'qso_bigmd', 'version': 'jackknife'+str(n_jack)}, 
+    #            'correction': {'name': 'true'}, 
+    #            'spec':{
+    #                'P0': 20000, #P0 
+    #                'Lbox': 8000, 
+    #                'Ngrid':960, 
+    #                'ell': 0 
+    #                }
+    #            }
+    #    mono = CorrSpec('pk', cat_corr)
+    #    mono.build()
+
     #for i_mock in range(11, 85):
     #    cat_corr = { 
     #            'catalog': {'name': 'nseries', 'n_mock': i_mock}, 
