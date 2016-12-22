@@ -2,6 +2,7 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
 ; build line-of-sight separation distances for fibercollided pairs in Mock Catalogs
 ; spherematch is used to compare upweighted galaxies with unweighted galaxies
 ; USING PROPER COSMOLOGY!
+
     fib_angscale = 0.01722
     print, mock_file     
     if (strlowcase(catalog) EQ 'pthalo') then begin 
@@ -62,6 +63,7 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
         spherematch, ra_nocp, dec_nocp, ra_upcp, dec_upcp, fib_angscale, m_nocp, m_upcp, d12, maxmatch=0
 
     endif else if (strlowcase(catalog) EQ 'ldgdownnz') then begin 
+        
         omega_m = 0.25
         readcol, mock_file, mock_ra, mock_dec, mock_redshift, w_cp 
         mock_redshift = mock_redshift
@@ -81,9 +83,7 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
 
     endif else if (strlowcase(catalog) EQ 'qpm') then begin 
         omega_m = 0.31
-        ; old IO (commented out 1/14/2016)
-        ;readcol, mock_file, mock_ra, mock_dec, mock_redshift, w_fkp, w_cp
-        readcol, mock_file, mock_ra, mock_dec, mock_redshift, w_cp, comp
+        readcol,mock_file, mock_ra, mock_dec, mock_redshift, w_fkp, w_cp
 
         ;Galaxies with up-weighted w_cp
         upcp_indx = where(w_cp gt 1)
@@ -96,10 +96,10 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
         dec_nocp = mock_dec[nocp_indx]
         red_nocp = mock_redshift[nocp_indx]
 
-        spherematch, ra_nocp, dec_nocp, ra_upcp, dec_upcp, $
-            fib_angscale, m_nocp, m_upcp, d12, maxmatch=0
+        spherematch, ra_nocp, dec_nocp, ra_upcp, dec_upcp, fib_angscale, m_nocp, m_upcp, d12, maxmatch=0
     
     endif else if (strlowcase(catalog) EQ 'nseries') then begin 
+    
         omega_m = 0.31
         GOTO, nseries_jump 
         
@@ -183,7 +183,7 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
     print, '----------------'
 
     all_dlos = [] 
-    all_targ_ra  = [] 
+    all_targ_ra  = []
     all_targ_dec = []
     all_targ_red = []
     all_neigh_ra  = [] 
@@ -191,6 +191,7 @@ pro build_fibcoll_dlos_cosmo, catalog, mock_file, dlos_file
     all_neigh_red = [] 
 
     for i=0L,n_elements(gal_upcp)-1L do begin
+
         ngal=gal_upcp[i]
         collision_indx = where( m_upcp eq ngal )
 

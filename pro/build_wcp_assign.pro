@@ -1,11 +1,12 @@
-pro build_wcp_assign, catalog, catalog_param=catalog_param 
+pro build_wcp_assign, catalog, catalog_param=catalog_param, input_file=input_file, output_file=output_file 
 ; Assign fiber collision weights for mock catalogs taht do not have them 
     fib_angscale = 0.01722
     if strtrim(catalog,2) eq 'tilingmock' then begin 
         ; import tiling mock catalog
         mock_dir     = '/mount/riachuelo1/hahn/data/tiling_mocks/'
-        mock_file    = 'cmass-boss5003sector-icoll012.zlim.dat' 
-        readcol, mock_dir+mock_file, mock_ra, mock_dec, mock_redshift, mock_w
+        ;mock_file    = 'cmass-boss5003sector-icoll012.zlim.dat' 
+
+        readcol, input_file, mock_ra, mock_dec, mock_redshift, mock_w
         Ngal = n_elements(mock_ra)
         print, Ngal, ' galaxies'
 
@@ -43,11 +44,13 @@ pro build_wcp_assign, catalog, catalog_param=catalog_param
             STOP 
         endif 
         
-        output_file = 'cmass-boss5003sector-icoll012.zlim.fibcoll.dat'
-        openw, lun, mock_dir+output_file, /get_lun
-        for i=0L,Ngal-1L do printf, lun, mock_ra[i], mock_dec[i], mock_redshift[i], wcp[i], format='(4F)'
+        ;output_file = 'cmass-boss5003sector-icoll012.zlim.fibcoll.dat'
+        openw, lun, output_file, /get_lun
+        for i=0L,Ngal-1L do $
+            printf, lun, mock_ra[i], mock_dec[i], mock_redshift[i], wcp[i], format='(4F)'
         free_lun, lun 
         return 
+
     endif else if strtrim(catalog, 2) EQ 'nseries' then begin ; N series mocks 
         data_dir = '/mount/riachuelo1/hahn/data/Nseries/'
         orig_file = 'CutskyN'+string(catalog_param)+'.rdzwc'
