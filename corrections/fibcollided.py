@@ -6,12 +6,13 @@ Everything is hardcoded. Code can be improved but too lazy.
 
 
 '''
+import os 
 import numpy as np
 import warnings 
 # --- Local ---
 from util.direc import direc
 from corrections import Corrections
-from defutility.fitstables import mrdfits
+from ChangTools.fitstables import mrdfits
 
 class UpweightCorr(Corrections):
 
@@ -19,17 +20,13 @@ class UpweightCorr(Corrections):
         """ Child class of the Corrections class in corrections.py
         Upweight correction
         """
-        
         super(UpweightCorr, self).__init__(cat_corr, **kwargs)
-        
         self.corr_str = self.corrstr() 
 
     def corrstr(self): 
         """ Specify correction string
         """
-        cat = (self.cat_corr)['catalog']
-
-        if 'cmass' in cat['name'].lower(): 
+        if 'cmass' in self.cat_corr['catalog']['name'].lower(): 
             return ''
         
         corr_str = '.fibcoll'
@@ -55,8 +52,8 @@ class UpweightCorr(Corrections):
         data_hdrs = self.datacols_header()
 
         data_dir = direc('data', self.cat_corr) 
-        if catalog_name == 'nseries':          # N-series 
-
+        if catalog_name == 'nseries':          
+            # N-series mocks (high quality mocks with actual CMASS tiling)
             # original file 
             orig_file = ''.join([
                 data_dir, 
@@ -67,18 +64,25 @@ class UpweightCorr(Corrections):
                     unpack = True, 
                     usecols = [0,1,2,4,5,6]
                     )
-        
             # file with mask completeness
             mask_file = ''.join([data_dir, 'CutskyN', str(catdict['n_mock']), '.mask_info']) 
             orig_wcomp = np.loadtxt(mask_file, unpack=True, usecols=[0]) 
 
             coll = np.where(orig_wfc == 0.0) 
-            data_list = [orig_ra, orig_dec, orig_z, orig_wfc, orig_wcomp, orig_zupw, orig_upw_index]   # data column list 
+            # data column list 
+            data_list = [
+                    orig_ra, 
+                    orig_dec, 
+                    orig_z, 
+                    orig_wfc, 
+                    orig_wcomp, 
+                    orig_zupw, 
+                    orig_upw_index
+                    ]   
     
             # handle upweighted redshift/index discrepancies by simply ignoring them. 
             if not np.array(orig_z[orig_upw_index.astype(int)[coll]] == orig_zupw[coll]).all(): 
                 wrong_index = (coll[0])[np.where(orig_z[orig_upw_index.astype(int)[coll]] != orig_zupw[coll])[0]]
-
                 warn_message = ''.join([
                     'upweighted galaxy redshift and index data discrepancies in ', 
                     self.file(), 
@@ -86,15 +90,13 @@ class UpweightCorr(Corrections):
                     str(len(wrong_index)), 
                     ' galaxies affected'
                     ])
-
                 warnings.warn(warn_message, Warning)
-
                 if len(wrong_index) > 0: 
                     for i_data, datum in enumerate(data_list): 
                         data_list[i_data] = np.delete(datum, wrong_index)
     
         elif catalog_name == 'qpm': 
-
+            # Quick Particle Mesh mocks from Jeremy (quantity over quality mocks)
             orig_file = ''.join([
                 '/mount/riachuelo2/rs123/BOSS/QPM/cmass/mocks/dr12d/ngc/data/', 
                 'a0.6452_', str("%04d" % catdict['n_mock']), '.dr12d_cmass_ngc.rdz']) 
@@ -124,8 +126,60 @@ class UpweightCorr(Corrections):
                 raise ValueError('veto mask doesnt match') 
 
             vetomask = np.where(veto == 0)
-            
-            data_list = [ra[vetomask], dec[vetomask], z[vetomask], wfc[vetomask], comp[vetomask]]   # data column list 
+            # data column list 
+            data_list = [
+                    ra[vetomask], 
+                    dec[vetomask], 
+                    z[vetomask], 
+                    wfc[vetomask], 
+                    comp[vetomask]
+                    ]
+        elif catalog_name == 'bigmd':
+            # Big MultiDark
+            P0 = 20000.0
+            # read original random catalog 
+            data_dir = '/mount/riachuelo1/hahn/data/BigMD/'
+            if 'version' in catdict.keys():
+                if catdict['version'] == 'nowiggles':
+                    # simulation with no wiggles 
+                    orig_file = ''.join([data_dir, 'nowiggles/BigMD-cmass-dr12v4-nowiggle-veto.dat']) 
+                else: 
+                    raise NotImplementedError
+                    #orig_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-wcp-veto.dat'])  # hardcoded
+                    #orig_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-RST-standardHAM-veto.dat'])
+                    #orig_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-RST-quadru-veto.dat'])
+            else:       # default 
+                orig_file = ''.join([data_dir, 'BigMD-cmass-dr12v4-RST-standHAM-Vpeak-veto.dat'])
+
+            # RA, Decl, Redhsift, veto  
+            ra, dec, z, wfkp, veto, wfc = np.loadtxt(
+                    orig_file, 
+                    unpack=True, 
+                    usecols=[0,1,2,3,4,5]
+                    ) 
+            n_gal = len(ra) 
+            #nbar = (1.0 / P0) * (1.0/wfkp - 1.0) 
+
+            vetomask = np.where(veto == 1)  # impose vetomask 
+            data_list = [
+                        ra[vetomask], 
+                        dec[vetomask], 
+                        z[vetomask], 
+                        wfc[vetomask]
+                        ]
+
+        elif catalog_name == 'tilingmock':  # tiling mock 
+            input_file = ''.join([
+                '/mount/riachuelo1/hahn/data/tiling_mocks/', 
+                'cmass-boss5003sector-icoll012.fidcosmo.dat'])
+            output_file = self.file()
+
+            idl_cmd = ' '.join([
+                'idl', '-e', '"', 
+                "build_wcp_assign, 'tilingmock', input_file='"+input_file+"', output_file='"+output_file+"'", '"'])
+            os.system(idl_cmd) 
+
+            return None
 
         elif 'cmass' in catalog_name: 
 
@@ -280,38 +334,4 @@ class UpweightCorr(Corrections):
                 fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e', '%10.5f'], 
                 delimiter='\t') 
 
-    elif 'bigmd' in catalog['name'].lower():            # Big MD --------------------
-        P0 = 20000.0
-        # read original random catalog 
-        data_dir = '/mount/riachuelo1/hahn/data/BigMD/'
-        if catalog['name'].lower() == 'bigmd': 
-            orig_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-wcp-veto.dat']) 
-        elif catalog['name'].lower() == 'bigmd1': 
-            orig_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-RST-standardHAM-veto.dat']) 
-        elif catalog['name'].lower() == 'bigmd2': 
-            orig_file = ''.join([data_dir, 'bigMD-cmass-dr12v4-RST-quadru-veto.dat']) 
-        elif catalog['name'].lower() == 'bigmd3': 
-            orig_file = ''.join([data_dir, 'BigMD-cmass-dr12v4-RST-standHAM-Vpeak-veto.dat']) 
-        else: 
-            raise NameError('catalog does not exit') 
-
-        # RA, Decl, Redhsift, veto  
-        ra, dec, z, wfkp, veto, wfc = np.loadtxt(orig_file, unpack=True, usecols=[0,1,2,3,4,5]) 
-        n_gal = len(ra) 
-
-        nbar = (1.0 / P0) * (1.0/wfkp - 1.0) 
-        print nbar
-        print 'min nz', min(nbar)
-        print 'max nz', max(nbar)
-        vetomask = np.where(veto == 1)  # impose vetomask 
-
-        fc_file = get_galaxy_data_file('data', **cat_corr)    # file name 
-        np.savetxt(fc_file, 
-                np.c_[
-                    ra[vetomask], dec[vetomask], z[vetomask], 
-                    nbar[vetomask], wfc[vetomask]
-                    ], 
-                fmt=['%10.5f', '%10.5f', '%10.5f', '%.5e', '%10.5f'], delimiter='\t') 
-        
-        fibcollided_cmd = ''
 """

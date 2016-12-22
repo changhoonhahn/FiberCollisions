@@ -12,7 +12,7 @@ class Corrections(object):
     def __init__(self, cat_corr, **kwargs): 
         """ Class describing the correction to galaxy catalog of simulations or BOSS data
         """
-        self.cat_corr = cat_corr
+        self.cat_corr = cat_corr.copy()
         self.kwargs = kwargs
         self.corr_str = None 
         self.catclass = Catalog(self.cat_corr)

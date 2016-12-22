@@ -1,7 +1,7 @@
 '''
 
-FiberCollision Correction using peak of line-of-sight 
-displacement distribution and photometric redshift.
+LOS Reconstruction Fiber collision correction, for the
+case when correlated/chance alignment pairs are KNOWN.
 
 
 '''
@@ -18,39 +18,25 @@ from corrections import Corrections
 from fibcollided import UpweightCorr 
 from galenv.galenv import d_NN_dataclass
 from dlospeak import sample_dlos_peak
-from dlospeak import peak_fit_gauss 
-from dlospeak import peak_fit_expon 
 from dlospeak import temp_nbarz 
 
 class DlospeakKnownCorr(Corrections): 
 
     def __init__(self, cat_corr, **kwargs): 
-        """ Child class of Correction class in corrections.py 
-        Fiber collisions correction using the peak of the line-of-sight displacement 
-        distribution and galaxy environment. Depending on the environment of the
-        upweighted galaxy of the fiber collided pair, we sample dLOS from different
-        gaussians
+        ''' Child class of Correction class in corrections.py 
+        Fiber collisions correction using the LOS reconstruction method. For
+        this correction in particular, the correlated and chance alignment
+        collided pairs are known
 
-        --------------------------------------------------------------------------
-        Notes
-        --------------------------------------------------------------------------
-        * Currently supported peak correction methods: peakshot 
-        * nbar(z) interpolation implemented for CMASS like samples; however this can easily 
-        be extended to other mocks
-        * dLOS within peak is sampled +/- 3-sigmas
-        * Somehow NOT correcting for extra peak corrected galaxies improves the overal 
-        power spectrum. (This has been tested)
-
-        """
-
+        '''
         super(DlospeakKnownCorr, self).__init__(cat_corr, **kwargs)
         
         self.corrstr() 
     
     def corrstr(self): 
-        """ Specify correction string for dlos peak correction 
+        ''' Specify correction string for dlos peak correction 
         d_photoz_tail_cut has to be specified
-        """
+        '''
         corr = (self.cat_corr)['correction']
 
         if not all(x in corr.keys() for x in ['fit', 'fpeak', 'sigma']): 
@@ -59,43 +45,39 @@ class DlospeakKnownCorr(Corrections):
         self.corr_str = ''.join([
             '.', corr['fit'].lower(), 
             '.', corr['name'].lower(),
-            '.sigma', str(corr['sigma']), '.fpeak', str(corr['fpeak'])
+            '.sigma', str(corr['sigma'])
             ])
         return self.corr_str
 
     def build(self): 
-        """ Build fiber collision corrected mock catalogs. Using the modeled dLOS peak 
-        and modeled photometric redshfit of upweighted galaxies. Note that this method reads in 
-        photoz assigned upweight corrected mock catalogs and if care is not given, may result 
-        in circular dependencies. 
-        """
-
+        ''' Build fiber collision corrected mock catalogs using LOS distribution. 
+        '''
         catdict = (self.cat_corr)['catalog']
         corrdict = (self.cat_corr)['correction']
 
+        if catdict['name'] != 'nseries':
+            raise ValueError('only implemented for Nseris') 
+
         cosmo = self.cosmo()      # cosmoslogy 
 
-        f_peak = corrdict['fpeak']
+        #f_peak = corrdict['fpeak']
 
         # survey redshift limits  
         survey_zmin, survey_zmax = self.survey_zlimits()  
-
-        survey_comdis_min = cosmos.distance.comoving_distance( survey_zmin, **cosmo ) * cosmo['h']
-        survey_comdis_max = cosmos.distance.comoving_distance( survey_zmax, **cosmo ) * cosmo['h']
+        survey_comdis_min = cosmos.distance.comoving_distance(survey_zmin, **cosmo) *\
+                cosmo['h']
+        survey_comdis_max = cosmos.distance.comoving_distance(survey_zmax, **cosmo) *\
+                cosmo['h']
     
         # spline interpolation function hardcoded here 
         # to make it faster
         z_arr = np.arange(0.0, 1.01, 0.01)
         dm_arr = cosmos.distance.comoving_distance(z_arr, **cosmo) * cosmo['h']
         comdis2z = sp.interpolate.interp1d(dm_arr, z_arr, kind='cubic') 
-
-        # photoz assigned upweight corrected galaxy catalog is used 
-        # in the correction. This is out of convenience and 
-        # also due to the fact that the BOSS observed
-        # galaxy catalog outputs an upweigh corrected galaxy 
-        # catalog. 
+        
+        # read in galxies from the fibcollided mocks
         fc_cat_corr = {
-                'catalog': (self.cat_corr)['catalog'], 
+                'catalog': catdict, 
                 'correction': {'name': 'upweight'}
                 }
         fc_mock = UpweightCorr(fc_cat_corr, **self.kwargs) 
@@ -122,45 +104,32 @@ class DlospeakKnownCorr(Corrections):
         
         for i_col, fc_col in enumerate(fc_mock_cols): 
             setattr(fc_mock, fc_col, fc_data[i_col])
-        
-        # nbar(z) cubic spline interpolation, which is currently hardcoded
-        # in the function temp_nbarz(). However, this should 
-        # ultimately be edited so that it works for any catalog 
-        # (currently only works for CMASS-like catalogs)
-        if 'cmass' in catdict['name'].lower(): 
-
-            nb_z, nb_nbar = temp_nbarz(self.cat_corr)
-
-            nbarofz = sp.interpolate.interp1d(nb_z, nb_nbar, kind='cubic')       
 
         upw = np.where(fc_mock.wfc > 1)  # upweighted
         collided = np.where(fc_mock.wfc == 0) # collided 
-        
         # number of collided galaxy = number of fiber collided pairs 
         n_fcpair = len(collided[0])
-
-        # Difference in comoving distance of upweight galaxy redshift and the 
-        # comoving distance of the photometric redshift. The main idea is that
-        # this distance roughly traces the actual dLOS 
-        # dLOS_photo = Dc(z_upw) - Dc(z_photo)
+        
+        # Calculate the LOS displacement for the collided pairs
         comdis_upw = cosmos.distance.comoving_distance(
                 fc_mock.zupw[collided], **cosmo) * cosmo['h']
         comdis_coll = cosmos.distance.comoving_distance(
                 fc_mock.z[collided], **cosmo) * cosmo['h']
-
-        dlos = np.abs( comdis_coll - comdis_upw) 
-
+        dlos = np.abs(comdis_coll - comdis_upw) 
+        
+        # dLOS within 3 sigmas (peak galaxies)
         notin_tail = (collided[0])[np.where(dlos <= 3.0*corrdict['sigma'])]
+        print np.float(len(notin_tail))/np.float(len(collided[0]))
 
         # expected number of galaxies to be placed in the peak 
         # of the dLOS distribution calculated based on the peak 
         # fraction. 
-        n_peak_exp = int(f_peak * np.float(n_fcpair))
-        
+        #n_peak_exp = int(f_peak * np.float(n_fcpair))
         np.random.shuffle(notin_tail)
         
         # collided galaxies that will be peak corrected
-        i_peakcorr = notin_tail[:n_peak_exp]
+        #i_peakcorr = notin_tail[:n_peak_exp]
+        i_peakcorr = notin_tail
 
         fc_mock.wfc[i_peakcorr] += 1.0
         fc_mock.wfc[fc_mock.upw_index[i_peakcorr]] -= 1.0
@@ -173,7 +142,7 @@ class DlospeakKnownCorr(Corrections):
         # sampled dLOS from dLOS peak distribution best-fit function 
         d_samples = np.array([
             sample_dlos_peak(corrdict['fit'], corrdict['sigma'])[0]
-            for i in range(n_peak_exp)
+            for i in range(len(i_peakcorr))
             ])
 
         outofbounds = np.where( 
@@ -188,18 +157,13 @@ class DlospeakKnownCorr(Corrections):
 
         fc_mock.z[i_peakcorr] = collided_z
 
-        if 'cmass' in catdict['name'].lower():
-            fc_mock.nbar[i_peakcorr] = nbarofz(collided_z)
-
         data_cols = self.datacolumns()
         data_fmts = self.datacols_fmt()
         data_hdrs = self.datacols_header()
         data_list = []  
 
         for data_col in data_cols: 
-            
             new_col = getattr(fc_mock, data_col)
-
             data_list.append(new_col)
 
         # write to corrected data to file 
@@ -219,11 +183,3 @@ class DlospeakKnownCorr(Corrections):
                 fmt=['%10.5f'], 
                 delimiter='\t'
                 ) 
-
-if __name__=='__main__': 
-        
-    fc_cat_corr = {
-            'catalog': {'name': 'nseries', 'n_mock': 1}, 
-            'correction': {'name': 'dlospeak_known', 'fit': 'gauss', 'fpeak':0.68, 'sigma':3.9}}
-    test = DlospeakKnownCorr(fc_cat_corr)
-    test.build()

@@ -22,10 +22,17 @@ from fibcollided import UpweightCorr
 class DlospeakCorr(Corrections): 
 
     def __init__(self, cat_corr, **kwargs): 
-        """ 
-        Child class of Correction class in corrections.py 
-        Fiber collisions correction using the peak of the line-of-sight displacement 
-        distribution 
+        ''' Child class of Correction class in corrections.py
+        that descirbes a fiber collision correction method 
+        that reconstructs the peak of the line-of-sight displacement 
+        distribution for correlated fiber collision pairs. 
+
+        Parameters
+        ----------
+        cat_corr : dictionary 
+            Dictionary that specifies the catalog information and 
+            correction informtion. 
+            {'catalog': {catdict}, 'correction': {corrdict}}
 
         Notes
         -----
@@ -33,15 +40,15 @@ class DlospeakCorr(Corrections):
         * nbar(z) interpolation implemented for CMASS like samples; however this can easily 
         be extended to other mocks
         * dLOS within peak is sampled +/- 3-sigmas
-        """
+        ''' 
 
         super(DlospeakCorr, self).__init__(cat_corr, **kwargs)
         
         self.corrstr() 
     
     def corrstr(self): 
-        """ Specify correction string for dlos peak correction 
-        """
+        ''' Specify correction string for dlos peak correction 
+        '''
         corr = (self.cat_corr)['correction']
 
         if not all(x in corr.keys() for x in ['fpeak', 'sigma', 'fit']): 
@@ -54,11 +61,11 @@ class DlospeakCorr(Corrections):
         return self.corr_str
 
     def build(self): 
-        """ Build peak corrected fibercollided mock catalogs (using cosmolopy). 
-        Note dLOS peak corrected mock catalogs are constructed from fibercollided 
-        mock catalogs. 
-
-        """
+        ''' Build line-of-sight reconstructed fibercollided mock catalogs 
+        (using cosmolopy). The line-of-sight reconstructed mocks are constructed
+        from the fibercollided mocks. This is an advantage since in actual analyses
+        only the fiber collided galaxy catalogs are available. 
+        ''' 
 
         catdict = (self.cat_corr)['catalog']
         corrdict = (self.cat_corr)['correction']
@@ -69,24 +76,22 @@ class DlospeakCorr(Corrections):
         
         # survey redshift limits  
         survey_zmin, survey_zmax = self.survey_zlimits()  
-
-        survey_comdis_min = cosmos.distance.comoving_distance( survey_zmin, **cosmo ) * cosmo['h']
-        survey_comdis_max = cosmos.distance.comoving_distance( survey_zmax, **cosmo ) * cosmo['h']
+        # survey comoving distance limits
+        survey_comdis_min = cosmos.distance.comoving_distance(survey_zmin, **cosmo ) * cosmo['h']
+        survey_comdis_max = cosmos.distance.comoving_distance(survey_zmax, **cosmo ) * cosmo['h']
     
         # spline interpolation function hardcoded here 
-        # to make it faster
+        # to make comdis to z conversions faster
         z_arr = np.arange(0.0, 1.01, 0.01)
         dm_arr = cosmos.distance.comoving_distance(z_arr, **cosmo) * cosmo['h']
-        comdis2z = sp.interpolate.interp1d(dm_arr, z_arr, kind='cubic') 
+        comdis2z = sp.interpolate.interp1d(dm_arr, z_arr, kind='cubic')     # cubic spline
         
         # nbar(z) cubic spline interpolation, which is currently hardcoded
         # in the function temp_nbarz(). However, this should 
         # ultimately be edited so that it works for any catalog 
         # (currently only works for CMASS-like catalogs)
         if 'cmass' in catdict['name'].lower(): 
-
             nb_z, nb_nbar = temp_nbarz(self.cat_corr)
-
             nbarofz = sp.interpolate.interp1d(nb_z, nb_nbar, kind='cubic')       
 
         # upweight corrected galaxy catalog 
@@ -108,9 +113,7 @@ class DlospeakCorr(Corrections):
         for i_col, fc_col in enumerate(fc_mock_cols): 
             setattr(fc_mock, fc_col, fc_data[i_col])
 
-        fc_mock.upw_index = fc_mock.upw_index.astype(int)
-
-        upw = np.where(fc_mock.wfc > 1)         # upweighted
+        upw = np.where(fc_mock.wfc > 1)[0]         # upweighted
         collided = np.where(fc_mock.wfc == 0)[0]   # collided
         notcoll = np.where(fc_mock.wfc > 0)     # not collided
 
@@ -118,70 +121,133 @@ class DlospeakCorr(Corrections):
         
         # expected number of galaxies to be placed in the peak 
         # of the dLOS distribution based on the peak fraction 
-        n_peak_exp = int(
-                np.rint(f_peak * np.float(n_fcpair))
-                )
+        n_peak_exp = int(np.rint(f_peak * np.float(n_fcpair)))
+    
         if n_peak_exp > 0: 
-        
-            np.random.seed()
-            np.random.shuffle(collided)
+            if 'upw_index' in fc_mock.datacolumns():   
+                # if upweighted galaxy indicies are given in the data.
+                # This is the case for Nseries.  
+                fc_mock.upw_index = fc_mock.upw_index.astype(int)
 
-            i_peakcorr = collided[:n_peak_exp]  # indices of peak corrected galaxies
+                np.random.seed()
+                np.random.shuffle(collided)
 
-            fc_mock.wfc[i_peakcorr] += 1.0
-            for upw_index in fc_mock.upw_index[i_peakcorr]: 
-                fc_mock.wfc[upw_index] -= 1.0
-            
-            #fc_mock.ra[i_peakcorr] = fc_mock.ra[fc_mock.upw_index[i_peakcorr]]
-            #fc_mock.dec[i_peakcorr] = fc_mock.dec[fc_mock.upw_index[i_peakcorr]]
-            
-            # comoving distances of upweighted galaxies in fc pairs 
-            # that are going to be peakcorrected
-            comdis_upw_gal = cosmos.distance.comoving_distance(
-                    fc_mock.zupw[i_peakcorr], **cosmo) * cosmo['h']
-            
-            # sampled dLOS values from best-fit functional form of 
-            # dLOS peak distribution
-            if corrdict['fit'] == 'gauss': 
-                dlos_pdf = norm(loc = 0.0, scale = corrdict['sigma'])
-                d_samples = dlos_pdf.rvs(n_peak_exp)
+                # indices of collided galaxies to be peak corrected  
+                i_peakcorr = collided[:n_peak_exp]  
+                fc_mock.wfc[i_peakcorr] += 1.0
+                # downweight the galaxies that were upweighted
+                for upw_index in fc_mock.upw_index[i_peakcorr]: 
+                    fc_mock.wfc[upw_index] -= 1.0
+
+                #fc_mock.ra[i_peakcorr] = fc_mock.ra[fc_mock.upw_index[i_peakcorr]]
+                #fc_mock.dec[i_peakcorr] = fc_mock.dec[fc_mock.upw_index[i_peakcorr]]
+                
+                # comoving distances of upweighted galaxies in fc pairs 
+                # that are going to be peakcorrected
+                comdis_upw_gal = cosmos.distance.comoving_distance(
+                        fc_mock.zupw[i_peakcorr], **cosmo) * cosmo['h']
+                
+                # sampled dLOS values from best-fit functional form of 
+                # dLOS peak distribution
+                if corrdict['fit'] == 'gauss': 
+                    dlos_pdf = norm(loc = 0.0, scale = corrdict['sigma'])
+                    d_samples = dlos_pdf.rvs(n_peak_exp)
+                else: 
+                    dlos_pdf = expon(loc = 0.0, scale = corrdict['sigma'])
+                    d_samples = dlos_pdf.rvs(size = n_peak_exp)     # only generates positive values
+                    neg_indices = np.random.choice(np.arange(0, n_peak_exp, 1), size = int(np.rint(np.float(n_peak_exp)/2.)), 
+                            replace = False)
+                    d_samples[neg_indices] *= -1.0
+                
+                # account for peak correction that places galaxies out of bound. 
+                outofbounds = np.where( 
+                        (comdis_upw_gal + d_samples > survey_comdis_max) |
+                        (comdis_upw_gal + d_samples < survey_comdis_min)
+                        )
+
+                if len(outofbounds[0]) > 0: 
+                    d_samples[outofbounds] *= -1.0
+                            
+                collided_z = comdis2z(comdis_upw_gal + d_samples)
+                
+                fc_mock.z[i_peakcorr] = collided_z
+
+                if 'cmass' in catdict['name'].lower():
+                    fc_mock.nbar[i_peakcorr] = nbarofz(collided_z)
+
+                data_cols = self.datacolumns()
+
+                data_list = []  
+                for data_col in data_cols: 
+                    new_col = getattr(fc_mock, data_col)
+                    data_list.append(new_col)
+
             else: 
-                dlos_pdf = expon(loc = 0.0, scale = corrdict['sigma'])
-                d_samples = dlos_pdf.rvs(size = n_peak_exp)     # only generates positive values
-                neg_indices = np.random.choice(np.arange(0, n_peak_exp, 1), size = int(np.rint(np.float(n_peak_exp)/2.)), 
-                        replace = False)
-                d_samples[neg_indices] *= -1.0
-            
-            # account for peak correction that places galaxies out of bound. 
-            outofbounds = np.where( 
-                    (comdis_upw_gal + d_samples > survey_comdis_max) |
-                    (comdis_upw_gal + d_samples < survey_comdis_min)
-                    )
+                # upweighted galaxy index not included in the data. 
+                # in that case take n_peak_exp of the upweighted galaxies
+                # and downweight them 
+                np.random.seed()
+                np.random.shuffle(upw)
 
-            if len(outofbounds[0]) > 0: 
-                d_samples[outofbounds] *= -1.0
-                        
-            collided_z = comdis2z(comdis_upw_gal + d_samples)
-            
-            fc_mock.z[i_peakcorr] = collided_z
+                # indices of upweighted galaxies to be downweighted
+                i_peakcorr = upw[:n_peak_exp]  
+                fc_mock.wfc[i_peakcorr] -= 1.0
+                
+                # comoving distances of upweighted galaxies in fc pairs 
+                # that are going to be peakcorrected
+                comdis_upw_gal = cosmos.distance.comoving_distance(
+                        fc_mock.z[i_peakcorr], **cosmo) * cosmo['h']
+                
+                # sampled dLOS values from best-fit functional form of 
+                # dLOS peak distribution
+                if corrdict['fit'] == 'gauss': 
+                    dlos_pdf = norm(loc = 0.0, scale = corrdict['sigma'])
+                    d_samples = dlos_pdf.rvs(n_peak_exp)
+                else: 
+                    dlos_pdf = expon(loc = 0.0, scale = corrdict['sigma'])
+                    d_samples = dlos_pdf.rvs(size = n_peak_exp) # only generates positive values
+                    neg_indices = np.random.choice(
+                            np.arange(0, n_peak_exp, 1), 
+                            size=int(np.rint(np.float(n_peak_exp)/2.)), 
+                            replace = False)
+                    d_samples[neg_indices] *= -1.0
+                
+                # account for peak correction that places galaxies out of bound. 
+                outofbounds = np.where( 
+                        (comdis_upw_gal + d_samples > survey_comdis_max) |
+                        (comdis_upw_gal + d_samples < survey_comdis_min)
+                        )
+                if len(outofbounds[0]) > 0: 
+                    d_samples[outofbounds] *= -1.0
 
-            if 'cmass' in catdict['name'].lower():
-                fc_mock.nbar[i_peakcorr] = nbarofz(collided_z)
+                # redshift after displacement
+                collided_z = comdis2z(comdis_upw_gal + d_samples)
+                
+                data_list = []  
+                for data_col in self.datacolumns(): 
+                    if data_col in ('ra', 'dec', 'wfc', 'comp'): 
+                        # for these columns, the displaced galaxy 
+                        # has the same values 
+                        new_col = np.concatenate([
+                            getattr(fc_mock, data_col), 
+                            getattr(fc_mock, data_col)[i_peakcorr]
+                            ])
+                    elif data_col in ('z'): 
+                        new_col = np.concatenate([
+                            getattr(fc_mock, data_col), 
+                            collided_z
+                            ])
+                    else: 
+                        raise NotImplementedError
+
+                    data_list.append(new_col)
         else: 
             d_samples = []
-        
+            
         print n_peak_exp, ' Galaxies were peak corrected'
 
-        data_cols = self.datacolumns()
         data_fmts = self.datacols_fmt()
         data_hdrs = self.datacols_header()
-
-        data_list = []  
-        for data_col in data_cols: 
-            
-            new_col = getattr(fc_mock, data_col)
-
-            data_list.append(new_col)
 
         # write to corrected data to file 
         output_file = self.file()

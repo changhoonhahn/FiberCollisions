@@ -10,7 +10,7 @@ import os
 from util.direc import direc
 from corrections import Corrections
 from fibcollided import UpweightCorr 
-from defutility.fitstables import mrdfits
+from ChangTools.fitstables import mrdfits
 
 class PhotozCorr(Corrections): 
 
