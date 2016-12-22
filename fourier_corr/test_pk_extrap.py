@@ -4,12 +4,14 @@ plotting for pk_extrap
 '''
 import pickle
 import numpy as np
+import matplotlib.pyplot as plt
 
+import delP
 import pk_extrap 
 from defutility.plotting import prettyplot 
 from defutility.plotting import prettycolors 
 
-def plot_avg_Plk(l, n_mocks, Ngrid=360, yscale='linear', **kwargs): 
+def plot_avg_Plk(l, yscale='linear', **kwargs): 
     '''
     Plot average P_l(k)
     '''
@@ -26,14 +28,14 @@ def plot_avg_Plk(l, n_mocks, Ngrid=360, yscale='linear', **kwargs):
     sub = fig.add_subplot(111)
 
     for l_i in ls: 
-        k_i, plk_i = pk_extrap.average_Pk(l_i, n_mocks, Ngrid=Ngrid)
+        k_i, plk_i = delP.average_Plk(l_i, fold=10, rebin=50)
         
-        sub.plot(k_i, plk_i, label=r"$l = "+str(l_i)+"$", c=pretty_colors[l_i+1], lw=4)
+        sub.plot(k_i, plk_i, label=r"$l = "+str(l_i)+"$", c=pretty_colors[(l_i+1)%19], lw=4)
     
     if 'xrange' in kwargs.keys(): 
         sub.set_xlim(kwargs['xrange'])
     else:
-        sub.set_xlim([1e-3, 1.0])
+        sub.set_xlim([1e-3, 10.0])
 
     if 'yrange' in kwargs.keys(): 
         sub.set_ylim(kwargs['yrange'])
@@ -52,8 +54,9 @@ def plot_avg_Plk(l, n_mocks, Ngrid=360, yscale='linear', **kwargs):
     sub.legend(loc='upper right')
 
     fig_file = ''.join([
-        'qaplot_avgP', ''.join([str(l_i) for l_i in l]), 'k_',
-        'Ngrid', str(Ngrid), '.png'
+        'figure/',
+        'qaplot_avgP', ''.join([str(l_i) for l_i in l]), 'k',
+        '.png'
         ])
     fig.savefig(fig_file, bbox_inches='tight')
     #plt.show()
@@ -298,13 +301,13 @@ def plot_avg_Pkfast_test(**kwargs):
 
 if __name__=="__main__":
     #plot_avg_P4k_comp(10, Ngrid=720)
-    
-    for l_i in [0, 2, 4]:
-        plot_avg_Plk_extrap(
-                [l_i], 
-                10, 
-                Ngrid=960, 
-                k_fixed=0.6, 
-                k_max=np.arange(0.6, 0.85, 0.05),
-                xrange=[0.1, 1.0], yrange=[10.**0., 10.**5.]
-                )
+    plot_avg_Plk([0, 2, 4, 20], xrange=[10**-3, 50], yscale='log')
+    #for l_i in [0, 2, 4]:
+    #    plot_avg_Plk_extrap(
+    #            [l_i], 
+    #            10, 
+    #            Ngrid=960, 
+    #            k_fixed=0.6, 
+    #            k_max=np.arange(0.6, 0.85, 0.05),
+    #            xrange=[0.1, 1.0], yrange=[10.**0., 10.**5.]
+    #            )

@@ -3,6 +3,7 @@
 Fourier transform of 2PCF top hat Fiber collision Correction 
 
 '''
+import os
 import time
 import pickle
 import numpy as np
@@ -15,92 +16,251 @@ from scipy.special import jv
 from scipy.integrate import quad as quad_int 
 from scipy.interpolate import interp1d
 
-import pk_extrap 
+# --- Local --- 
+from p_k_mu import delPcorr_pkmu_file
+from p_k_mu import delPcorr_pkmu_save
 
-def delP_uncorr(k, l, fs=1.0, rc=0.4):
+
+
+
+def DelPuncorr(ell, fs=0.6, rc=0.43, k_arr=None, clobber=False): 
+    ''' Uncorrelated Del P term of the tophat convolution correction. Returns list with 
+    k values and Del P^uncorr
+    
+    Parameters
+    ----------
+    ell : int
+        Specify the multipole. l = 0, 2 for monopole and quadrupole respectively. 
+
+    fs : float
+        Fraction of the survey that suffers from fiber collisions. 0 < fs < 1. 
+        fs = 0.6 for Nseries and CMASS tiling. 
+
+    rc : float
+        Comoving physical scale of the fiber collision angular scale. 
+
+    k_arr : ndarray (optional) 
+        Array specifying the k values. The code is fast enough that this feature 
+        should be utilized
+
+    clobber : bool
+        Boolean that specifies whether to remake the DelP^uncorr pickle file.  
     '''
-    Fiber collision correction term to Powerspectrum multipole l. The uncorrelated term.
+    uncorr_file = ''.join([
+        '/mount/riachuelo1/hahn/power/Nseries/Box/',
+        'uncorrdelP', str(ell), 'k', 
+        '.fs', str(round(fs,2)), 
+        '.rc', str(round(rc,2)), 
+        '.p'
+        ])
 
-    delP_uncorr(k)_l = - (2 pi f_s) (pi rc^2) (2 l + 1)/2 Leg_l(0) W_2d(k*rc)/k
+    if os.path.isfile(uncorr_file) and not clobber and k_arr is None: 
+        k, delp = pickle.load(open(uncorr_file, 'rb'))  
+    else: 
+        if k_arr is None: 
+            # if k values are not specified then take k values from arbitrary 
+            # Nseries P(k) quadrupole 
+            pk_file = ''.join([
+                '/mount/riachuelo1/hahn/power/Nseries/', 
+                'POWER_Q_CutskyN1.fidcosmo.dat.grid960.P020000.box3600'])
+            k = np.loadtxt(true_pk_file, unpack = True, usecols =[0])
+        else: 
+            k = k_arr 
+        delp = DelPuncorr_k(
+                k,                  # k 
+                ell,                # ell 
+                fs=fs,              # fs
+                rc=rc               # rc
+                )
 
+        if clobber: 
+            pickle.dump([k, delp], open(uncorr_file, 'wb'))
+
+    return [k, delp]
+
+def DelPuncorr_k(k, l, fs=1.0, rc=0.4):
+    ''' The uncorrelated term of the tophat convolved Del P as a function of k. The term 
+    is computed as below: 
+
+    Del P_uncorr(k)_l = - (2 pi f_s) (pi rc^2) (2 l + 1)/2 Leg_l(0) W_2d(k*rc)/k
+
+    Parameters
+    ----------
+    k : float 
+        k value to evaluate Del P^uncorr_l(k)
+    l : int
+        Monopole (l=0) or quadrupole (l=2) 
+    fs : float
+        The fraction of the survey that suffers from fiber collisions. fs = 0.6 for 
+        Nseries and CMASS.
+    rc : float
+        The comoving physical scale of the fiber collision angule. At redshift z = 0.55
+        rc = 0.43. (This is one of the key assumptions of the correction method). 
     '''
     leg_l = legendre(l)
-
     alpha = -1.0 * np.pi**2 * rc**2 * fs 
-
     delP = alpha * (2.*np.float(l)+1) * leg_l(0) * W_2d(k*rc)/k
 
     return delP
 
-def delP_corr(k, Pk, l, fs=1.0, rc=0.4, extrap_params=[[3345.0, -1.6], [400.0, -4.]], k_fixed=None, lp_comp=False, noextrap=False): 
+def DelPcorr_pkmu(ell, fs=0.6, rc=0.43, fold=10, rebin=20, clobber=False, Nthreads=1, 
+        dqdmu=True, dmudq=False, ktrust=None):
+    ''' Correlated Del P term of the top hat convolution correction calculated from the 
+    Nseries Box P(k, mu).
+
+    Parameters
+    ----------
+    ell : int
+        Specify the multipole. l = 0, 2 for monopole and quadrupole respectively. 
+
+    fs : float
+        Fraction of the survey that suffers from fiber collisions. 0 < fs < 1. 
+        fs = 0.6 for Nseries and CMASS tiling. 
+
+    rc : float
+        Comoving physical scale of the fiber collision angular scale. 
+
+    fold : int 
+        Number of folds in the Nseries box for P(k, mu) at extended k_max.
+
+    rebin : int 
+        Number of k bins for k > 0.1. The P(k, mu) is rebinned once the folded 
+        P(k, mu) is included to reduce the noise. 
+
+    clobber : bool
+        Boolean that specifies whether to remake the DelP^uncorr pickle file.  
+
+    Nthreads : int (optional)
+        If clobber is True, Nthreads specifies the number of threads to used when 
+        recomputing the DelP^corr from P(k, mu). Because it's a 2D integral, 
+        multiple threads is recommended. The 2D integral is computed using  
+        multiprocessing. 
+
+    dqdmu : bool
+        If True, the 2D integral is computed dq first then dmu later. Only dqdmu 
+        or only dmudq can be true simultaneously. 
+
+    dmudq : bool
+        If True, the 2D integral is computed dmu first then dq later. Only dqdmu 
+        or only dmudq can be true simultaneously. 
+
+    ktrust : float (optional)
+        
     '''
-    Fiber collision correction term to Powerspectrum multipole l. The correlated term.
-    
-    delP_corr(k)_l = - (2 pi f_s) (2 pi^2 rc^2) Sum_l' [int^inf_0 q Pl'(q) f_ll'(q*rc,k*rc) dq]
-    
-    Leg_l(0) W_2d(k*rc)/k
+    corr_file = delPcorr_pkmu_file(ell, fs=fs, rc=rc, fold=fold, rebin=rebin, Ngrid=3600, 
+            dqdmu=dqdmu, dmudq=dmudq, ktrust=ktrust) 
 
-    extrap_params : [[alpha_0, n_0], [alpha_2, n_2], [alpha_4, n_4]]
+    if not os.path.isfile(corr_file) or clobber: 
+        # compute Del P^corr from P(k, mu) 
+        delPcorr_pkmu_save(ell, fs=fs, rc=rc, fold=fold, rebin=rebin, Ngrid=3600, 
+                Nthreads=Nthreads)
 
+    k, delp = pickle.load(open(corr_file, 'rb'))
+
+    return [k, delp]
+
+def DelPcorr_untrust_poly(k, ell=0, ktrust=0.3, order='all', fs=0.6, rc=0.43, fold=10, rebin=20, 
+        max_order=10):
+    ''' The untrusted portion of Del P^corr(k) calculated from polynomial expansion 
     '''
+        
+    fold_str = ''
+    if fold: 
+        fold_str = ''.join([
+            '.', str(fold), 'fold', 
+            '.', str(rebin), 'rebin'
+            ])
+    coeff_file = ''.join([
+        '/mount/riachuelo1/hahn/power/Nseries/Box/', 
+        'k^n_coeff.corrDelP_ktrust_qmax',
+        '.ell', str(ell), 
+        '.ktrust', str(round(ktrust,2)), 
+        '.rc', str(round(rc,2)), 
+        '.fs', str(round(fs,2)),
+        fold_str, 
+        '.order', str(max_order),
+        '.dat'])
 
-    alpha = -0.5 * fs * rc**2       # this is to deal with the normalization 
+    n_k, n_coeff = np.loadtxt(coeff_file, unpack=True, skiprows=1, usecols=[0, 1])
+
+    if order == 'all': 
+        n_k_list = n_k 
+        coeff_list = n_coeff
+
+        poly = [coeff_list[ii] * k**n_k_list[ii] for ii in range(len(n_k_list))]
+
+        return np.sum(np.vstack(np.array(poly)).T, axis=1)
+    elif 'upto' in order: 
+        n_order = np.where(n_k <= int(order.rsplit('upto')[-1])) 
+        n_k_list = n_k[n_order]
+        coeff_list = n_coeff[n_order]
+
+        poly = [coeff_list[ii] * k**n_k_list[ii] for ii in range(len(n_k_list))]
+        
+        return np.sum(np.vstack(np.array(poly)).T, axis=1)
+    else: 
+        n_order = np.where(n_k == order)
+        if len(n_order[0]) != 1: 
+            raise ValueError
+        return n_coeff[n_order] * k**order
+
+def delP_corr_qrange(k, Pk, l, q_min=None, q_max=None, fs=1.0, rc=0.4, lp_comp=False): 
+    '''
+    Fiber collision correction term to Powerspectrum multipole l integrated
+    over the q range [q_min, q_max]. The correlated term:
+    
+    delP_corr(k)_l = alpha * Sum_l' [int^qmax_qmin q P_l'(q) f_l,l'(q*rc,k*rc) dq]
+    
+    where alpha = - fs * rc^2/2 
+    '''
+    if q_min is None: 
+        raise ValueError
+    if q_max is None:
+        raise ValueError
+    if q_max > k[-1]: 
+        raise ValueError
+    if q_min < k[0]: 
+        raise ValueError
+
+    alpha = -0.5 * fs * rc**2
 
     if not isinstance(Pk, list): 
-        raise ValueError('Pk input has to be a list containing the multipoles. e.g. [P0k, P2k, P4k]')
-
-    if len(Pk) != len(extrap_params): 
-        raise ValueError('Extrapolation parameters need to be specified for each multipole') 
+        raise ValueError(
+                'Pk input has to be a list containing the multipoles. e.g. [P0k, P2k, P4k]')
     
-    lvalues = [0,2,4,6,8, 10, 12, 14]
+    lvalues = [0, 2, 4, 6, 8, 10, 12, 14]
 
     sum_delP = np.zeros(len(k))
     
     if lp_comp: 
         lps, delPlp = [], [] 
-    if noextrap: 
-        print 'no extrapolation'
 
     for i_lp, lp in enumerate(lvalues[:len(Pk)]):
         print 'delP^corr( l = ', l, ", l'= ", lp, ')'
+
         # Cubic Spline interpolated function of P(k)
         Pk_interp = interp1d(k, Pk[i_lp], kind='cubic')
-
-        # Extrapolated power law for P(k) k > k_max
-        Pk_kplus_extrap = lambda q_or_k: \
-                pk_extrap.pk_powerlaw(
-                        q_or_k, 
-                        extrap_params[i_lp], 
-                        k_fixed=k_fixed
-                        )
 
         delP = np.zeros(len(k))
 
         # loop through k values and evaluate delta P for all ks 
         for i_k, k_i in enumerate(k): 
-
             dPq_integrand = lambda q_var: delPq_integrand(
                     q_var, 
                     k_i, 
                     l, 
                     lp, 
                     Pk_interp, 
-                    Pk_kplus_extrap, 
+                    None, 
                     rc=rc, 
                     k_min=k[0], 
                     k_max=k[-1], 
-                    noextrap=noextrap
+                    noextrap=True
                     )
-            if not noextrap: 
-                delP_int, delP_int_err = quad_int(dPq_integrand, 0., np.inf, epsrel=0.01)
-            else: 
-                delP_int, delP_int_err = quad_int(dPq_integrand, 0., k[-1], epsrel=0.01)
+            delP_int, delP_int_err = quad_int(dPq_integrand, q_min, q_max, epsrel=0.01)
 
             delP[i_k] = alpha * delP_int
 
-        #print "delP(k) calculation takes ", time.time() - start_time 
-        #print 'l=', l, " l'=", int(lp)
-        #print delP 
         sum_delP += delP
          
         if lp_comp: 
@@ -238,37 +398,39 @@ def fllp_poly(l1_in, l2_in, x):
     '''
     Polygons for specific situations called by f_l_lp_est function
     '''
-
+    # l2 = 0 
     if (l1_in == 2) and (l2_in == 0): 
         return x**2 - 1.
     elif (l1_in == 4) and (l2_in == 0): 
         return (7./4.)*x**4 - (5./2.)*x**2 + 3./4.
-    elif (l1_in == 4) and (l2_in == 2): 
-        return x**4 - x**2
     elif (l1_in == 6) and (l2_in ==0): 
         return (33./8.)*x**6 - (63./8.)*x**4 + (35./8.)*x**2 - 5./8.
-    elif (l1_in == 6) and (l2_in == 2): 
-        return (11./4.)*x**6 - (9./2.)*x**4 + (7./4.)*x**2
-    elif (l1_in == 6) and (l2_in == 4): 
-        return x**6 - x**4
     elif (l1_in == 8) and (l2_in == 0): 
         # Poly(8,0,x) = 35/64 - (105 x^2)/16 + (693 x^4)/32 - (429 x^6)/16 + (715 x^8)/64
         return (715./64.)*x**8 - (429./16.)*x**6 + (693./32.)*x**4 - (105./16.)*x**2 + 35./64. 
+    elif (l1_in == 10) and (l2_in == 0): 
+        # Poly(10,0,x) =  -(63/128) + (1155 x^2)/128 - (3003 x^4)/64 + (6435 x^6)/64 - (12155 x^8)/128 + (4199 x^10)/128
+        return (4199./128.)*x**10 - (12155./128.)*x**8 + (6435./64.)*x**6 - (3003./64.)*x**4 + (1155./128.)*x**2 - 63./128.
+        # l2 = 2
+    elif (l1_in == 4) and (l2_in == 2): 
+        return x**4 - x**2
+    elif (l1_in == 6) and (l2_in == 2): 
+        return (11./4.)*x**6 - (9./2.)*x**4 + (7./4.)*x**2
     elif (l1_in == 8) and (l2_in == 2): 
         # Poly(8,2,x) = -((21 x^2)/8) + (99 x^4)/8 - (143 x^6)/8 + (65 x^8)/8
         return (65./8.)*x**8 - (143./8.)*x**6 + (99./8.)*x**4 - (21./8.)*x**2
+    elif (l1_in == 10) and (l2_in == 2): 
+        # Poly(10,2,x) =  (231 x^2)/64 - (429 x^4)/16 + (2145 x^6)/32 - (1105 x^8)/16 + (1615 x^10)/64
+        return (1615./64.)*x**10 - (1105./16.)*x**8 + (2145./32.)*x**6 - (429./16.)*x**4 + (231./64.)*x**2
+
+    elif (l1_in == 6) and (l2_in == 4): 
+        return x**6 - x**4
     elif (l1_in == 8) and (l2_in == 4): 
         # Poly(8,4,x) =  (11 x^4)/4 - (13 x^6)/2 + (15 x^8)/4
         return (15./4.)*x**8 - (13./2.)*x**6 + (11./4.)*x**4
     elif (l1_in == 8) and (l2_in == 6): 
         # Poly(8,6,x) =  -x^6 + x^8
         return x**8 - x**6
-    elif (l1_in == 10) and (l2_in == 0): 
-        # Poly(10,0,x) =  -(63/128) + (1155 x^2)/128 - (3003 x^4)/64 + (6435 x^6)/64 - (12155 x^8)/128 + (4199 x^10)/128
-        return (4199./128.)*x**10 - (12155./128.)*x**8 + (6435./64.)*x**6 - (3003./64.)*x**4 + (1155./128.)*x**2 - 63./128.
-    elif (l1_in == 10) and (l2_in == 2): 
-        # Poly(10,2,x) =  (231 x^2)/64 - (429 x^4)/16 + (2145 x^6)/32 - (1105 x^8)/16 + (1615 x^10)/64
-        return (1615./64.)*x**10 - (1105./16.)*x**8 + (2145./32.)*x**6 - (429./16.)*x**4 + (231./64.)*x**2
     elif (l1_in == 10) and (l2_in == 4): 
         # Poly(10,4,x) =  -((143 x^4)/24) + (195 x^6)/8 - (255 x^8)/8 + (323 x^10)/24
         return (323./24.)*x**10 - (255./8.)*x**8 + (195./8.)*x**6 - (143./24.)*x**4
@@ -331,15 +493,96 @@ def J2(x):
     return jv(2, x)
 
 """
-    def W_1d(x,y): 
+    def delP_corr(k, Pk, l, fs=1.0, rc=0.4, extrap_params=[[3345.0, -1.6], [400.0, -4.]], k_fixed=None, lp_comp=False, noextrap=False): 
         '''
-        W_1d(x,y) = int^2pi_0 W_2D(sqrt(x^2 + y^2 - 2xy cos(phi))) dphi/2pi
-        '''
-        integrand = lambda phi: W_2d( np.sqrt(x**2 + y**2 - 2*x*y*np.cos(phi)) )
-
-        output = 1./(2.*np.pi) * quad_int(integrand, 0., 2.0 * np.pi, epsrel=0.05)[0]
+        Fiber collision correction term to Powerspectrum multipole l. The correlated term.
         
-        return output
+        delP_corr(k)_l = - (2 pi f_s) (2 pi^2 rc^2) Sum_l' [int^inf_0 q Pl'(q) f_ll'(q*rc,k*rc) dq]
+        
+        Leg_l(0) W_2d(k*rc)/k
+
+        extrap_params : [[alpha_0, n_0], [alpha_2, n_2], [alpha_4, n_4]]
+
+        '''
+
+        alpha = -0.5 * fs * rc**2       # this is to deal with the normalization 
+
+        if not isinstance(Pk, list): 
+            raise ValueError('Pk input has to be a list containing the multipoles. e.g. [P0k, P2k, P4k]')
+
+        if len(Pk) != len(extrap_params): 
+            raise ValueError('Extrapolation parameters need to be specified for each multipole') 
+        
+        lvalues = [0,2,4,6,8, 10, 12, 14]
+
+        sum_delP = np.zeros(len(k))
+        
+        if lp_comp: 
+            lps, delPlp = [], [] 
+        if noextrap: 
+            print 'no extrapolation'
+
+        for i_lp, lp in enumerate(lvalues[:len(Pk)]):
+            print 'delP^corr( l = ', l, ", l'= ", lp, ')'
+            # Cubic Spline interpolated function of P(k)
+            Pk_interp = interp1d(k, Pk[i_lp], kind='cubic')
+
+            # Extrapolated power law for P(k) k > k_max
+            Pk_kplus_extrap = lambda q_or_k: \
+                    pk_extrap.pk_powerlaw(
+                            q_or_k, 
+                            extrap_params[i_lp], 
+                            k_fixed=k_fixed
+                            )
+
+            delP = np.zeros(len(k))
+
+            # loop through k values and evaluate delta P for all ks 
+            for i_k, k_i in enumerate(k): 
+
+                dPq_integrand = lambda q_var: delPq_integrand(
+                        q_var, 
+                        k_i, 
+                        l, 
+                        lp, 
+                        Pk_interp, 
+                        Pk_kplus_extrap, 
+                        rc=rc, 
+                        k_min=k[0], 
+                        k_max=k[-1], 
+                        noextrap=noextrap
+                        )
+                if not noextrap: 
+                    delP_int, delP_int_err = quad_int(dPq_integrand, 0., np.inf, epsrel=0.01)
+                else: 
+                    delP_int, delP_int_err = quad_int(dPq_integrand, 0., k[-1], epsrel=0.01)
+
+                delP[i_k] = alpha * delP_int
+
+            #print "delP(k) calculation takes ", time.time() - start_time 
+            #print 'l=', l, " l'=", int(lp)
+            #print delP 
+            sum_delP += delP
+             
+            if lp_comp: 
+                lps.append(lp)
+                delPlp.append(delP)
+
+        if lp_comp: 
+            return [lps, delPlp]
+        else:  
+            return sum_delP 
+
+
+        def W_1d(x,y): 
+            '''
+            W_1d(x,y) = int^2pi_0 W_2D(sqrt(x^2 + y^2 - 2xy cos(phi))) dphi/2pi
+            '''
+            integrand = lambda phi: W_2d( np.sqrt(x**2 + y**2 - 2*x*y*np.cos(phi)) )
+
+            output = 1./(2.*np.pi) * quad_int(integrand, 0., 2.0 * np.pi, epsrel=0.05)[0]
+            
+            return output
 
     # Specific cases of delP_corr  ----
     def delP_corr_noextrap(k, Pk, l, fs=1.0, rc=0.4): 
